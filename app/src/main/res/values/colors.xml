@@ -7,4 +7,9 @@
 <color name="m3_on_surface">#1D1B20</color>
 <color name="m3_divider">#E6E6E6</color>
 <color name="m3_error">#B3261E</color>
+<color name="black">#000000</color>
+<color name="white">#FFFFFF</color>
+<color name="dark_gray">#333333</color>
+<color name="colorPrimary">#3F51B5</color>
+<color name="gray_666">#999999</color>
 </resources>

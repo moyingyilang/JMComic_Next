@@ -4,25 +4,46 @@ package com.jmcomic_next.lyqs.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.Switch;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.viewbinding.ViewBinding;
+import androidx.viewbinding.ViewBindings;
 import com.jmcomic_next.lyqs.R;
 import java.lang.NullPointerException;
 import java.lang.Override;
+import java.lang.String;
 
 public final class FragmentSettingBinding implements ViewBinding {
   @NonNull
-  private final FrameLayout rootView;
+  private final LinearLayout rootView;
 
-  private FragmentSettingBinding(@NonNull FrameLayout rootView) {
+  @NonNull
+  public final LinearLayout llAboutApp;
+
+  @NonNull
+  public final LinearLayout llClearCache;
+
+  @NonNull
+  public final LinearLayout llImgQuality;
+
+  @NonNull
+  public final Switch switchNight;
+
+  private FragmentSettingBinding(@NonNull LinearLayout rootView, @NonNull LinearLayout llAboutApp,
+      @NonNull LinearLayout llClearCache, @NonNull LinearLayout llImgQuality,
+      @NonNull Switch switchNight) {
     this.rootView = rootView;
+    this.llAboutApp = llAboutApp;
+    this.llClearCache = llClearCache;
+    this.llImgQuality = llImgQuality;
+    this.switchNight = switchNight;
   }
 
   @Override
   @NonNull
-  public FrameLayout getRoot() {
+  public LinearLayout getRoot() {
     return rootView;
   }
 
@@ -43,10 +64,38 @@ public final class FragmentSettingBinding implements ViewBinding {
 
   @NonNull
   public static FragmentSettingBinding bind(@NonNull View rootView) {
-    if (rootView == null) {
-      throw new NullPointerException("rootView");
-    }
+    // The body of this method is generated in a way you would not otherwise write.
+    // This is done to optimize the compiled bytecode for size and performance.
+    int id;
+    missingId: {
+      id = R.id.ll_about_app;
+      LinearLayout llAboutApp = ViewBindings.findChildViewById(rootView, id);
+      if (llAboutApp == null) {
+        break missingId;
+      }
 
-    return new FragmentSettingBinding((FrameLayout) rootView);
+      id = R.id.ll_clear_cache;
+      LinearLayout llClearCache = ViewBindings.findChildViewById(rootView, id);
+      if (llClearCache == null) {
+        break missingId;
+      }
+
+      id = R.id.ll_img_quality;
+      LinearLayout llImgQuality = ViewBindings.findChildViewById(rootView, id);
+      if (llImgQuality == null) {
+        break missingId;
+      }
+
+      id = R.id.switch_night;
+      Switch switchNight = ViewBindings.findChildViewById(rootView, id);
+      if (switchNight == null) {
+        break missingId;
+      }
+
+      return new FragmentSettingBinding((LinearLayout) rootView, llAboutApp, llClearCache,
+          llImgQuality, switchNight);
+    }
+    String missingId = rootView.getResources().getResourceName(id);
+    throw new NullPointerException("Missing required view with ID: ".concat(missingId));
   }
 }

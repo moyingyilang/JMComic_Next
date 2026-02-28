@@ -7,11 +7,12 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/Theme.JMComic_Next">
+        android:theme="@style/Theme.JMComic_Next"
+        android:name=".MyApplication">
 
-        <!-- 启动页 -->
+        <!-- 启动页：补全完整包名，你的SplashActivity在activity子包下！ -->
         <activity
-            android:name=".SplashActivity"
+            android:name=".activity.SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -19,10 +20,13 @@
             </intent-filter>
         </activity>
 
-        <!-- 首页 -->
+        <!-- 首页：MainActivity设为exported="true"（安卓12+强制），子Activity补全包名 -->
         <activity
             android:name=".MainActivity"
+            android:exported="true" />
+            
+        <activity
+            android:name=".activity.DetailActivity"
             android:exported="false" />
-        <activity android:name=".DetailActivity" />
     </application>
 </manifest>

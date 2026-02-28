@@ -4,9 +4,12 @@ package com.jmcomic_next.lyqs.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ScrollView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.viewbinding.ViewBinding;
 import androidx.viewbinding.ViewBindings;
 import androidx.viewpager2.widget.ViewPager2;
@@ -17,19 +20,42 @@ import java.lang.String;
 
 public final class FragmentHomeBinding implements ViewBinding {
   @NonNull
-  private final ScrollView rootView;
+  private final LinearLayout rootView;
 
   @NonNull
-  public final ViewPager2 viewPagerBanner;
+  public final LinearLayout llBannerIndicator;
 
-  private FragmentHomeBinding(@NonNull ScrollView rootView, @NonNull ViewPager2 viewPagerBanner) {
+  @NonNull
+  public final RecyclerView rvCategory;
+
+  @NonNull
+  public final RecyclerView rvComicList;
+
+  @NonNull
+  public final SwipeRefreshLayout srlHome;
+
+  @NonNull
+  public final TextView tvEmpty;
+
+  @NonNull
+  public final ViewPager2 vpBanner;
+
+  private FragmentHomeBinding(@NonNull LinearLayout rootView,
+      @NonNull LinearLayout llBannerIndicator, @NonNull RecyclerView rvCategory,
+      @NonNull RecyclerView rvComicList, @NonNull SwipeRefreshLayout srlHome,
+      @NonNull TextView tvEmpty, @NonNull ViewPager2 vpBanner) {
     this.rootView = rootView;
-    this.viewPagerBanner = viewPagerBanner;
+    this.llBannerIndicator = llBannerIndicator;
+    this.rvCategory = rvCategory;
+    this.rvComicList = rvComicList;
+    this.srlHome = srlHome;
+    this.tvEmpty = tvEmpty;
+    this.vpBanner = vpBanner;
   }
 
   @Override
   @NonNull
-  public ScrollView getRoot() {
+  public LinearLayout getRoot() {
     return rootView;
   }
 
@@ -54,13 +80,44 @@ public final class FragmentHomeBinding implements ViewBinding {
     // This is done to optimize the compiled bytecode for size and performance.
     int id;
     missingId: {
-      id = R.id.viewPager_banner;
-      ViewPager2 viewPagerBanner = ViewBindings.findChildViewById(rootView, id);
-      if (viewPagerBanner == null) {
+      id = R.id.ll_banner_indicator;
+      LinearLayout llBannerIndicator = ViewBindings.findChildViewById(rootView, id);
+      if (llBannerIndicator == null) {
         break missingId;
       }
 
-      return new FragmentHomeBinding((ScrollView) rootView, viewPagerBanner);
+      id = R.id.rv_category;
+      RecyclerView rvCategory = ViewBindings.findChildViewById(rootView, id);
+      if (rvCategory == null) {
+        break missingId;
+      }
+
+      id = R.id.rv_comic_list;
+      RecyclerView rvComicList = ViewBindings.findChildViewById(rootView, id);
+      if (rvComicList == null) {
+        break missingId;
+      }
+
+      id = R.id.srl_home;
+      SwipeRefreshLayout srlHome = ViewBindings.findChildViewById(rootView, id);
+      if (srlHome == null) {
+        break missingId;
+      }
+
+      id = R.id.tv_empty;
+      TextView tvEmpty = ViewBindings.findChildViewById(rootView, id);
+      if (tvEmpty == null) {
+        break missingId;
+      }
+
+      id = R.id.vp_banner;
+      ViewPager2 vpBanner = ViewBindings.findChildViewById(rootView, id);
+      if (vpBanner == null) {
+        break missingId;
+      }
+
+      return new FragmentHomeBinding((LinearLayout) rootView, llBannerIndicator, rvCategory,
+          rvComicList, srlHome, tvEmpty, vpBanner);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

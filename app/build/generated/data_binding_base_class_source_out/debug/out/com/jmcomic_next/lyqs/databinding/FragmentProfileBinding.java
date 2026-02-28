@@ -4,9 +4,9 @@ package com.jmcomic_next.lyqs.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.viewbinding.ViewBinding;
@@ -21,33 +21,52 @@ public final class FragmentProfileBinding implements ViewBinding {
   private final LinearLayout rootView;
 
   @NonNull
-  public final Button btnLogout;
-
-  @NonNull
   public final ImageView ivAvatar;
 
   @NonNull
-  public final LinearLayout llAbout;
+  public final LinearLayout llAchievement;
 
   @NonNull
   public final LinearLayout llCollect;
 
   @NonNull
-  public final LinearLayout llHistory;
+  public final LinearLayout llMailbox;
 
   @NonNull
-  public final LinearLayout llSetting;
+  public final LinearLayout llMessageRecord;
 
-  private FragmentProfileBinding(@NonNull LinearLayout rootView, @NonNull Button btnLogout,
-      @NonNull ImageView ivAvatar, @NonNull LinearLayout llAbout, @NonNull LinearLayout llCollect,
-      @NonNull LinearLayout llHistory, @NonNull LinearLayout llSetting) {
+  @NonNull
+  public final LinearLayout llSignIn;
+
+  @NonNull
+  public final LinearLayout llTagCollect;
+
+  @NonNull
+  public final LinearLayout llTrackSerial;
+
+  @NonNull
+  public final LinearLayout llWatchRecord;
+
+  @NonNull
+  public final TextView tvSetting;
+
+  private FragmentProfileBinding(@NonNull LinearLayout rootView, @NonNull ImageView ivAvatar,
+      @NonNull LinearLayout llAchievement, @NonNull LinearLayout llCollect,
+      @NonNull LinearLayout llMailbox, @NonNull LinearLayout llMessageRecord,
+      @NonNull LinearLayout llSignIn, @NonNull LinearLayout llTagCollect,
+      @NonNull LinearLayout llTrackSerial, @NonNull LinearLayout llWatchRecord,
+      @NonNull TextView tvSetting) {
     this.rootView = rootView;
-    this.btnLogout = btnLogout;
     this.ivAvatar = ivAvatar;
-    this.llAbout = llAbout;
+    this.llAchievement = llAchievement;
     this.llCollect = llCollect;
-    this.llHistory = llHistory;
-    this.llSetting = llSetting;
+    this.llMailbox = llMailbox;
+    this.llMessageRecord = llMessageRecord;
+    this.llSignIn = llSignIn;
+    this.llTagCollect = llTagCollect;
+    this.llTrackSerial = llTrackSerial;
+    this.llWatchRecord = llWatchRecord;
+    this.tvSetting = tvSetting;
   }
 
   @Override
@@ -77,21 +96,15 @@ public final class FragmentProfileBinding implements ViewBinding {
     // This is done to optimize the compiled bytecode for size and performance.
     int id;
     missingId: {
-      id = R.id.btn_logout;
-      Button btnLogout = ViewBindings.findChildViewById(rootView, id);
-      if (btnLogout == null) {
-        break missingId;
-      }
-
       id = R.id.iv_avatar;
       ImageView ivAvatar = ViewBindings.findChildViewById(rootView, id);
       if (ivAvatar == null) {
         break missingId;
       }
 
-      id = R.id.ll_about;
-      LinearLayout llAbout = ViewBindings.findChildViewById(rootView, id);
-      if (llAbout == null) {
+      id = R.id.ll_achievement;
+      LinearLayout llAchievement = ViewBindings.findChildViewById(rootView, id);
+      if (llAchievement == null) {
         break missingId;
       }
 
@@ -101,20 +114,51 @@ public final class FragmentProfileBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.ll_history;
-      LinearLayout llHistory = ViewBindings.findChildViewById(rootView, id);
-      if (llHistory == null) {
+      id = R.id.ll_mailbox;
+      LinearLayout llMailbox = ViewBindings.findChildViewById(rootView, id);
+      if (llMailbox == null) {
         break missingId;
       }
 
-      id = R.id.ll_setting;
-      LinearLayout llSetting = ViewBindings.findChildViewById(rootView, id);
-      if (llSetting == null) {
+      id = R.id.ll_message_record;
+      LinearLayout llMessageRecord = ViewBindings.findChildViewById(rootView, id);
+      if (llMessageRecord == null) {
         break missingId;
       }
 
-      return new FragmentProfileBinding((LinearLayout) rootView, btnLogout, ivAvatar, llAbout,
-          llCollect, llHistory, llSetting);
+      id = R.id.ll_sign_in;
+      LinearLayout llSignIn = ViewBindings.findChildViewById(rootView, id);
+      if (llSignIn == null) {
+        break missingId;
+      }
+
+      id = R.id.ll_tag_collect;
+      LinearLayout llTagCollect = ViewBindings.findChildViewById(rootView, id);
+      if (llTagCollect == null) {
+        break missingId;
+      }
+
+      id = R.id.ll_track_serial;
+      LinearLayout llTrackSerial = ViewBindings.findChildViewById(rootView, id);
+      if (llTrackSerial == null) {
+        break missingId;
+      }
+
+      id = R.id.ll_watch_record;
+      LinearLayout llWatchRecord = ViewBindings.findChildViewById(rootView, id);
+      if (llWatchRecord == null) {
+        break missingId;
+      }
+
+      id = R.id.tv_setting;
+      TextView tvSetting = ViewBindings.findChildViewById(rootView, id);
+      if (tvSetting == null) {
+        break missingId;
+      }
+
+      return new FragmentProfileBinding((LinearLayout) rootView, ivAvatar, llAchievement, llCollect,
+          llMailbox, llMessageRecord, llSignIn, llTagCollect, llTrackSerial, llWatchRecord,
+          tvSetting);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

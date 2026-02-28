@@ -2,19 +2,30 @@ package com.jmcomic_next.lyqs
 
 import android.os.Bundle
 import android.view.View
+import android.view.WindowInsetsController
 import android.widget.PopupMenu
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.jmcomic_next.lyqs.databinding.ActivityMainBinding
+import com.jmcomic_next.lyqs.fragment.CanteenFragment
+import com.jmcomic_next.lyqs.fragment.CategoryFragment
+import com.jmcomic_next.lyqs.fragment.DailyFragment
+import com.jmcomic_next.lyqs.fragment.DiscussFragment
+import com.jmcomic_next.lyqs.fragment.HomeFragment
+import com.jmcomic_next.lyqs.fragment.ProfileFragment
+import com.jmcomic_next.lyqs.fragment.SettingFragment
+import com.jmcomic_next.lyqs.fragment.VideoFragment
+import com.jmcomic_next.lyqs.manager.SourceManager
+import com.jmcomic_next.lyqs.network.ApiManager
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val APP_TITLE = "JMComic_Next"
-    
+    private var currentFragment: Fragment? = null
+
     fun setBottomNavSelected(id: Int) {
         binding.bottomNav.selectedItemId = id
-        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,7 +39,6 @@ class MainActivity : AppCompatActivity() {
             switchFragment(HomeFragment(), true)
         }
 
-        // 点击标题回首页
         binding.toolbar.setOnClickListener {
             switchFragment(HomeFragment(), true)
             binding.bottomNav.selectedItemId = R.id.nav_home
@@ -36,18 +46,15 @@ class MainActivity : AppCompatActivity() {
 
         binding.bottomNav.setOnItemSelectedListener {
             when (it.itemId) {
-                R.id.nav_home     -> switchFragment(HomeFragment(), true)
+                R.id.nav_home -> switchFragment(HomeFragment(), true)
                 R.id.nav_category -> switchFragment(CategoryFragment(), true)
-                R.id.nav_video    -> switchFragment(VideoFragment(), true)
-                R.id.nav_discuss  -> switchFragment(DiscussFragment(), true)
-                R.id.nav_profile  -> switchFragment(ProfileFragment(), false)
+                R.id.nav_video -> switchFragment(VideoFragment(), true)
+                R.id.nav_discuss -> switchFragment(DiscussFragment(), true)
+                R.id.nav_profile -> switchFragment(ProfileFragment(), false)
             }
             true
         }
 
-        // ======================
-        // 搜索按钮 + 缩放反馈
-        // ======================
         binding.btnSearch.setOnClickListener {
             it.animate()
                 .scaleX(0.85f)
@@ -60,13 +67,8 @@ class MainActivity : AppCompatActivity() {
                         .setDuration(100)
                         .start()
                 }.start()
-
-            toast("搜索")
         }
 
-        // ======================
-        // 三点按钮 + 缩放反馈 + 菜单动画
-        // ======================
         binding.btnMore.setOnClickListener { view ->
             view.animate()
                 .scaleX(0.85f)
@@ -83,7 +85,6 @@ class MainActivity : AppCompatActivity() {
             val popup = PopupMenu(this, view)
             popup.menuInflater.inflate(R.menu.more_options, popup.menu)
 
-            // 弹出动画
             try {
                 val field = PopupMenu::class.java.getDeclaredField("mPopup")
                 field.isAccessible = true
@@ -95,10 +96,32 @@ class MainActivity : AppCompatActivity() {
 
             popup.setOnMenuItemClickListener { item ->
                 when (item.itemId) {
-                    R.id.action_change_source -> { toast("换源"); true }
-                    R.id.action_canteen       -> { toast("食堂"); true }
-                    R.id.action_daily         -> { toast("每日"); true }
-                    R.id.action_setting       -> { switchFragment(SettingFragment(), true); true }
+                    R.id.action_change_source -> {
+                        val sourcePopup = PopupMenu(this, view)
+                        SourceManager.sourceList.forEachIndexed { index, source ->
+                            sourcePopup.menu.add(0, index, index, source.name)
+                        }
+                        sourcePopup.setOnMenuItemClickListener { sourceItem ->
+                            val source = SourceManager.sourceList[sourceItem.itemId]
+                            SourceManager.switchSource(source.id)
+                            ApiManager.updateRetrofit()
+                            true
+                        }
+                        sourcePopup.show()
+                        true
+                    }
+                    R.id.action_canteen -> {
+                        switchFragment(CanteenFragment(), true)
+                        true
+                    }
+                    R.id.action_daily -> {
+                        switchFragment(DailyFragment(), true)
+                        true
+                    }
+                    R.id.action_setting -> {
+                        switchFragment(SettingFragment(), true)
+                        true
+                    }
                     else -> false
                 }
             }
@@ -109,7 +132,7 @@ class MainActivity : AppCompatActivity() {
     private fun hideStatusBar() {
         window.insetsController?.hide(android.view.WindowInsets.Type.statusBars())
         window.insetsController?.systemBarsBehavior =
-            android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -118,12 +141,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun switchFragment(fragment: Fragment, showToolbar: Boolean) {
+        if (currentFragment?.javaClass == fragment.javaClass) return
         binding.toolbar.visibility = if (showToolbar) View.VISIBLE else View.GONE
         supportActionBar?.title = if (showToolbar) APP_TITLE else ""
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .commit()
+        val transaction = supportFragmentManager.beginTransaction()
+        currentFragment?.let { transaction.hide(it) }
+        if (!fragment.isAdded) {
+            transaction.add(R.id.fragment_container, fragment)
+        } else {
+            transaction.show(fragment)
+        }
+        transaction.commit()
+        currentFragment = fragment
     }
-
-    private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 }

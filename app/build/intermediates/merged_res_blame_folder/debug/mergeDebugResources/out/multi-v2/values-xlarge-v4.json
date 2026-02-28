@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.jmcomic_next.lyqs.app-mergeDebugResources-29:/values-xlarge-v4/values-xlarge-v4.xml",
+            "outputFile": "com.jmcomic_next.lyqs.app-mergeDebugResources-36:/values-xlarge-v4/values-xlarge-v4.xml",
             "map": [
                 {
                     "source": "/data/user/0/com.tom.rv2ide/files/home/.gradle/caches/9.0.0/transforms/5804efb95a6e60e13d4c98d72e8243f8/transformed/appcompat-1.6.1/res/values-xlarge-v4/values-xlarge-v4.xml",

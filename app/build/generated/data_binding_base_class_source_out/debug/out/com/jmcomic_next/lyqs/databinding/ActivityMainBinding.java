@@ -4,6 +4,7 @@ package com.jmcomic_next.lyqs.databinding;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -32,6 +33,9 @@ public final class ActivityMainBinding implements ViewBinding {
   public final ImageView btnSearch;
 
   @NonNull
+  public final FrameLayout flContainer;
+
+  @NonNull
   public final FragmentContainerView fragmentContainer;
 
   @NonNull
@@ -39,12 +43,13 @@ public final class ActivityMainBinding implements ViewBinding {
 
   private ActivityMainBinding(@NonNull ConstraintLayout rootView,
       @NonNull BottomNavigationView bottomNav, @NonNull ImageView btnMore,
-      @NonNull ImageView btnSearch, @NonNull FragmentContainerView fragmentContainer,
-      @NonNull MaterialToolbar toolbar) {
+      @NonNull ImageView btnSearch, @NonNull FrameLayout flContainer,
+      @NonNull FragmentContainerView fragmentContainer, @NonNull MaterialToolbar toolbar) {
     this.rootView = rootView;
     this.bottomNav = bottomNav;
     this.btnMore = btnMore;
     this.btnSearch = btnSearch;
+    this.flContainer = flContainer;
     this.fragmentContainer = fragmentContainer;
     this.toolbar = toolbar;
   }
@@ -94,6 +99,12 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
+      id = R.id.fl_container;
+      FrameLayout flContainer = ViewBindings.findChildViewById(rootView, id);
+      if (flContainer == null) {
+        break missingId;
+      }
+
       id = R.id.fragment_container;
       FragmentContainerView fragmentContainer = ViewBindings.findChildViewById(rootView, id);
       if (fragmentContainer == null) {
@@ -107,7 +118,7 @@ public final class ActivityMainBinding implements ViewBinding {
       }
 
       return new ActivityMainBinding((ConstraintLayout) rootView, bottomNav, btnMore, btnSearch,
-          fragmentContainer, toolbar);
+          flContainer, fragmentContainer, toolbar);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

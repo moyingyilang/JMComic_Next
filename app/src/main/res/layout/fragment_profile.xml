@@ -5,7 +5,7 @@
     android:orientation="vertical"
     android:background="@color/m3_surface">
 
-    <!-- 顶部个人信息栏【优化：降低高度，更紧凑】 -->
+    <!-- 顶部个人信息栏（保留优化版，简洁适配） -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="140dp"
@@ -24,13 +24,12 @@
             android:scaleType="centerCrop"
             android:background="@drawable/avatar_circle_bg"/>
 
-        <!-- 昵称+签名 右侧布局 -->
+        <!-- 昵称区域 -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:gravity="center_vertical"
             android:paddingLeft="16dp">
             <TextView
                 android:layout_width="wrap_content"
@@ -42,7 +41,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="我的漫画书架 →"
+                android:text="点击编辑个人信息"
                 android:textColor="@android:color/white"
                 android:textSize="12sp"
                 android:alpha="0.8"
@@ -50,7 +49,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 核心功能入口【优化：漫画APP高频项，5个入口更实用】 -->
+    <!-- 核心功能列表【严格按你的顺序排列：9个选项】 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -59,35 +58,7 @@
         android:background="@drawable/rounded_white_bg"
         android:elevation="2dp">
 
-        <!-- 我的书架【新增：漫画核心】 -->
-        <LinearLayout
-            android:id="@+id/ll_bookshelf"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:gravity="center_vertical"
-            android:paddingLeft="20dp"
-            android:paddingRight="20dp">
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="我的书架"
-                android:textSize="16sp"
-                android:textColor="@color/m3_on_surface"/>
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@drawable/ic_arrow_right"/>
-        </LinearLayout>
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/m3_divider"
-            android:layout_marginLeft="20dp"
-            android:layout_marginRight="20dp"/>
-
-        <!-- 我的收藏【保留】 -->
+        <!-- 1. 我的收藏 -->
         <LinearLayout
             android:id="@+id/ll_collect"
             android:layout_width="match_parent"
@@ -115,9 +86,9 @@
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"/>
 
-        <!-- 浏览历史【保留】 -->
+        <!-- 2. 标签收藏 -->
         <LinearLayout
-            android:id="@+id/ll_history"
+            android:id="@+id/ll_tag_collect"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:gravity="center_vertical"
@@ -127,7 +98,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="浏览历史"
+                android:text="标签收藏"
                 android:textSize="16sp"
                 android:textColor="@color/m3_on_surface"/>
             <ImageView
@@ -143,9 +114,9 @@
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"/>
 
-        <!-- 设置【保留，和设置页联动】 -->
+        <!-- 3. 信箱 -->
         <LinearLayout
-            android:id="@+id/ll_setting"
+            android:id="@+id/ll_mailbox"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:gravity="center_vertical"
@@ -155,7 +126,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="设置"
+                android:text="信箱"
                 android:textSize="16sp"
                 android:textColor="@color/m3_on_surface"/>
             <ImageView
@@ -171,9 +142,9 @@
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"/>
 
-        <!-- 关于我们【保留】 -->
+        <!-- 4. 追踪连载 -->
         <LinearLayout
-            android:id="@+id/ll_about"
+            android:id="@+id/ll_track_serial"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:gravity="center_vertical"
@@ -183,7 +154,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="关于我们"
+                android:text="追踪连载"
                 android:textSize="16sp"
                 android:textColor="@color/m3_on_surface"/>
             <ImageView
@@ -191,9 +162,140 @@
                 android:layout_height="20dp"
                 android:src="@drawable/ic_arrow_right"/>
         </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/m3_divider"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"/>
+
+        <!-- 5. 成就任务 -->
+        <LinearLayout
+            android:id="@+id/ll_achievement"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="成就任务"
+                android:textSize="16sp"
+                android:textColor="@color/m3_on_surface"/>
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_arrow_right"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/m3_divider"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"/>
+
+        <!-- 6. 签到活动 -->
+        <LinearLayout
+            android:id="@+id/ll_sign_in"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="签到活动"
+                android:textSize="16sp"
+                android:textColor="@color/m3_on_surface"/>
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_arrow_right"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/m3_divider"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"/>
+
+        <!-- 7. 观看记录 -->
+        <LinearLayout
+            android:id="@+id/ll_watch_record"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="观看记录"
+                android:textSize="16sp"
+                android:textColor="@color/m3_on_surface"/>
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_arrow_right"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/m3_divider"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"/>
+
+        <!-- 8. 留言记录 -->
+        <LinearLayout
+            android:id="@+id/ll_message_record"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="留言记录"
+                android:textSize="16sp"
+                android:textColor="@color/m3_on_surface"/>
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_arrow_right"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/m3_divider"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"/>
+
+        <!-- 9. 设置（保留和设置页的联动逻辑） -->
+        <TextView
+            android:id="@+id/tv_setting"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="@drawable/rounded_white_bg"
+            android:gravity="center_vertical|start"
+            android:paddingHorizontal="16dp"
+            android:text="设置"
+            android:textSize="16sp"
+            android:textColor="@color/black"/>
     </LinearLayout>
 
-    <!-- 版本信息栏【替换退出登录，更实用】 -->
+    <!-- 底部版本信息栏（保留，贴合项目） -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="48dp"
@@ -217,5 +319,4 @@
             android:alpha="0.4"
             android:layout_marginTop="2dp"/>
     </LinearLayout>
-
 </LinearLayout>
