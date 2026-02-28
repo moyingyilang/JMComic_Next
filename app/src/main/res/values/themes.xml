@@ -1,0 +1,11 @@
+<resources>
+    <!-- 整个APP统一 Material 3 主题 -->
+    <style name="Theme.JMComic_Next" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/m3_primary</item>
+        <item name="colorOnPrimary">@color/m3_on_primary</item>
+        <item name="colorSurface">@color/m3_surface</item>
+        <item name="colorOnSurface">@color/m3_on_surface</item>
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+    </style>
+</resources>

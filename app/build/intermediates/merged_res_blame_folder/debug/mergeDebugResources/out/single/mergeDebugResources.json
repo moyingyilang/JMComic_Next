@@ -1,0 +1,158 @@
+[
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/mipmap-anydpi-v26/ic_launcher_round.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/drawable-anydpi-v24_ic_launcher_foreground.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-pngs-27:/drawable-anydpi-v24/ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/menu_more_options.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/menu/more_options.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/layout_fragment_category.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/layout/fragment_category.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/mipmap-mdpi_ic_launcher.webp.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/mipmap-mdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/drawable_ic_category.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/drawable/ic_category.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/drawable_ic_home.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/drawable/ic_home.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/drawable_ic_launcher_background.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/drawable/ic_launcher_background.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/mipmap-xxhdpi_ic_launcher.webp.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/mipmap-xxhdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/mipmap-xhdpi_ic_launcher_round.webp.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/mipmap-xhdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/menu_bottom_nav_menu.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/menu/bottom_nav_menu.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/drawable_ic_chat.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/drawable/ic_chat.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/drawable_ic_profile.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/drawable/ic_profile.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/mipmap-xxhdpi_ic_launcher_round.webp.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/mipmap-xxhdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/xml_backup_rules.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/drawable_rounded_menu_bg.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/drawable/rounded_menu_bg.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/layout_fragment_profile.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/layout/fragment_profile.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/layout_fragment_video.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/layout/fragment_video.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/layout_fragment_setting.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/layout/fragment_setting.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/layout_fragment_discuss.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/layout/fragment_discuss.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/mipmap-xxxhdpi_ic_launcher.webp.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/mipmap-xxxhdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/mipmap-mdpi_ic_launcher_round.webp.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/mipmap-mdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/mipmap-hdpi_ic_launcher_round.webp.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/mipmap-hdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/menu_toolbar_menu.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/menu/toolbar_menu.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/layout_item_comic.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/layout/item_comic.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/xml_data_extraction_rules.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/mipmap-hdpi_ic_launcher.webp.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/mipmap-hdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/layout_fragment_home.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/layout/fragment_home.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/layout_activity_main.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/drawable_splash_bg.jpg.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/drawable/splash_bg.jpg"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/drawable_rounded_white_bg.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/drawable/rounded_white_bg.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/drawable_ic_arrow_right.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/drawable/ic_arrow_right.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/drawable_avatar_circle_bg.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/drawable/avatar_circle_bg.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/mipmap-anydpi-v26/ic_launcher.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/mipmap-xxxhdpi_ic_launcher_round.webp.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/mipmap-xxxhdpi/ic_launcher_round.webp"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/drawable_ic_video.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/drawable/ic_video.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/mipmap-xhdpi_ic_launcher.webp.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/mipmap-xhdpi/ic_launcher.webp"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/layout_activity_splash.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/layout/activity_splash.xml"
+    },
+    {
+        "merged": "com.jmcomic_next.lyqs.app-debug-31:/layout_activity_detail.xml.flat",
+        "source": "com.jmcomic_next.lyqs.app-main-33:/layout/activity_detail.xml"
+    }
+]

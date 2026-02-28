@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material3 基础颜色 -->
+<color name="m3_primary">#6750A4</color>
+<color name="m3_on_primary">#FFFFFF</color>
+<color name="m3_surface">#FFFAFAFA</color>
+<color name="m3_on_surface">#1D1B20</color>
+<color name="m3_divider">#E6E6E6</color>
+<color name="m3_error">#B3261E</color>
+</resources>
