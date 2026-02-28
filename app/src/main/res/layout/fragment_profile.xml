@@ -4,38 +4,53 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/m3_surface">
+
+    <!-- 顶部个人信息栏【优化：降低高度，更紧凑】 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="140dp"
         android:background="@color/m3_primary"
-        android:gravity="center_horizontal|bottom"
-        android:orientation="vertical"
-        android:padding="24dp"
-        android:paddingBottom="32dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp">
+
+        <!-- 圆形头像 -->
         <ImageView
             android:id="@+id/iv_avatar"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
             android:src="@mipmap/ic_launcher_round"
             android:scaleType="centerCrop"
             android:background="@drawable/avatar_circle_bg"/>
-        <TextView
-            android:layout_width="wrap_content"
+
+        <!-- 昵称+签名 右侧布局 -->
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="JM用户"
-            android:textColor="@android:color/white"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:layout_marginTop="8dp"/>
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="暂无个性签名"
-            android:textColor="@android:color/white"
-            android:textSize="14sp"
-            android:alpha="0.8"
-            android:layout_marginTop="4dp"/>
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:paddingLeft="16dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="JM漫友"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="我的漫画书架 →"
+                android:textColor="@android:color/white"
+                android:textSize="12sp"
+                android:alpha="0.8"
+                android:layout_marginTop="4dp"/>
+        </LinearLayout>
     </LinearLayout>
+
+    <!-- 核心功能入口【优化：漫画APP高频项，5个入口更实用】 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -43,10 +58,12 @@
         android:layout_margin="16dp"
         android:background="@drawable/rounded_white_bg"
         android:elevation="2dp">
+
+        <!-- 我的书架【新增：漫画核心】 -->
         <LinearLayout
-            android:id="@+id/ll_setting"
+            android:id="@+id/ll_bookshelf"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="52dp"
             android:gravity="center_vertical"
             android:paddingLeft="20dp"
             android:paddingRight="20dp">
@@ -54,7 +71,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="设置"
+                android:text="我的书架"
                 android:textSize="16sp"
                 android:textColor="@color/m3_on_surface"/>
             <ImageView
@@ -62,16 +79,19 @@
                 android:layout_height="20dp"
                 android:src="@drawable/ic_arrow_right"/>
         </LinearLayout>
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="@color/m3_divider"
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"/>
+
+        <!-- 我的收藏【保留】 -->
         <LinearLayout
             android:id="@+id/ll_collect"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="52dp"
             android:gravity="center_vertical"
             android:paddingLeft="20dp"
             android:paddingRight="20dp">
@@ -87,16 +107,19 @@
                 android:layout_height="20dp"
                 android:src="@drawable/ic_arrow_right"/>
         </LinearLayout>
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="@color/m3_divider"
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"/>
+
+        <!-- 浏览历史【保留】 -->
         <LinearLayout
             android:id="@+id/ll_history"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="52dp"
             android:gravity="center_vertical"
             android:paddingLeft="20dp"
             android:paddingRight="20dp">
@@ -112,16 +135,47 @@
                 android:layout_height="20dp"
                 android:src="@drawable/ic_arrow_right"/>
         </LinearLayout>
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="@color/m3_divider"
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"/>
+
+        <!-- 设置【保留，和设置页联动】 -->
+        <LinearLayout
+            android:id="@+id/ll_setting"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:gravity="center_vertical"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="设置"
+                android:textSize="16sp"
+                android:textColor="@color/m3_on_surface"/>
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_arrow_right"/>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/m3_divider"
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="20dp"/>
+
+        <!-- 关于我们【保留】 -->
         <LinearLayout
             android:id="@+id/ll_about"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="52dp"
             android:gravity="center_vertical"
             android:paddingLeft="20dp"
             android:paddingRight="20dp">
@@ -138,13 +192,30 @@
                 android:src="@drawable/ic_arrow_right"/>
         </LinearLayout>
     </LinearLayout>
-    <Button
-        android:id="@+id/btn_logout"
+
+    <!-- 版本信息栏【替换退出登录，更实用】 -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_margin="16dp"
-        android:backgroundTint="@color/m3_error"
-        android:text="退出登录"
-        android:textColor="@android:color/white"
-        android:textSize="16sp"/>
+        android:layout_height="48dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:gravity="center"
+        android:orientation="vertical">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="JMComic_Next v1.0.0"
+            android:textSize="12sp"
+            android:textColor="@color/m3_on_surface"
+            android:alpha="0.6"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="仅供学习交流 · 请勿商用"
+            android:textSize="10sp"
+            android:textColor="@color/m3_on_surface"
+            android:alpha="0.4"
+            android:layout_marginTop="2dp"/>
+    </LinearLayout>
+
 </LinearLayout>
