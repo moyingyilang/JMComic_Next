@@ -37,7 +37,7 @@ grep -q "app.mainclass=com.jmcomic_next.desktop.MainKt" "$APP"/lib/app/jmcomic-n
   || { echo "  自检失败：启动类不是 com.jmcomic_next.desktop.MainKt"; exit 1; }
 # c) 新旧标记
 CHK=$(mktemp -d)
-JAR=$(find "$APP/lib/app" -maxdepth 1 -name "JMComic_Next-Desktop-*.jar" | head -1)
+JAR=$(find "$APP/lib/app" -maxdepth 1 -name "JMComic_Next-Desktop-*.jar" -print -quit)   # 不用管道：head 提前关管道会让 find 收到 SIGPIPE，pipefail 下静默退出
 [ -n "$JAR" ] || { echo "  自检失败：找不到应用 jar"; rm -rf "$CHK"; exit 1; }
 unzip -q "$JAR" "*.class" -d "$CHK"   # 不要 cd 进临时目录：JAR 是相对路径，cd 之后就找不到了
 LEGACY=$(grep -rl '构建链验证窗口' "$CHK" 2>/dev/null | wc -l)
