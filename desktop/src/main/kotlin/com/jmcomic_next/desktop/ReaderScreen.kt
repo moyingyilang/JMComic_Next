@@ -137,6 +137,32 @@ fun ReaderScreen(
         }
 
         val p = payload ?: return@Column
+
+        // ── 预加载下一话 ──
+        // 只预取"下一话的图片列表"（一次 read 请求），**不整话下载图片** ——
+        // 整话预下载会把内存与流量放大几十倍，这里刻意不做；代价就是翻到下一话时
+        // 首页图片仍要现取，但省掉了一次"章节信息"请求的等待。
+        // 触发点：本话读到 60% 之后；进入该章节只跑一次，来回滚动不会反复请求。
+        var prefetched by remember(chapterId) { mutableStateOf(false) }
+        val prefetchAt = (p.images.size * 6) / 10
+        LaunchedEffect(chapterId, currentPage, nextId) {
+            if (!prefetched && nextId != null && currentPage >= prefetchAt) {
+                prefetched = true
+                val t0 = System.currentTimeMillis()
+                runCatching { repository.read(nextId) }
+                    .onSuccess {
+                        Log.line(
+                            "阅读",
+                            "已预加载下一话信息（用时 ${System.currentTimeMillis() - t0} ms，图片 ${it.images.size} 张）",
+                        )
+                    }
+                    .onFailure {
+                        if (it is CancellationException) return@onFailure
+                        // 预加载失败不影响当前阅读，只记日志
+                        Log.error("阅读", "预加载下一话失败（不影响当前阅读）", it)
+                    }
+            }
+        }
         Row(Modifier.fillMaxWidth().weight(1f)) {
         LazyColumn(
             state = listState,
