@@ -1,5 +1,7 @@
 package com.jmcomic_next.desktop
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -7,6 +9,7 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -59,15 +62,18 @@ fun BlogTheme(
     dark: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
+    // 壁纸层要按深浅色选预设，所以这里把状态同步到全局
+    Appearance.dark = dark
+
     val scheme = if (dark) {
         darkColorScheme(
             primary = Tokens.accentDark,
             onPrimary = Color(0xFF04263A),
             primaryContainer = Tokens.accentDarkSoft,
             onPrimaryContainer = Tokens.accentDark,
-            background = Color(0xFF0F1116),
+            background = Color.Transparent,   // 透出壁纸
             onBackground = Tokens.textDark,
-            surface = Tokens.surfaceDark,
+            surface = Tokens.surfaceDark.copy(alpha = Appearance.style.surfaceAlpha),
             onSurface = Tokens.textDark,
             surfaceVariant = Tokens.surfaceSunkenDark,
             onSurfaceVariant = Tokens.textSecondaryDark,
@@ -80,9 +86,11 @@ fun BlogTheme(
             onPrimary = Color.White,
             primaryContainer = Tokens.accentLightSoft,
             onPrimaryContainer = Tokens.accentLight,
-            background = Color(0xFFFBFBFD),
+            background = Color.Transparent,   // 透出壁纸
             onBackground = Tokens.textLight,
-            surface = Tokens.surfaceLight,
+            // 半透明表面：所有用 colorScheme.surface 的面板因此一次性变成玻璃，
+            // 不必逐处改背景。透明度由 Appearance.style 决定。
+            surface = Tokens.surfaceLight.copy(alpha = Appearance.style.surfaceAlpha),
             onSurface = Tokens.textLight,
             surfaceVariant = Tokens.surfaceSunkenLight,
             onSurfaceVariant = Tokens.textSecondaryLight,
@@ -111,6 +119,11 @@ fun BlogTheme(
             large = RoundedCornerShape(Tokens.rLg),
         ),
         typography = typography,
-        content = content,
-    )
+    ) {
+        // 壁纸铺在最底层，上面所有面板是半透明的，于是形成玻璃观感
+        Box(Modifier.fillMaxSize()) {
+            WallpaperLayer()
+            content()
+        }
+    }
 }
