@@ -254,6 +254,9 @@ private fun App() {
 
                     is Screen.Login -> LoginScreen(repository = repository, onDone = { screen = Screen.Home })
 
+                    is Screen.Page if s.route == "random" -> RandomScreen(repository, onOpenComic = openComic)
+                    is Screen.Page if s.route == "week" -> WeekScreen(repository, onOpenComic = openComic)
+
                     is Screen.Page if s.route == "search" -> SearchScreen(repository, onOpenComic = openComic)
                     is Screen.Page if s.route == "favorites" -> FavoriteScreen(repository, onOpenComic = openComic)
                     is Screen.Page if s.route == "history" -> HistoryScreen(repository, onOpenComic = openComic)
