@@ -1,3 +1,4 @@
+评论正文渲染已改为先转纯文本
 package com.jmcomic_next.desktop
 
 import androidx.compose.foundation.background
@@ -236,7 +237,10 @@ private fun CommentRow(
                 Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Text(comment.content.orEmpty(), style = MaterialTheme.typography.bodyMedium)
+        // 评论内容是 HTML：先转纯文本再渲染（与 Android 端一致，此前漏了这步）
+        comment.content.plainText()?.let { body ->
+            Text(body, style = MaterialTheme.typography.bodyMedium)
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(onClick = { onReply(comment) }) { Text("回复", style = MaterialTheme.typography.labelSmall) }

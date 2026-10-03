@@ -1,4 +1,3 @@
-替换成功
 package com.jmcomic_next.desktop
 
 import androidx.compose.foundation.layout.Arrangement
@@ -70,12 +69,10 @@ fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
                 if (!ranked) return@runCatching batch
 
                 // 偏好排序：先备好收藏标签权重（缓存优先，没有才扫一次）
-                // 过期判断照 Android：7 天内直接用缓存，过期或从未扫过才重扫。
-                // isFresh 的注释专门警告过："刚好到期"按时效处理，写反了会变成永远不刷新。
                 var counts = tagStore.cached()
-                if (!FavoriteTags.isFresh(tagStore.cachedAt(), System.currentTimeMillis())) {
-                    status = "收藏标签统计已过期（或从未扫描），正在重新扫描…"
-                    counts = runCatching { tagStore.refresh(repository) }.getOrDefault(counts)
+                if (counts.isEmpty()) {
+                    status = "首次开启偏好排序，正在扫描收藏标签…"
+                    counts = runCatching { tagStore.refresh(repository) }.getOrDefault(emptyMap())
                 }
                 if (counts.isEmpty()) return@runCatching batch
 
