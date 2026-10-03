@@ -35,6 +35,7 @@ import com.jmcomic_next.lyqs.data.prefs.ReadProgressStore
 import com.jmcomic_next.lyqs.data.remote.dto.ReadImage
 import com.jmcomic_next.lyqs.data.remote.dto.ReadPayload
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
@@ -67,6 +68,7 @@ fun ReaderScreen(
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     // 当前页（0 基）：从列表状态派生，滚动时自动更新，给右侧页码栏用
     val currentPage by androidx.compose.runtime.derivedStateOf { listState.firstVisibleItemIndex }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     var status by remember(chapterId) { mutableStateOf("正在加载章节…") }
     var retryToken by remember(chapterId) { mutableStateOf(0) }
 
@@ -164,7 +166,15 @@ fun ReaderScreen(
         }
 
         // 右侧竖排页码栏（仿 Android 版）：当前页 / 总页数 + 竖向进度
-        PageRail(current = currentPage, total = p.images.size)
+        PageRail(
+            current = currentPage,
+            total = p.images.size,
+            onSeek = { page ->
+                // 跳页用 scrollToItem：直接定位，不做动画（长列表做动画会又慢又抖）
+                Log.line("阅读", "跳页 → 第 ${page + 1} 页")
+                scope.launch { listState.scrollToItem(page) }
+            },
+        )
         }
     }
 }
