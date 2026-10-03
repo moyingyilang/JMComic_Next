@@ -74,3 +74,55 @@ tasks.register<JavaExec>("smoke") {
     mainClass.set("com.jmcomic_next.desktop.SmokeKt")
     classpath = sourceSets["main"].runtimeClasspath
 }
+
+// ── 单体（fat jar）────────────────────────────────────────────────────────────
+// 用户偏好"单体"：一个文件、java -jar 就能跑。用 Gradle 自带的 Jar 任务合并即可，
+// 不需要 shadow 插件。
+//
+// 关键点：Compose/Skiko 的平台原生库是**按宿主解析**的，所以交叉时必须
+// 从依赖里剔除所有 skiko-awt-runtime-*，再按 -Ptarget= 显式加入目标平台那一份，
+// 否则打出来的 jar 会带着宿主的原生库，到目标机上无法加载。
+val targetPlatform = (findProperty("target") as String?) ?: "host"
+
+val skikoForTarget = mapOf(
+    "windows-arm64" to "org.jetbrains.skiko:skiko-awt-runtime-windows-arm64:0.150.1",
+    "linux-arm64" to "org.jetbrains.skiko:skiko-awt-runtime-linux-arm64:0.150.1",
+    "linux-x64" to "org.jetbrains.skiko:skiko-awt-runtime-linux-x64:0.150.1",
+)
+
+val targetNative by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
+dependencies {
+    skikoForTarget[targetPlatform]?.let { targetNative(it) }
+}
+
+tasks.register<Jar>("fatJar") {
+    group = "distribution"
+    description = "把所有依赖合成一个可 java -jar 运行的单体 jar（-Ptarget=windows-arm64 交叉）"
+    archiveBaseName.set("jmcomic-next")
+    archiveClassifier.set(targetPlatform)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes["Main-Class"] = "com.jmcomic_next.desktop.MainKt"
+        attributes["Implementation-Version"] = "1.9.001"
+    }
+    from(sourceSets.main.get().output)
+    from({
+        // 宿主那份 skiko-awt-runtime-* 一律剔除；再用 -Ptarget 指定的那份补回来。
+        // 注意：补回来的那份名字也是 skiko-awt-runtime-*，所以不能放在同一个过滤里，
+        // 否则会被自己刚加的过滤器剔掉（这里踩过一次，打出来的 jar 一个原生库都没有）。
+        val hostDeps = configurations.runtimeClasspath.get().files
+            .filter { it.name.endsWith(".jar") }
+            .filterNot { it.name.startsWith("skiko-awt-runtime") }
+        val targetNatives = if (targetPlatform == "host") {
+            emptyList()
+        } else {
+            targetNative.files.filter { it.name.startsWith("skiko-awt-runtime") }
+        }
+        (hostDeps + targetNatives).map { zipTree(it) }
+    })
+    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
+}
