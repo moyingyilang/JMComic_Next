@@ -279,6 +279,10 @@ private fun App() {
                     is Screen.Page if s.route == "notifications" -> NotificationScreen(repository)
                     is Screen.Page if s.route == "block" -> BlockScreen(repository)
                     is Screen.Page if s.route == "appearance" -> AppearanceScreen()
+                    is Screen.Page if s.route == "tags" -> TagsScreen(repository, onSearch = { q ->
+                        Log.line("标签", "按标签搜索：$q")
+                        screen = Screen.Page("search")
+                    })
                     is Screen.Page if s.route == "search" -> SearchScreen(repository, onOpenComic = openComic)
                     is Screen.Page if s.route == "favorites" -> FavoriteScreen(repository, onOpenComic = openComic)
                     is Screen.Page if s.route == "history" -> HistoryScreen(repository, onOpenComic = openComic)
