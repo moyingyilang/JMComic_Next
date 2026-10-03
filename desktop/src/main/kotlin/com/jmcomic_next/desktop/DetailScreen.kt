@@ -106,6 +106,27 @@ fun DetailScreen(
                 }
             }
 
+            // 无章节作品（单话同人本很常见）：作品 id 自身就是可读单元。
+            // 这一条与 Android 端一致 —— 不补的话这类作品点了没反应，
+            // 表现成"详情页打开但读不了"。
+            if (d.series.isEmpty()) {
+                LazyColumn(modifier = Modifier.fillMaxSize().padding(start = 16.dp)) {
+                    item {
+                        Text(
+                            text = "开始阅读",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onOpenChapter(SeriesItem(id = d.id, sort = null, name = null)) }
+                                .padding(vertical = 12.dp, horizontal = 4.dp),
+                        )
+                        Text("该作品没有章节列表，直接阅读整本", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                return@Row
+            }
+
             // 右栏：章节列表（倒序，最新的在最上面）
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(start = 16.dp),
