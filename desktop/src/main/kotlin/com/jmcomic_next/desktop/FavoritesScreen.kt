@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -41,7 +42,9 @@ import kotlinx.coroutines.launch
  * 与历史/追更分开实现（那两页共用 AccountListPage）：收藏多了"文件夹"这一维，
  * 硬塞进共用抽象会把另外两页也搞复杂。
  *
- * 尚未做：排序档位（Android 的档位定义我还没读全）、列表内取消收藏、新建/改名/删文件夹。
+ * 尚未做：新建/改名/删文件夹（Android 端依赖 editFavoriteFolder 接口）。
+ * 注：**排序档位不是缺口** —— Android 的收藏页同样只用默认排序、不传 order，我先前误记为缺口。
+ * 目标是与 Android 对齐，不是自己发明它没有的功能。
  */
 @Composable
 fun FavoriteScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
@@ -122,7 +125,28 @@ fun FavoriteScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
-            items(items, key = { it.id }) { item -> ComicCover(repository, item) { onOpenComic(item) } }
+            items(items, key = { it.id }) { item ->
+                Column {
+                    ComicCover(repository, item) { onOpenComic(item) }
+                    // 列表内取消收藏（Android 端有"移除"）。写操作，只在用户点击时调用；
+                    // 开发期间我没有点过它，所以这条路径未经我验证。
+                    // 注：FavoritesScreen 原先没 import TextButton，缺 import 时编译器报的是
+                    // " invocations can only happen from..." —— 误导性报错，别去改结构。
+                    TextButton(
+                        onClick = {
+                            scope.launch {
+                                runCatching { repository.toggleFavorite(item.id) }
+                                    .onSuccess {
+                                        items = items.filterNot { it.id == item.id }
+                                        total = (total - 1).coerceAtLeast(0)
+                                        Log.line("收藏", "已取消收藏：" + (item.name ?: item.id))
+                                    }
+                                    .onFailure { Log.error("收藏", "取消收藏失败", it) }
+                            }
+                        },
+                    ) { Text("取消收藏", style = MaterialTheme.typography.labelSmall) }
+                }
+            }
             if (items.isNotEmpty() && items.size < total) {
                 item {
                     Button(enabled = !busy, onClick = { load(page + 1) }) { Text("加载更多") }
