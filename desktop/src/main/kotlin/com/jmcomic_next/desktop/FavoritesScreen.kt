@@ -1,6 +1,5 @@
 package com.jmcomic_next.desktop
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.jmcomic_next.lyqs.data.JmRepository
@@ -31,24 +31,31 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /**
- * 收藏页（桌面端，1.9.x）。
+ * 收藏页（桌面端，1.9.x，整文件重写）。
  *
- * **文件夹清单不需要额外接口** —— 它就在收藏列表响应里（`FavoriteListPayload.folderList`）。
- * 我先前误判为"共享层缺这个接口"，查得不彻底；DTO 注释里其实写了官方 TS 的用法。
+ * **结构对齐 Android**：那边收藏页里有标签（含「追更」），追更**不是独立页面**。
+ * 桌面端现在也这样了 —— 「追更」标签内嵌上一轮抽出的 [TrackingList]，
+ * 两处共用同一份逻辑（而不是复制一遍各自演化）。
  *
- * 注意字段名是 **`FID`**（`FavoriteFolder.folderId`），DTO 里专门警告过：
- * 用 `id` 会静默拿到空串，表现成"收藏夹列表全是无名项"。所以这里直接用 DTO 的字段。
+ * 布局约定（与历史/随机/通知一致，见 HistoryScreen 注释）：
+ *   顶层 Column(fillMaxSize) → 顶部条 Row(fillMaxWidth) → 内容 weight(1f)
  *
- * 与历史/追更分开实现（那两页共用 AccountListPage）：收藏多了"文件夹"这一维，
- * 硬塞进共用抽象会把另外两页也搞复杂。
+ * 文件夹切换：清单来自收藏列表响应的 `folder_list`（字段名是 FID，
+ * DTO 里专门警告过用 id 会静默拿到空串、表现为"收藏夹全是无名项"）。
  *
- * 尚未做：新建/改名/删文件夹（Android 端依赖 editFavoriteFolder 接口）。
- * 注：**排序档位不是缺口** —— Android 的收藏页同样只用默认排序、不传 order，我先前误记为缺口。
- * 目标是与 Android 对齐，不是自己发明它没有的功能。
+ * 写操作说明：列表内的「取消收藏」是 toggleFavorite，只在用户点击时调用；
+ * 开发期间我一次没点过（用的是用户账号），所以该路径**未经我验证**。
  */
 @Composable
-fun FavoriteScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
+fun FavoriteScreen(
+    repository: JmRepository,
+    onOpenComic: (ListItem) -> Unit,
+    initialTab: String = "favorite",
+) {
     val loggedIn = repository.auth.isLoggedIn
+    val scope = rememberCoroutineScope()
+
+    var tab by remember { mutableStateOf(initialTab) }
     var folders by remember { mutableStateOf<List<FavoriteFolder>>(emptyList()) }
     var selected by remember { mutableStateOf<String?>(null) }   // null 表示「全部」
     var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
@@ -56,7 +63,7 @@ fun FavoriteScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
     var page by remember { mutableStateOf(1) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf(if (loggedIn) "加载中…" else "需要登录后才能查看收藏") }
-    val scope = rememberCoroutineScope()
+    var notice by remember { mutableStateOf<String?>(null) }
 
     fun load(next: Int) {
         busy = true
@@ -64,12 +71,11 @@ fun FavoriteScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             runCatching { repository.favorites(page = next, folderId = selected) }
                 .onSuccess { payload ->
                     items = if (next == 1) payload.list else (items + payload.list).distinctBy { it.id }
-                    // 文件夹清单每次响应都带，用最新的一次覆盖
                     if (payload.folderList.isNotEmpty()) folders = payload.folderList
                     total = if (payload.totalCount > 0) payload.totalCount else items.size
                     page = next
                     val name = folders.firstOrNull { it.folderId == selected }?.name ?: "全部"
-                    status = if (items.isEmpty()) "这一栏还没有作品" else "$name：已加载 ${items.size} 条 / 共 $total 条"
+                    status = if (items.isEmpty()) "$name：还没有作品" else "$name：已加载 ${items.size} 条 / 共 $total 条"
                     Log.line("收藏", "$status（文件夹 ${folders.size} 个）")
                 }
                 .onFailure {
@@ -84,56 +90,77 @@ fun FavoriteScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
     LaunchedEffect(loggedIn) { if (loggedIn) load(1) }
 
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                Text("收藏", style = MaterialTheme.typography.titleLarge)
-                Column(Modifier.padding(start = 12.dp)) {
-                    Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            // 标签：收藏 / 追更（Android 端追更就在这一页里）
+            TextButton(enabled = !busy, onClick = { if (tab != "favorite") tab = "favorite" }) {
+                Text(if (tab == "favorite") "· 收藏" else "收藏", style = MaterialTheme.typography.titleMedium)
             }
-            if (folders.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Button(
-                        enabled = !busy && selected != null,
-                        onClick = { selected = null; page = 1; load(1) },
-                    ) { Text(if (selected == null) "· 全部" else "全部", style = MaterialTheme.typography.labelSmall) }
-
-                    folders.forEach { f ->
-                        Button(
-                            enabled = !busy && f.folderId != selected,
-                            onClick = { selected = f.folderId; page = 1; load(1) },
-                        ) {
-                            Text(
-                                (if (f.folderId == selected) "· " else "") + (f.name ?: f.folderId),
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        }
-                    }
+            TextButton(enabled = !busy, onClick = { if (tab != "tracking") tab = "tracking" }) {
+                Text(if (tab == "tracking") "· 追更" else "追更", style = MaterialTheme.typography.titleMedium)
+            }
+            if (tab == "favorite") {
+                Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (items.isNotEmpty() && items.size < total) {
+                    Button(enabled = !busy, onClick = { load(page + 1) }) { Text("加载更多") }
+                }
+                notice?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
 
-        BlockedNotice(0)
+        if (tab == "tracking") {
+            // 内嵌追更列表（与侧栏独立入口共用同一份逻辑）
+            TrackingList(
+                repository = repository,
+                onOpenComic = onOpenComic,
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            )
+            return@Column
+        }
+
+        // ── 收藏标签 ──
+        if (folders.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(
+                    enabled = !busy && selected != null,
+                    onClick = { selected = null; page = 1; load(1) },
+                ) { Text(if (selected == null) "· 全部" else "全部", style = MaterialTheme.typography.labelSmall) }
+                folders.forEach { f ->
+                    Button(
+                        enabled = !busy && f.folderId != selected,
+                        onClick = { selected = f.folderId; page = 1; load(1) },
+                    ) {
+                        Text(
+                            (if (f.folderId == selected) "· " else "") + (f.name ?: f.folderId),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            }
+        }
 
         LazyVerticalGrid(
             columns = GridCells.Adaptive(168.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxWidth().weight(1f),
         ) {
             items(items, key = { it.id }) { item ->
                 Column {
                     ComicCover(repository, item) { onOpenComic(item) }
-                    // 列表内取消收藏（Android 端有"移除"）。写操作，只在用户点击时调用；
-                    // 开发期间我没有点过它，所以这条路径未经我验证。
-                    // 注：FavoritesScreen 原先没 import TextButton，缺 import 时编译器报的是
-                    // " invocations can only happen from..." —— 误导性报错，别去改结构。
                     TextButton(
                         onClick = {
+                            busy = true
+                            notice = null
                             scope.launch {
                                 runCatching { repository.toggleFavorite(item.id) }
                                     .onSuccess {
@@ -143,15 +170,13 @@ fun FavoriteScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
                                     }
                                     .onFailure {
                                         if (it is CancellationException) return@onFailure
-                                        Log.error("收藏", "取消收藏失败", it) }
+                                        notice = "取消收藏失败：${it.message}"
+                                        Log.error("收藏", "取消收藏失败", it)
+                                    }
+                                busy = false
                             }
                         },
                     ) { Text("取消收藏", style = MaterialTheme.typography.labelSmall) }
-                }
-            }
-            if (items.isNotEmpty() && items.size < total) {
-                item {
-                    Button(enabled = !busy, onClick = { load(page + 1) }) { Text("加载更多") }
                 }
             }
         }
