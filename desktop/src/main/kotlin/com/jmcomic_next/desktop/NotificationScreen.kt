@@ -149,12 +149,32 @@ fun NotificationScreen(repository: JmRepository) {
                             ),
                     ) {}
                     Column(Modifier.weight(1f)) {
-                        Text(item.titleText ?: "(无标题)", style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            listOfNotNull(item.typeText, item.dateText).joinToString(" · "),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        if (item.typeText == NotificationItem.TYPE_COMIC_FOLLOW) {
+                            // 追更通知的标题不在 title 字段，而在 content 数组里（followedUpdates）——
+                            // 这就是此前"追更标签下全被解析成无标题"的原因。
+                            item.followedUpdates().forEach { up ->
+                                Text(
+                                    up.comicTitleText ?: up.comicIdText ?: "(未知作品)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Text(
+                                    listOfNotNull("更新", up.updateDateText).joinToString(" "),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        } else {
+                            Text(item.titleText ?: "(无标题)", style = MaterialTheme.typography.bodyMedium)
+                            // 站内通知的正文是 HTML，DTO 有 siteNoticeHtml()，转纯文本再渲染
+                            item.siteNoticeHtml()?.plainText()?.let { body ->
+                                Text(body, style = MaterialTheme.typography.bodySmall)
+                            }
+                            Text(
+                                listOfNotNull(item.typeText, item.dateText).joinToString(" · "),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
