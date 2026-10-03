@@ -62,10 +62,13 @@ fun BlogTheme(
     dark: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    // 壁纸层要按深浅色选预设，所以这里把状态同步到全局
-    Appearance.dark = dark
+    // 深浅色的优先级：用户显式选过 → 用用户的；没选过 → 跟随系统。
+    // 之前这里直接用 isSystemInDarkTheme()，于是外观页切深浅色**完全没反应** ——
+    // 外观页改的是 Appearance.dark，而主题读的是系统值，两者不通。
+    val systemDark = isSystemInDarkTheme()
+    val useDark = if (Appearance.userChoseDark) Appearance.dark else systemDark
 
-    val scheme = if (dark) {
+    val scheme = if (useDark) {
         darkColorScheme(
             primary = Tokens.accentDark,
             onPrimary = Color(0xFF04263A),

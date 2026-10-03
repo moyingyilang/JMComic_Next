@@ -90,11 +90,19 @@ object Appearance {
             if (value == null) prefs.remove("wallpaperPath") else prefs.putString("wallpaperPath", value)
         }
 
+    /** 用户是否显式选过深浅色。没选过时跟随系统（由 BlogTheme 判断）。 */
+    var userChoseDark: Boolean = prefs.getString("userChoseDark", null) == "true"
+
     private var _dark by mutableStateOf(prefs.getString("dark", null) == "true")
 
     var dark: Boolean
         get() = _dark
-        set(value) { _dark = value; prefs.putString("dark", value.toString()) }
+        set(value) {
+            _dark = value
+            userChoseDark = true
+            prefs.putString("dark", value.toString())
+            prefs.putString("userChoseDark", "true")
+        }
 
     /** 壁纸模糊半径（dp）。观感很主观，所以交给用户调而不是我定死。 */
     private var _wallpaperBlur by mutableStateOf(prefs.getString("wallpaperBlur", null)?.toIntOrNull() ?: 48)

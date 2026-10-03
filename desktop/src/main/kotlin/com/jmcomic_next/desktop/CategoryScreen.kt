@@ -48,6 +48,9 @@ fun CategoryScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
     // slug 与显示名；空 slug 表示"全部"
     var nodes by remember { mutableStateOf<List<Triple<String, String, List<Pair<String, String>>>>>(emptyList()) }
     var current by remember { mutableStateOf<String?>(null) }
+    // 展开的是哪个父类，与"选中了哪个 slug"分开记。
+    // 之前两者共用 current，点二级项时父类不再匹配 → 子项立刻收回（用户报的"直接收回"）。
+    var expanded by remember { mutableStateOf<String?>(null) }
     var currentName by remember { mutableStateOf("全部") }
     var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
     var hidden by remember { mutableStateOf(0) }
@@ -111,16 +114,27 @@ fun CategoryScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             Text("分类", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 6.dp))
             NavChip("全部", current == null) { current = null; currentName = "全部"; filter(null, "全部", 1) }
             nodes.forEach { (slug, name, subs) ->
-                NavChip(name, current == slug) { current = slug; currentName = name; filter(slug, name, 1) }
-                if (current == slug && subs.isNotEmpty()) {
+                NavChip(name, current == slug) {
+                    current = slug
+                    currentName = name
+                    expanded = if (expanded == slug) null else slug
+                    filter(slug, name, 1)
+                }
+                if (expanded == slug && subs.isNotEmpty()) {
                     subs.forEach { (subSlug, subName) ->
+                        val subActive = current == subSlug
                         Text(
-                            text = "· $subName",
+                            text = (if (subActive) "· $subName" else "· $subName"),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (subActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { current = subSlug; currentName = subName; filter(subSlug, subName, 1) }
+                                .clickable {
+                                    // 只改选中项，不动 expanded —— 父类保持展开，焦点停在这一项
+                                    current = subSlug
+                                    currentName = subName
+                                    filter(subSlug, subName, 1)
+                                }
                                 .padding(start = 20.dp, top = 4.dp, bottom = 4.dp),
                         )
                     }
