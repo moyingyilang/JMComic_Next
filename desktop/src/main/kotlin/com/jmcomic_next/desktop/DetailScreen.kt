@@ -59,7 +59,8 @@ fun DetailScreen(
     repository: JmRepository,
     comicId: String,
     onBack: () -> Unit,
-    onOpenChapter: (SeriesItem) -> Unit,
+    // 第二个参数是本章节的顺序（从旧到新），阅读页据此判断上一话/下一话
+    onOpenChapter: (SeriesItem, List<String>) -> Unit,
     onOpenComic: (ListItem) -> Unit,
 ) {
     var detail by remember(comicId) { mutableStateOf<AlbumDetail?>(null) }
@@ -188,7 +189,7 @@ fun DetailScreen(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onOpenChapter(SeriesItem(id = d.id, sort = null, name = null)) }
+                                .clickable { onOpenChapter(SeriesItem(id = d.id, sort = null, name = null), listOf(d.id)) }
                                 .padding(vertical = 12.dp, horizontal = 4.dp),
                         )
                         Text("该作品没有章节列表，直接阅读整本", style = MaterialTheme.typography.labelSmall)
@@ -205,7 +206,7 @@ fun DetailScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onOpenChapter(chapter) }
+                                .clickable { onOpenChapter(chapter, d.series.map { it.id }) }
                                 .padding(vertical = 10.dp, horizontal = 4.dp),
                         )
                     }

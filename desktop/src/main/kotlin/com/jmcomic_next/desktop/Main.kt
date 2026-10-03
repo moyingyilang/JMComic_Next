@@ -173,7 +173,7 @@ private fun ComicCard(item: ListItem, onOpen: () -> Unit) {
 private sealed interface Screen {
     data object Home : Screen
     data class Detail(val id: String, val title: String) : Screen
-    data class Reader(val comicId: String, val chapterId: String) : Screen
+    data class Reader(val comicId: String, val chapterId: String, val chapterIds: List<String> = emptyList()) : Screen
     data object Login : Screen
     data class Page(val route: String) : Screen
 }
@@ -239,9 +239,10 @@ private fun App() {
                         comicId = s.id,
                         onBack = { screen = Screen.Home },
                         onOpenComic = openComic,
-                        onOpenChapter = { ch ->
-                            System.err.println("[界面] 打开章节：sort=${ch.sort} id=${ch.id}")
-                            screen = Screen.Reader(comicId = s.id, chapterId = ch.id)
+                        // 章节顺序由详情页回传（接口下发的是从旧到新），阅读页据此判断上一话/下一话
+                        onOpenChapter = { ch, ids ->
+                            System.err.println("[界面] 打开章节：sort=${ch.sort} id=${ch.id}（顺序 ${ids.size} 项）")
+                            screen = Screen.Reader(comicId = s.id, chapterId = ch.id, chapterIds = ids)
                         },
                     )
 
@@ -250,7 +251,12 @@ private fun App() {
                         progress = readProgress,
                         comicId = s.comicId,
                         chapterId = s.chapterId,
+                        chapterIds = s.chapterIds,
                         onBack = { screen = Screen.Home },
+                        onSwitchChapter = { id ->
+                            System.err.println("[界面] 切换章节 → $id")
+                            screen = Screen.Reader(comicId = s.comicId, chapterId = id, chapterIds = s.chapterIds)
+                        },
                     )
 
                     is Screen.Login -> LoginScreen(repository = repository, onDone = { screen = Screen.Home })

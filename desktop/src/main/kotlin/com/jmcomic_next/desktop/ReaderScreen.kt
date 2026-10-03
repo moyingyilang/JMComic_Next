@@ -2,6 +2,7 @@ package com.jmcomic_next.desktop
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,15 +34,21 @@ import com.jmcomic_next.lyqs.data.JmRepository
 import com.jmcomic_next.lyqs.data.prefs.ReadProgressStore
 import com.jmcomic_next.lyqs.data.remote.dto.ReadImage
 import com.jmcomic_next.lyqs.data.remote.dto.ReadPayload
+import kotlinx.coroutines.CancellationException
 
 /**
- * 阅读页（2.0.0 桌面端第一版）。
+ * 阅读页（桌面端，1.9.x 全量移植中）。
  *
- * 形式选**纵向连续滚动**而不是翻页：桌面端用鼠标滚轮纵向翻比左右翻自然，
- * 而且不用处理"一屏放不下整页"的分段逻辑（那种逻辑在手机上是必需的，在桌面上是负担）。
+ * 形式是**纵向连续滚动**：桌面上鼠标滚轮纵向翻比左右翻自然，也不用处理
+ * "一屏放不下整页"的分段逻辑（那在手机上是必需的，在桌面上是负担）。
  *
- * 反切片：服务端把部分漫画整页切成若干条上下错位重排，必须在显示前还原。
- * 判定与算法都在共享层（needsUnscramble / ImageUnscramble），这里只负责调用的时机与缓存。
+ * 这一版补上三件"能不能真用起来"的事：
+ *  1. 上一话 / 下一话 —— 章节顺序由详情页传入（接口下发的是从旧到新）
+ *  2. 单页失败可以点一下重试（原来失败就永远停在加载中）
+ *  3. 进入章节时记录进度，详情页据此显示"继续阅读"
+ *
+ * 反切片：服务端把部分漫画整页切成若干条错位重排，必须在显示前还原。
+ * 判定与算法都在共享层（needsUnscramble / ImageUnscramble），这里只管调用的时机与缓存。
  */
 @Composable
 fun ReaderScreen(
@@ -48,22 +56,30 @@ fun ReaderScreen(
     progress: ReadProgressStore,
     comicId: String,
     chapterId: String,
+    chapterIds: List<String> = emptyList(),
     onBack: () -> Unit,
+    onSwitchChapter: (String) -> Unit = {},
 ) {
     var payload by remember(chapterId) { mutableStateOf<ReadPayload?>(null) }
     var status by remember(chapterId) { mutableStateOf("正在加载章节…") }
+    var retryToken by remember(chapterId) { mutableStateOf(0) }
 
-    LaunchedEffect(chapterId) {
+    val index = remember(chapterId, chapterIds) { chapterIds.indexOf(chapterId) }
+    val prevId = if (index > 0) chapterIds.getOrNull(index - 1) else null
+    val nextId = if (index >= 0 && index < chapterIds.lastIndex) chapterIds.getOrNull(index + 1) else null
+
+    LaunchedEffect(chapterId, retryToken) {
+        payload = null
         runCatching { repository.read(chapterId) }
             .onSuccess {
                 payload = it
                 status = "${it.images.size} 页"
-                // 记录阅读进度：详情页下次显示时能标出"读到哪一话"
                 runCatching { progress.record(comicId, chapterId) }
-                System.err.println("[阅读] 已加载 $status（需反切片: ${it.scrambleId}）")
+                System.err.println("[阅读] 已加载 $status（章节 ${index + 1}/${chapterIds.size}）")
             }
-            .onFailure { if (it is kotlinx.coroutines.CancellationException) return@onFailure
-                status = "加载失败：${it.message}"
+            .onFailure {
+                if (it is CancellationException) return@onFailure
+                status = "加载失败：${it.message}（点“重试”）"
                 System.err.println("[阅读] $status")
             }
     }
@@ -76,14 +92,47 @@ fun ReaderScreen(
         ) {
             TextButton(onClick = onBack) { Text("返回") }
             Text(status, style = MaterialTheme.typography.titleMedium)
+            if (chapterIds.isNotEmpty() && index >= 0) {
+                Text(
+                    "第 ${index + 1} / ${chapterIds.size} 话",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (payload == null) {
+                TextButton(onClick = { retryToken += 1 }) { Text("重试") }
+            }
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
+                Button(enabled = prevId != null, onClick = { prevId?.let(onSwitchChapter) }) { Text("上一话") }
+                Box(Modifier.padding(start = 8.dp)) {
+                    Button(enabled = nextId != null, onClick = { nextId?.let(onSwitchChapter) }) { Text("下一话") }
+                }
+            }
         }
+
         val p = payload ?: return@Column
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            itemsIndexed(p.images, key = { _, img -> img.image }) { index, image ->
-                PageItem(repository, p, image, index)
+            itemsIndexed(p.images, key = { _, img -> img.image }) { idx, image ->
+                PageItem(repository, p, image, idx)
+            }
+            item {
+                // 底部也放一次"下一话"：连续滚动读完一话后，手停在这里
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Button(enabled = nextId != null, onClick = { nextId?.let(onSwitchChapter) }) {
+                        Text(if (nextId != null) "下一话" else "已经是最后一话")
+                    }
+                    if (nextId != null) {
+                        Box(Modifier.padding(start = 12.dp)) {
+                            TextButton(onClick = onBack) { Text("回详情页") }
+                        }
+                    }
+                }
             }
         }
     }
@@ -96,14 +145,20 @@ private fun PageItem(repository: JmRepository, payload: ReadPayload, image: Read
         runCatching { repository.needsUnscramble(url, payload.id, payload.scrambleId) }.getOrDefault(false)
     }
     var bitmap by remember(url) { mutableStateOf<ImageBitmap?>(RemoteImage.cached(url)) }
+    var failed by remember(url) { mutableStateOf(false) }
+    var attempt by remember(url) { mutableStateOf(0) }
 
-    LaunchedEffect(url) {
+    LaunchedEffect(url, attempt) {
         if (bitmap == null) {
-            bitmap = if (needsUnscramble) {
+            failed = false
+            val loaded = if (needsUnscramble) {
                 RemoteImage.loadScrambled(url, payload.id, image.fileNameStem)
             } else {
                 RemoteImage.load(url)
             }
+            bitmap = loaded
+            failed = loaded == null
+            if (loaded == null) System.err.println("[阅读] 第 ${index + 1} 页加载失败：$url")
         }
     }
 
@@ -112,19 +167,28 @@ private fun PageItem(repository: JmRepository, payload: ReadPayload, image: Read
             .fillMaxWidth()
             .clip(RoundedCornerShape(6.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .then(if (bitmap == null) Modifier.height(240.dp) else Modifier),
+            .then(if (bitmap == null) Modifier.height(220.dp) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         val b = bitmap
-        if (b != null) {
-            Image(
+        when {
+            b != null -> Image(
                 bitmap = b,
                 contentDescription = "第 ${index + 1} 页",
                 modifier = Modifier.fillMaxWidth(),
                 contentScale = ContentScale.FillWidth,
             )
-        } else {
-            Text("第 ${index + 1} 页 加载中…", style = MaterialTheme.typography.labelSmall)
+
+            // 失败可以点一下重试：原来失败就永远停在"加载中"，读者只能退出去再进来
+            failed -> Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable { attempt += 1 }.padding(24.dp),
+            ) {
+                Text("第 ${index + 1} 页加载失败", style = MaterialTheme.typography.bodyMedium)
+                Text("点这里重试", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            }
+
+            else -> Text("第 ${index + 1} 页 加载中…", style = MaterialTheme.typography.labelSmall)
         }
     }
 }
