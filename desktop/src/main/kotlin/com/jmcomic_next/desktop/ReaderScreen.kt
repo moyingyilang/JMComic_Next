@@ -136,7 +136,8 @@ fun ReaderScreen(
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            // 页面之间不留空隙：漫画是连续的，8dp 间距会把跨页画面割断
+            verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             itemsIndexed(p.images, key = { _, img -> img.image }) { idx, image ->
                 PageItem(repository, p, image, idx)
@@ -188,8 +189,8 @@ private fun PageItem(repository: JmRepository, payload: ReadPayload, image: Read
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+
+
             .then(if (bitmap == null) Modifier.height(220.dp) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
