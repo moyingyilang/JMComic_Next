@@ -104,3 +104,26 @@
 
 接口已确认现成，下次只需：给 `AccountListPage` 加 `itemDelete: (suspend (ListItem) -> Unit)?`，
 由页面**内部**启动协程（因为 scope 在里面），成功后移除并减总数，失败只记日志、列表不变。
+
+## 评论页实现方案（1.9.x，接口与数据结构已读全，待整文件写）
+
+**接口（全部现成）**：
+- `comments(aid, page = 1, mode = "all"): ForumPayload` —— 读
+- `sendComment(aid, comment, commentId = null): ActionResult` —— 发表/回复（不传 commentId 即新评论）
+- `deleteComment(commentId, aid = null): ActionResult` —— 删除
+
+**数据模型**：`CommentItem(commentId, uid, aid, bid, nid, content, addtime, nickname,
+photo, expinfo, name, replies: List<CommentItem>)`，另有便捷属性 `authorName`
+（nickname 为空时返回"匿名"）。**回复是嵌套的**（`replies`），所以渲染要递归一层。
+
+**Android 端现状**：`comments/CommentsScreen.kt` 431 行，路由 `comments/{aid}`。
+
+**桌面端要做的**：
+1. 从详情页进入（详情页目前**没有评论入口**，这是配套要补的一处）
+2. 列表：头像（photo）+ 作者名（authorName）+ 时间（addtime）+ 正文（content）+ 回复
+3. 发表框：`sendComment(aid, 文本)`；对某条回复时带 `commentId`
+4. 删除：仅自己的评论可删（用 uid 与当前账号比对）——**写操作，我没点过就不会标为已验证**
+5. 分页：`ForumPayload` 的分页字段（写代码时按实际字段名取，不猜）
+
+**纪律**：这是唯一完全未做的页面，且含多个写操作。我会**整文件写**，
+不沿用"插代码"的路子（那方式在历史页的删除按钮上连败四次）。
