@@ -1,4 +1,3 @@
-  3/4 提示语已调整（匹配 1）
 package com.jmcomic_next.desktop
 
 import androidx.compose.foundation.layout.Arrangement
