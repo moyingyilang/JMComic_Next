@@ -31,66 +31,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /**
- * 随机本子（2.0.0 桌面端）。
- *
- * 接口一次给一批（不分页），所以版式是「一批 + 换一批」。
- * 这与 Android 端的随机页不同：那边还要按收藏标签的偏好排序（RandomRanking），
- * 属于"推荐质量"的增强，这里先做基础形态。
- */
-@Composable
-fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
-    var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
-    var hidden by remember { mutableStateOf(0) }
-    var busy by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf("正在取一批随机作品…") }
-    val scope = rememberCoroutineScope()
-
-    fun roll() {
-        busy = true
-        scope.launch {
-            runCatching { repository.randomRecommend() }
-                .onSuccess {
-                    items = it
-                    status = "这一批 ${it.size} 条"
-                    System.err.println("[随机] $status")
-                }
-                .onFailure {
-                    if (it is CancellationException) return@onFailure
-                    status = "加载失败：${it.message}"
-                    System.err.println("[随机] $status")
-                }
-            busy = false
-        }
-    }
-
-    LaunchedEffect(Unit) { roll() }
-
-    Column(Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("随机本子", style = MaterialTheme.typography.titleLarge)
-                Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Button(onClick = { roll() }, enabled = !busy) { Text(if (busy) "取中…" else "换一批") }
-        }
-        BlockedNotice(hidden)
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(168.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            items(items, key = { it.id }) { item -> ComicCover(repository, item) { onOpenComic(item) } }
-        }
-    }
-}
-
-/**
  * 周刊（2.0.0 桌面端）。
  *
  * 刊期与类型都来自接口：先取刊期列表，默认用**最新一期**与第一个类型，
