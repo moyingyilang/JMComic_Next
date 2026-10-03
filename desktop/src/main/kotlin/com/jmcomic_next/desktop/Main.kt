@@ -70,6 +70,8 @@ private val repository: JmRepository by lazy {
 }
 
 fun main() {
+    // 把 stdout/stderr 同时写进 ~/jmcomic-next.log，便于远程读日志定位问题
+    Log.init()
     // 组合期抛出的异常默认只进 AWT 的日志，容器里看不到；这里显式打到 stderr
     Thread.setDefaultUncaughtExceptionHandler { t, e ->
         System.err.println("[崩溃] 线程 ${t.name}：")
