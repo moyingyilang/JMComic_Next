@@ -39,7 +39,7 @@ grep -q "app.mainclass=com.jmcomic_next.desktop.MainKt" "$APP"/lib/app/jmcomic-n
 CHK=$(mktemp -d)
 JAR=$(find "$APP/lib/app" -maxdepth 1 -name "JMComic_Next-Desktop-*.jar" | head -1)
 [ -n "$JAR" ] || { echo "  自检失败：找不到应用 jar"; rm -rf "$CHK"; exit 1; }
-( cd "$CHK" && unzip -q "$JAR" "*.class" )
+unzip -q "$JAR" "*.class" -d "$CHK"   # 不要 cd 进临时目录：JAR 是相对路径，cd 之后就找不到了
 LEGACY=$(grep -rl '构建链验证窗口' "$CHK" 2>/dev/null | wc -l)
 [ "$LEGACY" -eq 0 ] || { echo "  自检失败：早期验证窗口的类仍在（$LEGACY 个文件）"; rm -rf "$CHK"; exit 1; }
 NEW=$(grep -rl "$MARK_NEW" "$CHK" 2>/dev/null | wc -l)

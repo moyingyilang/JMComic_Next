@@ -1,5 +1,11 @@
 package com.jmcomic_next.desktop
 
+import androidx.compose.material3.TextButton
+import kotlinx.coroutines.launch
+import androidx.compose.ui.Alignment
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -168,35 +174,92 @@ private sealed interface Screen {
     data object Home : Screen
     data class Detail(val id: String, val title: String) : Screen
     data class Reader(val comicId: String, val chapterId: String) : Screen
+    data object Login : Screen
+    data class Page(val route: String) : Screen
 }
 
 @Composable
 private fun App() {
     var screen by remember { mutableStateOf<Screen>(Screen.Home) }
-    when (val s = screen) {
-        is Screen.Home -> HomeScreen(
-            onOpen = { item ->
-                System.err.println("[界面] 打开作品：${item.name} (id=${item.id})")
-                screen = Screen.Detail(item.id, item.name.orEmpty())
-            },
-        )
+    val scope = rememberCoroutineScope()
+    val authState by repository.auth.state.collectAsState()
+    val navSelection = when (val s = screen) {
+        is Screen.Page -> s.route
+        else -> "home"
+    }
 
-        is Screen.Detail -> DetailScreen(
-            repository = repository,
-            comicId = s.id,
-            onBack = { screen = Screen.Home },
-            onOpenChapter = { ch ->
-                System.err.println("[界面] 打开章节：sort=${ch.sort} id=${ch.id}")
-                screen = Screen.Reader(comicId = s.id, chapterId = ch.id)
-            },
-        )
+    Row(Modifier.fillMaxSize()) {
+        SideNav(selected = navSelection, onSelect = { route ->
+            System.err.println("[导航] $route")
+            screen = if (route == "home") Screen.Home else Screen.Page(route)
+        })
 
-        is Screen.Reader -> ReaderScreen(
-            repository = repository,
-            progress = readProgress,
-            comicId = s.comicId,
-            chapterId = s.chapterId,
-            onBack = { screen = Screen.Home },
-        )
+        Column(Modifier.weight(1f).fillMaxSize()) {
+            // 顶栏：账号状态常驻，任何页面都能登录/退出
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = "JMComic_Next",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.clickable { screen = Screen.Home },
+                )
+                Text(
+                    text = if (authState.loggedIn) {
+                        "已登录：${authState.member?.username ?: authState.member?.uid ?: ""}"
+                    } else {
+                        "未登录"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = {
+                    if (authState.loggedIn) {
+                        scope.launch { repository.logout(); System.err.println("[登录] 已退出") }
+                    } else {
+                        screen = Screen.Login
+                    }
+                }) { Text(if (authState.loggedIn) "退出登录" else "登录") }
+            }
+
+            Box(Modifier.weight(1f)) {
+                when (val s = screen) {
+                    is Screen.Home -> HomeScreen(
+                        onOpen = { item ->
+                            System.err.println("[界面] 打开作品：${item.name} (id=${item.id})")
+                            screen = Screen.Detail(item.id, item.name.orEmpty())
+                        },
+                    )
+
+                    is Screen.Detail -> DetailScreen(
+                        repository = repository,
+                        comicId = s.id,
+                        onBack = { screen = Screen.Home },
+                        onOpenChapter = { ch ->
+                            System.err.println("[界面] 打开章节：sort=${ch.sort} id=${ch.id}")
+                            screen = Screen.Reader(comicId = s.id, chapterId = ch.id)
+                        },
+                    )
+
+                    is Screen.Reader -> ReaderScreen(
+                        repository = repository,
+                        progress = readProgress,
+                        comicId = s.comicId,
+                        chapterId = s.chapterId,
+                        onBack = { screen = Screen.Home },
+                    )
+
+                    is Screen.Login -> LoginScreen(repository = repository, onDone = { screen = Screen.Home })
+
+                    is Screen.Page -> {
+                        val title = NAV_ITEMS.firstOrNull { it.first == s.route }?.second ?: s.route
+                        PageShell(title = title, planned = PAGE_PLANS[s.route] ?: "（待补）")
+                    }
+                }
+            }
+        }
     }
 }
