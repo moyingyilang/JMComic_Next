@@ -298,7 +298,9 @@ private fun App() {
                     is Screen.Page if s.route == "search" -> SearchScreen(repository, onOpenComic = openComic)
                     is Screen.Page if s.route == "favorites" -> FavoriteScreen(repository, onOpenComic = openComic)
                     is Screen.Page if s.route == "history" -> HistoryScreen(repository, onOpenComic = openComic)
-                    is Screen.Page if s.route == "tracking" -> TrackingScreen(repository, onOpenComic = openComic)
+                    // 侧栏「追更」→ 打开收藏页并选中「追更」标签（Android 那边追更就是收藏页里的标签，
+                    // 不是独立页面；这样两处入口最终落到同一份 UI，不会各自演化）
+                    is Screen.Page if s.route == "tracking" -> FavoriteScreen(repository, onOpenComic = openComic, initialTab = "tracking")
 
                     is Screen.Page -> {
                         val title = NAV_ITEMS.firstOrNull { it.first == s.route }?.second ?: s.route
