@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import java.io.File
@@ -53,12 +54,29 @@ enum class WallpaperPreset(val label: String, val light: List<Color>, val dark: 
         listOf(Color(0xFF101214), Color(0xFF1A1D21), Color(0xFF0C0E10))),
 }
 
-/** 当前外观设置（全局可读，界面侧栏可改）。 */
+/**
+ * 当前外观设置（全局可读，界面侧栏可改）。
+ *
+ * 每个字段的 setter 顺手把值写进本地存储 —— 这样界面侧只管赋值，
+ * 不必记得调用保存；重启后自动恢复。
+ */
 object Appearance {
-    var style by mutableStateOf(GlassStyle.WindowGlass)
-    var preset by mutableStateOf(WallpaperPreset.Aurora)
-    var wallpaperPath by mutableStateOf<String?>(null)   // 用户指定的本地图片
-    var dark by mutableStateOf(false)
+    private val prefs = PreferencesKeyValueStore("jm_appearance")
+
+    var style: GlassStyle = GlassStyle.entries.firstOrNull { it.name == prefs.getString("style", null) }
+        ?: GlassStyle.WindowGlass
+        set(value) { field = value; prefs.putString("style", value.name) }
+
+    var preset: WallpaperPreset = WallpaperPreset.entries.firstOrNull { it.name == prefs.getString("preset", null) }
+        ?: WallpaperPreset.Aurora
+        set(value) { field = value; prefs.putString("preset", value.name) }
+
+    /** 用户指定的本地图片路径；为空表示用内置渐变。 */
+    var wallpaperPath: String? = prefs.getString("wallpaperPath", null)
+        set(value) { field = value; if (value == null) prefs.remove("wallpaperPath") else prefs.putString("wallpaperPath", value) }
+
+    var dark: Boolean = prefs.getString("dark", null) == "true"
+        set(value) { field = value; prefs.putString("dark", value.toString()) }
 }
 
 /**
@@ -86,19 +104,26 @@ fun WallpaperLayer(modifier: Modifier = Modifier) {
         } else {
             Box(Modifier.fillMaxSize().background(Brush.linearGradient(colors)))
         }
-        // 用户指定了图片就用它（叠在渐变上，透明处仍见渐变）
+        // 用户指定了图片就用它（叠在渐变上，透明处仍见渐变）。
+        // **本地解码**：直接读文件字节交给 Skiko，不走网络加载器 ——
+        // 之前用 file:// 借网络加载器读，那是为 HTTP 写的，读不到本地文件。
         Appearance.wallpaperPath?.let { path ->
-            val bmp = remember(path) { runCatching { File(path) }.getOrNull() }
-            if (bmp != null && bmp.isFile) {
-                val image = rememberRemoteImage("file://${bmp.absolutePath}")
-                if (image != null) {
-                    androidx.compose.foundation.Image(
-                        bitmap = image,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize().then(if (blurRadius > 0f) Modifier.blur(blurRadius.dp) else Modifier),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    )
-                }
+            val image = remember(path) {
+                runCatching {
+                    val bytes = File(path).readBytes()
+                    org.jetbrains.skia.Image.makeFromEncoded(bytes)
+                        .toComposeImageBitmap()
+                }.onFailure { Log.error("外观", "本地壁纸解码失败：$path", it) }.getOrNull()
+            }
+            if (image != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = image,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(if (blurRadius > 0f) Modifier.blur(blurRadius.dp) else Modifier),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                )
             }
         }
     }

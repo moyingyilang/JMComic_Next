@@ -278,6 +278,7 @@ private fun App() {
                     is Screen.Page if s.route == "profile" -> ProfileScreen(repository, onGoLogin = { screen = Screen.Login })
                     is Screen.Page if s.route == "notifications" -> NotificationScreen(repository)
                     is Screen.Page if s.route == "block" -> BlockScreen(repository)
+                    is Screen.Page if s.route == "appearance" -> AppearanceScreen()
                     is Screen.Page if s.route == "search" -> SearchScreen(repository, onOpenComic = openComic)
                     is Screen.Page if s.route == "favorites" -> FavoriteScreen(repository, onOpenComic = openComic)
                     is Screen.Page if s.route == "history" -> HistoryScreen(repository, onOpenComic = openComic)

@@ -35,6 +35,7 @@ val NAV_ITEMS: List<Pair<String, String>> = listOf(
     "creator" to "画师与作品库",
     "notifications" to "通知",
     "block" to "屏蔽设置",
+    "appearance" to "外观",
     "about" to "关于",
     "profile" to "我的",
 )
