@@ -1,4 +1,3 @@
-评论正文渲染已改为先转纯文本
 package com.jmcomic_next.desktop
 
 import androidx.compose.foundation.background
