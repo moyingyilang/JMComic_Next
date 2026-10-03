@@ -68,6 +68,11 @@ fun DetailScreen(
     var detail by remember(comicId) { mutableStateOf<AlbumDetail?>(null) }
     var status by remember(comicId) { mutableStateOf("正在加载作品…") }
     var favorite by remember(comicId) { mutableStateOf(false) }
+    // 追更状态：只做本地翻转。**初始态没有从接口取**（详情接口不下发这个字段，
+    // Android 端为此单独请求一次）；所以第一次进来按钮一律显示"追更"，
+    // 若作品其实已在追更列表里，点一下会变成取消追更。这是已知简化。
+    var tracked by remember(comicId) { mutableStateOf(false) }
+    var trackBusy by remember { mutableStateOf(false) }
     var favMessage by remember(comicId) { mutableStateOf<String?>(null) }
     var favBusy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -141,6 +146,28 @@ fun DetailScreen(
                             }
                         },
                     ) { Text(if (favorite) "已收藏" else "收藏") }
+
+                    // 未登录不显示：否则点了必然失败，还得多跳一次登录页（照抄 Android 端）
+                    if (repository.auth.isLoggedIn) {
+                        Button(
+                            enabled = !trackBusy,
+                            onClick = {
+                                trackBusy = true
+                                scope.launch {
+                                    runCatching { repository.toggleTracking(d.id) }
+                                        .onSuccess {
+                                            tracked = !tracked
+                                            Log.line("详情", "追更切换：" + (if (tracked) "已追更" else "已取消追更"))
+                                        }
+                                        .onFailure {
+                                            if (it is CancellationException) return
+                                            Log.error("详情", "追更切换失败", it)
+                                        }
+                                    trackBusy = false
+                                }
+                            },
+                        ) { Text(if (tracked) "已追更" else "追更") }
+                    }
 
                     if (!repository.auth.isLoggedIn) {
                         Text(

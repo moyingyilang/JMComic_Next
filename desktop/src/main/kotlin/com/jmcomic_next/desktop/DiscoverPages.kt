@@ -159,7 +159,7 @@ fun WeekScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text("刊期", style = MaterialTheme.typography.labelSmall)
-                    issues.take(24).forEach { (id, title) ->
+                    issues.forEach { (id, title) ->
                         Button(
                             enabled = !busy && id != issueId,
                             onClick = { issueId = id; typeId?.let { t -> loadList(id, t, 1) } },
@@ -175,7 +175,7 @@ fun WeekScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text("类型", style = MaterialTheme.typography.labelSmall)
-                    types.take(24).forEach { (id, title) ->
+                    types.forEach { (id, title) ->
                         Button(
                             enabled = !busy && id != typeId,
                             onClick = { typeId = id; issueId?.let { i -> loadList(i, id, 1) } },

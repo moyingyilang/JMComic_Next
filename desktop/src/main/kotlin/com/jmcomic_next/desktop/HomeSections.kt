@@ -49,7 +49,7 @@ fun PromoteHeader(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             result.onSuccess { list ->
                 // 首页只放前 4 个分区：再多会把最新列表挤到很下面，
                 // 而首页的主要用途还是"看最新"。
-                sections = list.filter { s -> s.content.isNotEmpty() }.take(4)
+                sections = list.filter { s -> s.content.isNotEmpty() }
                 Log.line("首页", "推荐分区 ${list.size} 个，展示 ${sections.size} 个（第 ${attempt + 1} 次尝试）")
                 return@LaunchedEffect
             }
