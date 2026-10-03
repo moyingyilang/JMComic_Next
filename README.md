@@ -76,21 +76,21 @@
 deb 与 rpm 安装后（rpm 见[已知限制](#桌面端的已知限制)）：
 
 ```bash
-sudo dpkg -i jmcomic-next_1.9.001_arm64.deb     # 或 _amd64.deb
+sudo dpkg -i jmcomic-next_1.9.002_arm64.deb     # 或 _amd64.deb
 jmcomic-next
 ```
 
 AppImage：
 
 ```bash
-chmod +x jmcomic-next-1.9.001-aarch64.AppImage
-./jmcomic-next-1.9.001-aarch64.AppImage
+chmod +x jmcomic-next-1.9.002-aarch64.AppImage
+./jmcomic-next-1.9.002-aarch64.AppImage
 ```
 
 若系统缺 `libfuse.so.2`，AppImage 可用官方提供的方式直接运行（不挂载）：
 
 ```bash
-./jmcomic-next-1.9.001-aarch64.AppImage --appimage-extract-and-run
+./jmcomic-next-1.9.002-aarch64.AppImage --appimage-extract-and-run
 ```
 
 运行时需要图形环境（X11/Wayland）与 OpenGL；纯无头环境会在创建窗口时失败，
