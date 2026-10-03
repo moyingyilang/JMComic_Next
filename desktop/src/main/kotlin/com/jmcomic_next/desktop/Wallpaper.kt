@@ -64,28 +64,51 @@ enum class WallpaperPreset(val label: String, val light: List<Color>, val dark: 
 object Appearance {
     private val prefs = PreferencesKeyValueStore("jm_appearance")
 
-    var style: GlassStyle = GlassStyle.entries.firstOrNull { it.name == prefs.getString("style", null) }
-        ?: GlassStyle.WindowGlass
-        set(value) { field = value; prefs.putString("style", value.name) }
+    private var _style by mutableStateOf(
+        GlassStyle.entries.firstOrNull { it.name == prefs.getString("style", null) } ?: GlassStyle.WindowGlass,
+    )
 
-    var preset: WallpaperPreset = WallpaperPreset.entries.firstOrNull { it.name == prefs.getString("preset", null) }
-        ?: WallpaperPreset.Aurora
-        set(value) { field = value; prefs.putString("preset", value.name) }
+    var style: GlassStyle
+        get() = _style
+        set(value) { _style = value; prefs.putString("style", value.name) }
+
+    private var _preset by mutableStateOf(
+        WallpaperPreset.entries.firstOrNull { it.name == prefs.getString("preset", null) } ?: WallpaperPreset.Aurora,
+    )
+
+    var preset: WallpaperPreset
+        get() = _preset
+        set(value) { _preset = value; prefs.putString("preset", value.name) }
 
     /** 用户指定的本地图片路径；为空表示用内置渐变。 */
-    var wallpaperPath: String? = prefs.getString("wallpaperPath", null)
-        set(value) { field = value; if (value == null) prefs.remove("wallpaperPath") else prefs.putString("wallpaperPath", value) }
+    private var _wallpaperPath by mutableStateOf(prefs.getString("wallpaperPath", null))
 
-    var dark: Boolean = prefs.getString("dark", null) == "true"
-        set(value) { field = value; prefs.putString("dark", value.toString()) }
+    var wallpaperPath: String?
+        get() = _wallpaperPath
+        set(value) {
+            _wallpaperPath = value
+            if (value == null) prefs.remove("wallpaperPath") else prefs.putString("wallpaperPath", value)
+        }
+
+    private var _dark by mutableStateOf(prefs.getString("dark", null) == "true")
+
+    var dark: Boolean
+        get() = _dark
+        set(value) { _dark = value; prefs.putString("dark", value.toString()) }
 
     /** 壁纸模糊半径（dp）。观感很主观，所以交给用户调而不是我定死。 */
-    var wallpaperBlur: Int = prefs.getString("wallpaperBlur", null)?.toIntOrNull() ?: 48
-        set(value) { field = value; prefs.putString("wallpaperBlur", value.toString()) }
+    private var _wallpaperBlur by mutableStateOf(prefs.getString("wallpaperBlur", null)?.toIntOrNull() ?: 48)
+
+    var wallpaperBlur: Int
+        get() = _wallpaperBlur
+        set(value) { _wallpaperBlur = value; prefs.putString("wallpaperBlur", value.toString()) }
 
     /** 面板透明度倍率：在所选风格的基础上再整体调浓/调淡。 */
-    var alphaScale: Float = prefs.getString("alphaScale", null)?.toFloatOrNull() ?: 1.0f
-        set(value) { field = value; prefs.putString("alphaScale", value.toString()) }
+    private var _alphaScale by mutableStateOf(prefs.getString("alphaScale", null)?.toFloatOrNull() ?: 1.0f)
+
+    var alphaScale: Float
+        get() = _alphaScale
+        set(value) { _alphaScale = value; prefs.putString("alphaScale", value.toString()) }
 
     /** 实际生效的面板透明度（风格值 × 倍率，并夹在合理区间内）。 */
     val effectiveAlpha: Float get() = (style.surfaceAlpha * alphaScale).coerceIn(0.35f, 1f)
