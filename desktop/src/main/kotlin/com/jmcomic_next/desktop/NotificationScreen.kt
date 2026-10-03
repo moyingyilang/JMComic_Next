@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,19 +33,33 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /**
- * 通知（2.0.0 桌面端）。
+ * 通知（桌面端，1.9.x，整文件重写）。
  *
- * 这个接口有两个历史坑，桌面端沿用数据层已经处理过的形态：
- *  1. 同一字段在不同响应里可能是字符串或数字 —— 所以 DTO 全按 `JsonElement` 收，
- *     再由访问器解释；直接按严格类型反序列化会让**整条响应**解析失败。
- *  2. `data` 有时是裸数组、有时是 `{list,total}` —— 由 `NotificationPage.from` 兜住。
+ * 布局约定（与历史/追更/随机一致，见 HistoryScreen 注释）：
+ *   顶层 Column(fillMaxSize) → 顶部条 Row(fillMaxWidth) → 列表 weight(1f)
  *
- * 显示上只列标题、时间与未读标记：`content` 在 DTO 里没有公开访问器
- * （它是 JsonElement），所以正文这一栏暂时拿不到，不假装有。
+ * 这一版补上**筛选标签**：`notifications(type = ...)` 的取值照抄 Android 的 TABS
+ * （`all` / `comic_follow` / `site_notice`），此前桌面端只用了默认的 all。
+ *
+ * 两个接口历史坑沿用数据层已处理过的形态：
+ *  1. 同名字段在不同响应里可能是字符串或数字 —— DTO 全按 JsonElement 收、由访问器解释；
+ *  2. `data` 有时是裸数组、有时是 {list,total} —— 由 NotificationPage.from 兜住。
+ *
+ * 显示上只列标题、类型与未读标记：`content` 在 DTO 里没有公开访问器（它是 JsonElement），
+ * 所以正文这一栏拿不到，页面上不假装有 —— 这条如实标注。
  */
 @Composable
 fun NotificationScreen(repository: JmRepository) {
     val scope = rememberCoroutineScope()
+
+    // 取值照抄 Android 的 TABS
+    val tabs = listOf(
+        "全部" to "all",
+        "追更" to NotificationItem.TYPE_COMIC_FOLLOW,
+        "站内通知" to NotificationItem.TYPE_SITE_NOTICE,
+    )
+
+    var tab by remember { mutableStateOf("all") }
     var items by remember { mutableStateOf<List<NotificationItem>>(emptyList()) }
     var unread by remember { mutableStateOf(0) }
     var page by remember { mutableStateOf(1) }
@@ -54,48 +69,63 @@ fun NotificationScreen(repository: JmRepository) {
     fun load(next: Int) {
         busy = true
         scope.launch {
-            runCatching { repository.notifications(page = next) }
+            runCatching { repository.notifications(type = tab, page = next) }
                 .onSuccess { paged ->
-                    items = if (next == 1) paged.list else (items + paged.list).distinctBy { it.idText }
+                    items = if (next == 1) paged.list else (items + paged.list)
+                        .distinctBy { it.idText ?: it.hashCode().toString() }
                     page = next
                     status = "已加载 ${items.size} 条 / 共 ${paged.total} 条"
-                    System.err.println("[通知] $status")
+                    Log.line("通知", "$status（筛选：$tab）")
                 }
                 .onFailure {
                     if (it is CancellationException) return@onFailure
                     status = "加载失败：${it.message}"
-                    System.err.println("[通知] $status")
+                    Log.error("通知", "加载失败 tab=$tab", it)
                 }
             busy = false
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(tab) {
+        page = 1
         load(1)
         runCatching { repository.notificationsUnread() }
             .onSuccess {
                 unread = it.total
-                System.err.println("[通知] 未读 ${it.total} 条")
+                Log.line("通知", "未读 ${it.total} 条")
             }
-            .onFailure { if (it !is CancellationException) System.err.println("[通知] 未读数读取失败：${it.message}") }
+            .onFailure {
+                if (it is CancellationException) return@onFailure
+                Log.error("通知", "未读数读取失败", it)
+            }
     }
 
     Column(Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text("通知", style = MaterialTheme.typography.titleLarge)
+            tabs.forEach { (label, value) ->
+                TextButton(enabled = !busy, onClick = { if (tab != value) tab = value }) {
+                    Text(
+                        if (tab == value) "· $label" else label,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
             if (unread > 0) {
                 Text("未读 $unread", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
             Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Button(onClick = { load(page + 1) }, enabled = !busy) { Text("加载更多") }
+            if (items.isNotEmpty()) {
+                Button(enabled = !busy, onClick = { load(page + 1) }) { Text("加载更多") }
+            }
         }
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(items, key = { it.idText ?: it.hashCode().toString() }) { item ->
@@ -108,17 +138,16 @@ fun NotificationScreen(repository: JmRepository) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    // 未读标记：用一个小圆点，不用符号
-                    if (!item.isRead) {
-                        Column(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary),
-                        ) {}
-                    } else {
-                        Column(Modifier.size(8.dp)) {}
-                    }
+                    // 未读标记：一个小圆点，不用符号
+                    Column(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (item.isRead) MaterialTheme.colorScheme.surfaceVariant
+                                else MaterialTheme.colorScheme.primary,
+                            ),
+                    ) {}
                     Column(Modifier.weight(1f)) {
                         Text(item.titleText ?: "(无标题)", style = MaterialTheme.typography.bodyMedium)
                         Text(
