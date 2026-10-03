@@ -113,18 +113,6 @@ private fun AccountListPage(
 }
 
 @Composable
-fun FavoriteScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) = AccountListPage(
-    repository = repository,
-    title = "收藏",
-    emptyHint = "还没有收藏的作品",
-    onOpenComic = onOpenComic,
-    loader = { page ->
-        val payload = repository.favorites(page = page)
-        payload.list to payload.totalCount
-    },
-)
-
-@Composable
 fun HistoryScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) = AccountListPage(
     repository = repository,
     title = "历史",
