@@ -34,6 +34,7 @@ import com.jmcomic_next.lyqs.data.JmRepository
 import com.jmcomic_next.lyqs.data.auth.AuthStore
 import com.jmcomic_next.lyqs.data.auth.SecureStore
 import com.jmcomic_next.lyqs.data.prefs.BlockStore
+import com.jmcomic_next.lyqs.data.prefs.ReadProgressStore
 import com.jmcomic_next.lyqs.data.remote.dto.ListItem
 import java.io.File
 
@@ -46,6 +47,8 @@ import java.io.File
  * 数据层与 Android 完全同一份（:shared），这里只提供三个平台实现：
  * 键值存储、密钥来源、界面。
  */
+private val readProgress by lazy { ReadProgressStore(PreferencesKeyValueStore("jm_read_progress")) }
+
 private val repository: JmRepository by lazy {
     val configDir = File(System.getProperty("user.home"), ".config/jmcomic-next")
     val secure = SecureStore(
@@ -59,18 +62,27 @@ private val repository: JmRepository by lazy {
     )
 }
 
-fun main() = application {
+fun main() {
+    // 组合期抛出的异常默认只进 AWT 的日志，容器里看不到；这里显式打到 stderr
+    Thread.setDefaultUncaughtExceptionHandler { t, e ->
+        System.err.println("[崩溃] 线程 ${t.name}：")
+        e.printStackTrace()
+    }
+    runApp()
+}
+
+private fun runApp() = application {
     Window(
         onCloseRequest = ::exitApplication,
         title = "JMComic_Next",
         state = rememberWindowState(width = 1100.dp, height = 820.dp),
     ) {
-        MaterialTheme { HomeScreen() }
+        BlogTheme { App() }
     }
 }
 
 @Composable
-private fun HomeScreen() {
+private fun HomeScreen(onOpen: (ListItem) -> Unit) {
     var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
     var status by remember { mutableStateOf("正在引导…") }
 
@@ -106,18 +118,18 @@ private fun HomeScreen() {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
-            items(items, key = { it.id }) { item -> ComicCard(item) }
+            items(items, key = { it.id }) { item -> ComicCard(item, onOpen = { onOpen(item) }) }
         }
     }
 }
 
 @Composable
-private fun ComicCard(item: ListItem) {
+private fun ComicCard(item: ListItem, onOpen: () -> Unit) {
     val coverUrl = remember(item.id) { runCatching { repository.coverUrl(item) }.getOrNull() }
     val bitmap = rememberRemoteImage(coverUrl)
 
     Column(
-        modifier = Modifier.clickable { System.err.println("[界面] 点击作品：${item.name} (id=${item.id})") },
+        modifier = Modifier.clickable { onOpen() },
     ) {
         Box(
             modifier = Modifier
@@ -147,6 +159,44 @@ private fun ComicCard(item: ListItem) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             modifier = Modifier.padding(top = 2.dp),
+        )
+    }
+}
+
+/** 桌面端的页面栈（2.0.0 第一版：就两个页面，用手写状态机而不是导航库）。 */
+private sealed interface Screen {
+    data object Home : Screen
+    data class Detail(val id: String, val title: String) : Screen
+    data class Reader(val comicId: String, val chapterId: String) : Screen
+}
+
+@Composable
+private fun App() {
+    var screen by remember { mutableStateOf<Screen>(Screen.Home) }
+    when (val s = screen) {
+        is Screen.Home -> HomeScreen(
+            onOpen = { item ->
+                System.err.println("[界面] 打开作品：${item.name} (id=${item.id})")
+                screen = Screen.Detail(item.id, item.name.orEmpty())
+            },
+        )
+
+        is Screen.Detail -> DetailScreen(
+            repository = repository,
+            comicId = s.id,
+            onBack = { screen = Screen.Home },
+            onOpenChapter = { ch ->
+                System.err.println("[界面] 打开章节：sort=${ch.sort} id=${ch.id}")
+                screen = Screen.Reader(comicId = s.id, chapterId = ch.id)
+            },
+        )
+
+        is Screen.Reader -> ReaderScreen(
+            repository = repository,
+            progress = readProgress,
+            comicId = s.comicId,
+            chapterId = s.chapterId,
+            onBack = { screen = Screen.Home },
         )
     }
 }
