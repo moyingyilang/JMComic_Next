@@ -120,6 +120,18 @@ object Appearance {
 
     /** 实际生效的面板透明度（风格值 × 倍率，并夹在合理区间内）。 */
     val effectiveAlpha: Float get() = (style.surfaceAlpha * alphaScale).coerceIn(0.35f, 1f)
+
+    /**
+     * 壁纸压暗百分比（0..80）。
+     *
+     * 用途：浅色壁纸配浅色文字会看不清，压暗一层就能提对比度；
+     * 上限取 80 而不是 100 —— 到 100 壁纸等于纯黑，那还不如直接用纯色背景。
+     */
+    private var _dim by mutableStateOf(prefs.getString("dim", null)?.toIntOrNull() ?: 0)
+
+    var dim: Int
+        get() = _dim
+        set(value) { _dim = value; prefs.putString("dim", value.toString()) }
 }
 
 /**
@@ -145,7 +157,7 @@ fun WallpaperLayer(modifier: Modifier = Modifier) {
                     .background(Brush.linearGradient(colors)),
             )
         } else {
-            Box(Modifier.fillMaxSize().background(Brush.linearGradient(colors)))
+            Box(Modifier.fillMaxSize().background(Brush.linearGradient(colors)).background(Color.Black.copy(alpha = Appearance.dim / 100f)))
         }
         // 用户指定了图片就用它（叠在渐变上，透明处仍见渐变）。
         // **本地解码**：直接读文件字节交给 Skiko，不走网络加载器 ——

@@ -95,6 +95,14 @@ fun AppearanceScreen() {
                 valueRange = 0.5f..1.4f,
                 modifier = Modifier.width(420.dp),
             )
+            Text("壁纸压暗：${Appearance.dim}%（上限 80，再高壁纸就等于纯黑）",
+                style = MaterialTheme.typography.titleMedium)
+            androidx.compose.material3.Slider(
+                value = Appearance.dim.toFloat(),
+                onValueChange = { Appearance.dim = it.toInt() },
+                valueRange = 0f..80f,
+                modifier = Modifier.width(420.dp),
+            )
         }
 
         // 壁纸

@@ -152,7 +152,7 @@ fun WeekScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             if (issues.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("刊期", style = MaterialTheme.typography.labelSmall)
-                    issues.take(6).forEach { (id, title) ->
+                    issues.take(24).forEach { (id, title) ->
                         Button(
                             enabled = !busy && id != issueId,
                             onClick = { issueId = id; typeId?.let { t -> loadList(id, t, 1) } },
