@@ -105,14 +105,14 @@ object Appearance {
         }
 
     /** 壁纸模糊半径（dp）。观感很主观，所以交给用户调而不是我定死。 */
-    private var _wallpaperBlur by mutableStateOf(prefs.getString("wallpaperBlur", null)?.toIntOrNull() ?: 48)
+    private var _wallpaperBlur by mutableStateOf(prefs.getString("wallpaperBlur", null)?.toIntOrNull() ?: 5)
 
     var wallpaperBlur: Int
         get() = _wallpaperBlur
         set(value) { _wallpaperBlur = value; prefs.putString("wallpaperBlur", value.toString()) }
 
     /** 面板透明度倍率：在所选风格的基础上再整体调浓/调淡。 */
-    private var _alphaScale by mutableStateOf(prefs.getString("alphaScale", null)?.toFloatOrNull() ?: 1.0f)
+    private var _alphaScale by mutableStateOf(prefs.getString("alphaScale", null)?.toFloatOrNull() ?: 0.17f)
 
     var alphaScale: Float
         get() = _alphaScale
@@ -181,6 +181,16 @@ fun WallpaperLayer(modifier: Modifier = Modifier) {
                 )
             }
         }
+
+        // 压暗层必须盖在**所有**壁纸内容之上（渐变与本地图片之后）。
+        // 原先我把它挂在渐变那一层里，于是用了本地图片壁纸时它被图片盖住 —— 表现成"压暗没生效"。
+        if (Appearance.dim > 0) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = Appearance.dim / 100f)),
+            )
+        }
     }
 }
 
@@ -215,9 +225,9 @@ fun Modifier.glassPanel(
 /** 面板底色：浅色用白、深色用近黑，透明度由风格决定。 */
 @Composable
 private fun MaterialThemeSurface(alpha: Float): Color =
-    (if (Appearance.dark) Color(0xFF16181E) else Color(0xFFF6F7FA)).copy(alpha = alpha)
+    androidx.compose.material3.MaterialTheme.colorScheme.surface.copy(alpha = alpha)
 
 /** 描边色：与博客令牌一致（浅色 rgba(15,23,42,0.09)、深色 白 10%）。 */
 @Composable
 private fun MaterialThemeStroke(): Color =
-    if (Appearance.dark) Color(0x1AFFFFFF) else Color(0x170F172A)
+    androidx.compose.material3.MaterialTheme.colorScheme.outline
