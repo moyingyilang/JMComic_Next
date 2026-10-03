@@ -77,6 +77,17 @@ object Appearance {
 
     var dark: Boolean = prefs.getString("dark", null) == "true"
         set(value) { field = value; prefs.putString("dark", value.toString()) }
+
+    /** 壁纸模糊半径（dp）。观感很主观，所以交给用户调而不是我定死。 */
+    var wallpaperBlur: Int = prefs.getString("wallpaperBlur", null)?.toIntOrNull() ?: 48
+        set(value) { field = value; prefs.putString("wallpaperBlur", value.toString()) }
+
+    /** 面板透明度倍率：在所选风格的基础上再整体调浓/调淡。 */
+    var alphaScale: Float = prefs.getString("alphaScale", null)?.toFloatOrNull() ?: 1.0f
+        set(value) { field = value; prefs.putString("alphaScale", value.toString()) }
+
+    /** 实际生效的面板透明度（风格值 × 倍率，并夹在合理区间内）。 */
+    val effectiveAlpha: Float get() = (style.surfaceAlpha * alphaScale).coerceIn(0.35f, 1f)
 }
 
 /**
@@ -90,7 +101,7 @@ fun WallpaperLayer(modifier: Modifier = Modifier) {
     val preset = Appearance.preset
     val dark = Appearance.dark
     val colors = if (dark) preset.dark else preset.light
-    val blurRadius = if (Appearance.style.blurWallpaper) 48f else 0f
+    val blurRadius = if (Appearance.style.blurWallpaper) Appearance.wallpaperBlur.toFloat() else 0f
 
     Box(modifier.fillMaxSize()) {
         if (blurRadius > 0f) {

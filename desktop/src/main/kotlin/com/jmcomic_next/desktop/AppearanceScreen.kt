@@ -78,6 +78,25 @@ fun AppearanceScreen() {
             )
         }
 
+        // 可调项：观感很主观，与其我猜，不如给你滑杆
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("壁纸模糊：${Appearance.wallpaperBlur}dp", style = MaterialTheme.typography.titleMedium)
+            androidx.compose.material3.Slider(
+                value = Appearance.wallpaperBlur.toFloat(),
+                onValueChange = { Appearance.wallpaperBlur = it.toInt(); refresh++ },
+                valueRange = 0f..96f,
+                modifier = Modifier.width(420.dp),
+            )
+            Text("面板浓度：${(Appearance.effectiveAlpha * 100).toInt()}%（在所选风格基础上再调）",
+                style = MaterialTheme.typography.titleMedium)
+            androidx.compose.material3.Slider(
+                value = Appearance.alphaScale,
+                onValueChange = { Appearance.alphaScale = it; refresh++ },
+                valueRange = 0.5f..1.4f,
+                modifier = Modifier.width(420.dp),
+            )
+        }
+
         // 壁纸
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("壁纸", style = MaterialTheme.typography.titleMedium)

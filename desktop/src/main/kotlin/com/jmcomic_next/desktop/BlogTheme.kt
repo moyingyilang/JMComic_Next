@@ -73,7 +73,7 @@ fun BlogTheme(
             onPrimaryContainer = Tokens.accentDark,
             background = Color.Transparent,   // 透出壁纸
             onBackground = Tokens.textDark,
-            surface = Tokens.surfaceDark.copy(alpha = Appearance.style.surfaceAlpha),
+            surface = Tokens.surfaceDark.copy(alpha = Appearance.effectiveAlpha),
             onSurface = Tokens.textDark,
             surfaceVariant = Tokens.surfaceSunkenDark,
             onSurfaceVariant = Tokens.textSecondaryDark,
@@ -90,7 +90,7 @@ fun BlogTheme(
             onBackground = Tokens.textLight,
             // 半透明表面：所有用 colorScheme.surface 的面板因此一次性变成玻璃，
             // 不必逐处改背景。透明度由 Appearance.style 决定。
-            surface = Tokens.surfaceLight.copy(alpha = Appearance.style.surfaceAlpha),
+            surface = Tokens.surfaceLight.copy(alpha = Appearance.effectiveAlpha),
             onSurface = Tokens.textLight,
             surfaceVariant = Tokens.surfaceSunkenLight,
             onSurfaceVariant = Tokens.textSecondaryLight,
