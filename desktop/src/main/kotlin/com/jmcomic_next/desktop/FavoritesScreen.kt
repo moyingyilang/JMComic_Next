@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -64,6 +66,8 @@ fun FavoriteScreen(
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf(if (loggedIn) "加载中…" else "需要登录后才能查看收藏") }
     var notice by remember { mutableStateOf<String?>(null) }
+    // 收藏夹管理用的输入框内容（新建与改名共用）
+    var folderName by remember { mutableStateOf("") }
 
     fun load(next: Int) {
         busy = true
@@ -143,6 +147,95 @@ fun FavoriteScreen(
                             style = MaterialTheme.typography.labelSmall,
                         )
                     }
+                }
+            }
+        }
+
+        // ── 收藏夹管理（新建 / 改名 / 删除）──
+        // 类型常量照 Android 的定义：add / edit / del / move（这里做前三种）。
+        // 三者都是写操作，只在用户点击时调用；开发期间我一次没点过，所以均未验证。
+        if (loggedIn) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = folderName,
+                    onValueChange = { folderName = it },
+                    label = { Text("收藏夹名称") },
+                    singleLine = true,
+                    modifier = Modifier.width(220.dp),
+                )
+                Button(
+                    enabled = !busy && folderName.isNotBlank(),
+                    onClick = {
+                        val name = folderName.trim()
+                        busy = true
+                        notice = null
+                        scope.launch {
+                            runCatching { repository.editFavoriteFolder(type = "add", folderName = name) }
+                                .onSuccess {
+                                    notice = "已新建收藏夹："
+                                    folderName = ""
+                                    Log.line("收藏", "新建收藏夹：")
+                                    load(1)
+                                }
+                                .onFailure {
+                                    if (it is CancellationException) return@onFailure
+                                    notice = "新建失败：${it.message}"
+                                    Log.error("收藏", "新建收藏夹失败", it)
+                                }
+                            busy = false
+                        }
+                    },
+                ) { Text("新建") }
+                if (selected != null) {
+                    Button(
+                        enabled = !busy && folderName.isNotBlank(),
+                        onClick = {
+                            val id = selected ?: return@Button
+                            val name = folderName.trim()
+                            busy = true
+                            notice = null
+                            scope.launch {
+                                runCatching { repository.editFavoriteFolder(type = "edit", folderId = id, folderName = name) }
+                                    .onSuccess {
+                                        notice = "已改名" 
+                                        folderName = ""
+                                        load(1)
+                                    }
+                                    .onFailure {
+                                        if (it is CancellationException) return@onFailure
+                                        notice = "改名失败：${it.message}"
+                                        Log.error("收藏", "改名失败", it)
+                                    }
+                                busy = false
+                            }
+                        },
+                    ) { Text("改名") }
+                    Button(
+                        enabled = !busy,
+                        onClick = {
+                            val id = selected ?: return@Button
+                            busy = true
+                            notice = null
+                            scope.launch {
+                                runCatching { repository.editFavoriteFolder(type = "del", folderId = id) }
+                                    .onSuccess {
+                                        notice = "已删除收藏夹"
+                                        selected = null
+                                        load(1)
+                                    }
+                                    .onFailure {
+                                        if (it is CancellationException) return@onFailure
+                                        notice = "删除失败：${it.message}"
+                                        Log.error("收藏", "删除收藏夹失败", it)
+                                    }
+                                busy = false
+                            }
+                        },
+                    ) { Text("删除") }
                 }
             }
         }
