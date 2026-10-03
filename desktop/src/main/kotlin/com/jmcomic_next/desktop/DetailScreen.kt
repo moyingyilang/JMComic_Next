@@ -59,7 +59,7 @@ fun DetailScreen(
                 System.err.println("[详情] 数据到达：${it.name} 作者${it.author.size}人 标签${it.tags.size}个 章节${it.series.size}话")
                 status = "${it.name.orEmpty()} · ${it.series.size} 话"
             }
-            .onFailure {
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) return@onFailure
                 status = "加载失败：${it.message}"
                 it.printStackTrace()
                 System.err.println("[界面] $status")

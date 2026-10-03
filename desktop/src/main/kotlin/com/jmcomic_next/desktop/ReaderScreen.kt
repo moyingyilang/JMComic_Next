@@ -62,7 +62,7 @@ fun ReaderScreen(
                 runCatching { progress.record(comicId, chapterId) }
                 System.err.println("[阅读] 已加载 $status（需反切片: ${it.scrambleId}）")
             }
-            .onFailure {
+            .onFailure { if (it is kotlinx.coroutines.CancellationException) return@onFailure
                 status = "加载失败：${it.message}"
                 System.err.println("[阅读] $status")
             }

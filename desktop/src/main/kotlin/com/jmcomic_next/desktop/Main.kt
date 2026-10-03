@@ -103,7 +103,7 @@ private fun HomeScreen(onOpen: (ListItem) -> Unit) {
             items = page.items
             page.items.take(3).forEach { System.err.println("[界面] 作品：${it.name} · ${it.author}") }
             status = "首页 ${page.items.size} 条" + if (page.hidden > 0) "（屏蔽规则挡掉 ${page.hidden} 条）" else ""
-        }.onFailure {
+        }.onFailure { if (it is kotlinx.coroutines.CancellationException) return@onFailure
             status = "加载失败：${it.message}"
             System.err.println("[界面] $status")
         }
@@ -253,6 +253,14 @@ private fun App() {
                     )
 
                     is Screen.Login -> LoginScreen(repository = repository, onDone = { screen = Screen.Home })
+
+                    is Screen.Page if s.route == "search" -> SearchScreen(
+                        repository = repository,
+                        onOpenComic = { item ->
+                            System.err.println("[搜索] 打开作品：${item.name} (id=${item.id})")
+                            screen = Screen.Detail(item.id, item.name.orEmpty())
+                        },
+                    )
 
                     is Screen.Page -> {
                         val title = NAV_ITEMS.firstOrNull { it.first == s.route }?.second ?: s.route
