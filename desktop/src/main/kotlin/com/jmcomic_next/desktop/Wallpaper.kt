@@ -119,7 +119,7 @@ object Appearance {
         set(value) { _alphaScale = value; prefs.putString("alphaScale", value.toString()) }
 
     /** 实际生效的面板透明度（风格值 × 倍率，并夹在合理区间内）。 */
-    val effectiveAlpha: Float get() = (style.surfaceAlpha * alphaScale).coerceIn(0.35f, 1f)
+    val effectiveAlpha: Float get() = (style.surfaceAlpha * alphaScale).coerceIn(0f, 1f)
 
     /**
      * 壁纸压暗百分比（0..80）。

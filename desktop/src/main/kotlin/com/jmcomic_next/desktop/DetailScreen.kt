@@ -160,8 +160,7 @@ fun DetailScreen(
                                             Log.line("详情", "追更切换：" + (if (tracked) "已追更" else "已取消追更"))
                                         }
                                         .onFailure {
-                                            if (it is CancellationException) return
-                                            Log.error("详情", "追更切换失败", it)
+                                            if (it !is CancellationException) Log.error("详情", "追更切换失败", it)
                                         }
                                     trackBusy = false
                                 }

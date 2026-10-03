@@ -84,7 +84,7 @@ fun AppearanceScreen() {
             androidx.compose.material3.Slider(
                 value = Appearance.wallpaperBlur.toFloat(),
                 onValueChange = { Appearance.wallpaperBlur = it.toInt(); refresh++ },
-                valueRange = 0f..96f,
+                valueRange = 0f..256f,
                 modifier = Modifier.width(420.dp),
             )
             Text("面板浓度：${(Appearance.effectiveAlpha * 100).toInt()}%（在所选风格基础上再调）",
@@ -92,15 +92,15 @@ fun AppearanceScreen() {
             androidx.compose.material3.Slider(
                 value = Appearance.alphaScale,
                 onValueChange = { Appearance.alphaScale = it; refresh++ },
-                valueRange = 0.5f..1.4f,
+                valueRange = 0f..1f,
                 modifier = Modifier.width(420.dp),
             )
-            Text("壁纸压暗：${Appearance.dim}%（上限 80，再高壁纸就等于纯黑）",
+            Text("壁纸压暗：${Appearance.dim}%（0..100，到 100 壁纸等于纯黑）",
                 style = MaterialTheme.typography.titleMedium)
             androidx.compose.material3.Slider(
                 value = Appearance.dim.toFloat(),
                 onValueChange = { Appearance.dim = it.toInt() },
-                valueRange = 0f..80f,
+                valueRange = 0f..100f,
                 modifier = Modifier.width(420.dp),
             )
         }
