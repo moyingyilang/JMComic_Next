@@ -1138,3 +1138,34 @@ qemu-x86_64-static ... -cp "lib/app/*" com.jmcomic_next.desktop.MainKt
 
 打包脚本里把 rpmbuild 的输出重定向到了 `/dev/null`，于是失败时**看不到原因**，
 白跑一轮。构建命令不要静音。
+
+## 四大架构的可行性实测：32 位做不了（2.0.0）
+
+用户希望凑齐 arm64 / armv7a(arm32) / x86_64 / i686(x86-32) "四大铁架构"。实测结果：
+
+| 目标 | Skiko 原生库 | 32 位 JDK（Temurin 21） | 结论 |
+| --- | --- | --- | --- |
+| linux-x64 | 有（200） | 有 | 可做，已完成 |
+| linux-arm64 | 有（200） | 有 | 可做，已完成 |
+| linux-arm（armv7a） | **无（404）** | **无** | **做不了** |
+| linux-x86 / ia32（i686） | **无（404）** | **无** | **做不了** |
+
+- `skiko-awt-runtime-linux-arm` 与 `skiko-awt-runtime-linux-x86`/`-ia32` 在 Maven Central 上
+  都是 404 —— Compose Desktop 的渲染层（Skiko）**根本不发布 32 位 Linux 原生库**。
+- Temurin 21 也没有 32 位 Linux 构建（Adoptium 早已停掉 32 位）。
+- 这不是打包问题，是**上游依赖缺失**：要做就得自己从源码编 Skiko 的 arm32/x86-32 原生层，
+  属于另一个量级的工程，不是"换个运行时再打包"能解决的。
+
+所以桌面端现实可行的是 **arm64 与 x86_64 两个架构**，armv7a/i686 记为"上游不支持"。
+
+## rpm 卡在哪：没有 binfmt_misc
+
+- rpm 4.18 直接拒绝跨架构构建（`No compatible architectures found for build`），
+  试过 `_host_cpu`/`_target_cpu`/`_target`/`_arch`/`--target` 共八种组合，全部失败。
+- 绕法是让 rpmbuild 自己就是 x86_64：装 `rpm:amd64`，用 `qemu-x86_64-static` 运行它 ——
+  `rpmbuild --version` 能跑，最简 spec 也能构建成功。
+- **但真实 spec 会在 `%install` 失败**：rpm 的每个脚本段都要 `exec /bin/sh`，
+  而容器里 **binfmt_misc 不可用**（`/proc/sys/fs/binfmt_misc` 未挂载、register 不可写），
+  qemu 只能跑"我直接指定的那一个二进制"，**子进程不会被自动转译**。
+- 也就是说：单进程的交叉工具能跑，带子进程的构建流程跑不了。要在 x86_64 上出 rpm，
+  需要真正能注册 binfmt 的内核环境（真机、或允许 binfmt_misc 的容器）。

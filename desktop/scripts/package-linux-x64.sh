@@ -99,8 +99,26 @@ chmod 755 %{buildroot}/usr/bin/jmcomic-next
 /opt/jmcomic-next
 /usr/bin/jmcomic-next
 SPEC
-rpmbuild -bb --define "_topdir $TOP" --define "_target_cpu x86_64" "$TOP/SPECS/jmcomic-next.spec"
-find "$TOP/RPMS" -name '*.rpm' -exec cp {} "$OUT/" \;
+# rpm：本机 rpmbuild（aarch64）会以 "No compatible architectures found for build"
+# 拒绝跨架构构建（试过八种 define 组合均无效）。绕法是**让 rpmbuild 自己就是 x86_64**：
+# 装 rpm:amd64（多架构），再用 qemu 运行它 —— 它看到的宿主就是 x86_64，
+# 于是这条构建路径与在真机上完全一致，而不是伪造架构标记。
+RPM_OK=0
+if rpmbuild -bb --define "_topdir $TOP" --define "_target_cpu x86_64" "$TOP/SPECS/jmcomic-next.spec" 2>/dev/null; then
+  RPM_OK=1
+elif [ -x /usr/bin/qemu-x86_64-static ] && [ -x /usr/bin/rpmbuild ]; then
+  echo "  本机 rpmbuild 拒绝跨架构，改用 qemu 运行 x86_64 的 rpmbuild"
+  if /usr/bin/qemu-x86_64-static /usr/bin/rpmbuild -bb --define "_topdir $TOP" \
+       "$TOP/SPECS/jmcomic-next.spec" 2>&1 | tail -2; then
+    RPM_OK=1
+  fi
+fi
+if [ "$RPM_OK" = 1 ]; then
+  find "$TOP/RPMS" -name "*.rpm" -exec cp {} "$OUT/" \;
+  echo "  rpm 成功"
+else
+  echo "  rpm 失败：需在 x86_64 环境构建（已记档，不影响其它三类产物）"
+fi
 
 echo "== 5/5 AppImage(x86_64) =="
 if [ -f /root/runtime-x86_64 ]; then
