@@ -17,7 +17,6 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.net.HttpURLConnection
 import java.net.URI
-import java.util.concurrent.ConcurrentHashMap
 import javax.imageio.ImageIO
 
 /**
@@ -34,7 +33,22 @@ import javax.imageio.ImageIO
  */
 object RemoteImage {
 
-    private val cache = ConcurrentHashMap<String, ImageBitmap>()
+    /**
+     * 有上限的 LRU 缓存。
+     *
+     * 之前是无上限的 ConcurrentHashMap —— 这在阅读页会出事：一话 80 页，
+     * 解码后每页约 1MB（WebP 转 PNG 后更大），整话能吃掉几百 MB 内存。
+     * 桌面端一次只看得见一两页，超出窗口的图没必要留着。
+     *
+     * 上限按"张数"而不是"字节"：因为张数好推理，而单张大小的差别（几十 KB 到几 MB）
+     * 用字节上限反而会出现"一张大图挤掉全部小图"的抖动。64 张约覆盖两三屏。
+     */
+    private val cache = java.util.Collections.synchronizedMap(
+        object : LinkedHashMap<String, ImageBitmap>(64, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ImageBitmap>?) = size > 64
+        },
+    )
+
 
     fun cached(url: String): ImageBitmap? = cache[url]
 
