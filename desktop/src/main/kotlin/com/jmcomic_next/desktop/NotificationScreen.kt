@@ -56,7 +56,7 @@ fun NotificationScreen(repository: JmRepository) {
         scope.launch {
             runCatching { repository.notifications(page = next) }
                 .onSuccess { paged ->
-                    items = if (next == 1) paged.list else items + paged.list
+                    items = if (next == 1) paged.list else (items + paged.list).distinctBy { it.idText }
                     page = next
                     status = "已加载 ${items.size} 条 / 共 ${paged.total} 条"
                     System.err.println("[通知] $status")

@@ -39,18 +39,27 @@ fun PromoteHeader(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
     var sections by remember { mutableStateOf<List<PromoteSection>>(emptyList()) }
 
     LaunchedEffect(Unit) {
-        runCatching { repository.promote() }
-            .onSuccess {
+        // 首页列表与推荐分区同时起步，而主机发现（JmHostDiscovery）可能还没完成，
+        // 此时调用 promote() 会失败。日志实证过这一条：
+        //   [首页] 推荐分区加载失败：API 主机尚未初始化：请先执行 JmHostDiscovery
+        // 所以这里做有限次重试，而不是一失败就放弃。
+        var attempt = 0
+        while (attempt < 15) {
+            val result = runCatching { repository.promote() }
+            result.onSuccess { list ->
                 // 首页只放前 4 个分区：再多会把最新列表挤到很下面，
                 // 而首页的主要用途还是"看最新"。
-                sections = it.filter { s -> s.content.isNotEmpty() }.take(4)
-                System.err.println("[首页] 推荐分区 ${it.size} 个，展示 ${sections.size} 个")
+                sections = list.filter { s -> s.content.isNotEmpty() }.take(4)
+                Log.line("首页", "推荐分区 ${list.size} 个，展示 ${sections.size} 个（第 ${attempt + 1} 次尝试）")
+                return@LaunchedEffect
             }
-            .onFailure {
-                if (it is CancellationException) return@onFailure
-                // 推荐拉不到不该影响首页显示最新 —— 静默记一行，界面留空
-                System.err.println("[首页] 推荐分区加载失败：${it.message}")
-            }
+            val e = result.exceptionOrNull()
+            if (e is CancellationException) return@LaunchedEffect
+            attempt++
+            kotlinx.coroutines.delay(400)
+        }
+        // 重试用尽：推荐拉不到不该影响首页显示最新，记一行即可
+        Log.line("首页", "推荐分区重试 $attempt 次仍失败，跳过（不影响最新列表）")
     }
 
     if (sections.isEmpty()) return

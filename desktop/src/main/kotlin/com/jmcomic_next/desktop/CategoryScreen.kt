@@ -61,7 +61,7 @@ fun CategoryScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
         scope.launch {
             runCatching { repository.categoryFilter(c = slug, page = next) }
                 .onSuccess { paged ->
-                    items = if (next == 1) paged.items else items + paged.items
+                    items = if (next == 1) paged.items else (items + paged.items).distinctBy { it.id }
                     hidden += paged.hidden
                     page = next
                     status = "$name：已加载 ${items.size} 条" +

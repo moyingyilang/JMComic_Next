@@ -58,7 +58,7 @@ private fun AccountListPage(
         scope.launch {
             runCatching { loader(next) }
                 .onSuccess { (list, hidden) ->
-                    items = if (next == 1) list else items + list
+                    items = if (next == 1) list else (items + list).distinctBy { it.id }
                     total = items.size
                     page = next
                     status = if (items.isEmpty()) emptyHint else "已加载 ${items.size} 条（本页被屏蔽挡掉 $hidden 条）"

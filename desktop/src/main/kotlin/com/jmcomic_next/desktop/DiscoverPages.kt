@@ -111,7 +111,7 @@ fun WeekScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
         scope.launch {
             runCatching { repository.weekList(issueId = issue, type = type, page = next) }
                 .onSuccess { paged ->
-                    items = if (next == 1) paged.items else items + paged.items
+                    items = if (next == 1) paged.items else (items + paged.items).distinctBy { it.id }
                     hidden += paged.hidden
                     page = next
                     status = "已加载 ${items.size} 条" + if (paged.hidden > 0) "（本页屏蔽 ${paged.hidden} 条）" else ""

@@ -68,7 +68,7 @@ fun SearchScreen(
                         busy = false
                         return@launch
                     }
-                    items = if (nextPage == 1) result.page.items else items + result.page.items
+                    items = if (nextPage == 1) result.page.items else (items + result.page.items).distinctBy { it.id }
                     hidden += result.page.hidden
                     total = result.page.total
                     page = nextPage
