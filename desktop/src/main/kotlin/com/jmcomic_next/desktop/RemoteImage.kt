@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.jmcomic_next.lyqs.data.image.ImageUnscramble
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.skia.EncodedImageFormat
 import org.jetbrains.skia.Image
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
@@ -59,11 +60,24 @@ object RemoteImage {
         val bytes = download(url, "反切片") ?: return null
         val bitmap = withContext(Dispatchers.IO) {
             runCatching {
-                val src = ImageIO.read(ByteArrayInputStream(bytes))
+                var src = ImageIO.read(ByteArrayInputStream(bytes))
                 if (src == null) {
-                    // 这里是关键诊断点：字节下到了但解不出 —— 最可能是 WebP
-                    Log.error("图片", "ImageIO 解不出（很可能是不支持的格式，如 WebP）url=$url bytes=${bytes.size} 头部=${bytes.take(12).joinToString(" ") { b -> "%02x".format(b) }}")
-                    return@runCatching null
+                    // 字节下到了但 ImageIO 解不出 —— 绝大多数是 WebP（JDK 的 ImageIO 不支持）。
+                    // 解法：让 Skiko 先解（Skia 编码器齐全，含 WebP），转成 PNG 再交给 ImageIO。
+                    // 这样既保留"拿到像素数组做反切片"的前提，又不受 ImageIO 支持的格式限制。
+                    Log.line("图片", "ImageIO 解不出，改用 Skiko 转码 url=$url bytes=${bytes.size} 头部=${bytes.take(12).joinToString(" ") { b -> "%02x".format(b) }}")
+                    val skia = Image.makeFromEncoded(bytes)
+                    val png = skia.encodeToData(EncodedImageFormat.PNG, 100)?.bytes
+                    if (png == null) {
+                        Log.error("图片", "Skiko 也无法转码（连 Skia 都解不出）url=$url")
+                        return@runCatching null
+                    }
+                    Log.line("图片", "Skiko 转码为 PNG 成功 ${png.size}B（原 ${bytes.size}B）")
+                    src = ImageIO.read(ByteArrayInputStream(png))
+                    if (src == null) {
+                        Log.error("图片", "转成 PNG 后 ImageIO 仍解不出（异常情况，请把这条日志发我）url=$url")
+                        return@runCatching null
+                    }
                 }
                 val w = src.width
                 val h = src.height
