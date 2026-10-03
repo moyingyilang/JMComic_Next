@@ -1,3 +1,4 @@
+  3/4 提示语已调整（匹配 1）
 package com.jmcomic_next.desktop
 
 import androidx.compose.foundation.layout.Arrangement
@@ -57,11 +58,13 @@ private fun AccountListPage(
         busy = true
         scope.launch {
             runCatching { loader(next) }
-                .onSuccess { (list, hidden) ->
+                .onSuccess { (list, pageTotal) ->
                     items = if (next == 1) list else (items + list).distinctBy { it.id }
-                    total = items.size
+                    // 总数要用接口给的，不能用"已加载条数" —— 后者永远等于 items.size，
+                    // 于是"加载更多"永远显示、条数也一直是错的（这是之前的真实缺陷）。
+                    total = if (pageTotal > 0) pageTotal else items.size
                     page = next
-                    status = if (items.isEmpty()) emptyHint else "已加载 ${items.size} 条（本页被屏蔽挡掉 $hidden 条）"
+                    status = if (items.isEmpty()) emptyHint else "已加载 ${items.size} 条 / 共 $total 条"
                     System.err.println("[$title] $status")
                 }
                 .onFailure {
@@ -118,7 +121,7 @@ fun FavoriteScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) = 
     onOpenComic = onOpenComic,
     loader = { page ->
         val payload = repository.favorites(page = page)
-        payload.list to 0
+        payload.list to payload.totalCount
     },
 )
 
@@ -130,7 +133,7 @@ fun HistoryScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) = A
     onOpenComic = onOpenComic,
     loader = { page ->
         val payload = repository.history(page = page)
-        payload.list to 0
+        payload.list to payload.totalCount
     },
 )
 
