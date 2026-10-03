@@ -277,6 +277,7 @@ private fun App() {
                     is Screen.Page if s.route == "category" -> CategoryScreen(repository, onOpenComic = openComic)
                     is Screen.Page if s.route == "profile" -> ProfileScreen(repository, onGoLogin = { screen = Screen.Login })
                     is Screen.Page if s.route == "notifications" -> NotificationScreen(repository)
+                    is Screen.Page if s.route == "creator" -> CreatorScreen(repository)
                     is Screen.Page if s.route == "block" -> BlockScreen(repository)
                     is Screen.Page if s.route == "appearance" -> AppearanceScreen()
                     is Screen.Page if s.route == "tags" -> TagsScreen(repository, onSearch = { q ->
