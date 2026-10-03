@@ -74,7 +74,7 @@
 - WebP 转 PNG 的转码开销（体积放大 5 到 9 倍），可改 Skiko 直读像素，
   但有颜色错乱风险，未做。
 - x86_64 的 rpm 仍出不来（rpm 拒绝跨架构 + 构建环境无 binfmt_misc）。
-- Windows on ARM 的免装 Java ZIP 组装未完成、整条 Windows 线未验证。
+- Windows on ARM：免装 Java 的 ZIP 已能产出（含 skiko-windows-arm64.dll 与 jlink 运行时），但**真机未验证** —— 无该架构设备，容器也无对应模拟环境。
 
 ### 流程上的一条硬规则
 
