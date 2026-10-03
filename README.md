@@ -37,6 +37,7 @@
 | Android | arm64-v8a / armeabi-v7a | APK（full / lite 两种变体） | 稳定，已发布至 1.8.2 |
 | Linux 桌面 | aarch64 (arm64) | 便携 tar.gz / deb / rpm / AppImage | 可用 |
 | Linux 桌面 | x86_64 (amd64) | 便携 tar.gz / deb / AppImage | 可用（**未经真实 x86_64 机器测试**） |
+| Windows 桌面 | arm64 (ARM64) | 免装 Java 的便携 ZIP | 产物已产出（**真机未验证**） |
 | Linux 桌面 | armv7a (arm32) | — | **上游不支持**，见下 |
 | Linux 桌面 | i686 (x86-32) | — | **上游不支持**，见下 |
 
