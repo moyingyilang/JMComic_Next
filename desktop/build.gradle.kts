@@ -54,7 +54,7 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.AppImage,
             )
             packageName = "jmcomic-next"  // deb/rpm 对包名字符有限制，大写与下划线不合法
-            packageVersion = "2.0.0"
+            packageVersion = "1.9.001"
             description = "JMComic_Next 桌面版"
             vendor = "moyingyilang"
         }
