@@ -108,7 +108,14 @@ cp %{_sourcedir}/jmcomic-next.png %{buildroot}/usr/share/icons/hicolor/256x256/a
 /usr/bin/jmcomic-next
 /usr/share/icons/hicolor/256x256/apps/jmcomic-next.png
 SPEC
-rpmbuild -bb --define "_topdir $TOP" --define "_target_cpu aarch64" "$TOP/SPECS/jmcomic-next.spec" >/dev/null 2>&1
+# rpm：不要静音构建输出 —— 静音过一次，失败时看不到原因，白跑一轮。
+# 也**不要让它中断脚本**：rpm 失败不该连累后面 AppImage 的产出。
+if rpmbuild -bb --define "_topdir $TOP" --define "_target_cpu aarch64" "$TOP/SPECS/jmcomic-next.spec"; then
+  find "$TOP/RPMS" -name "*.rpm" -exec cp {} "$OUT/" \;
+  echo "  rpm 成功"
+else
+  echo "  rpm 失败：详情见上面 rpmbuild 的输出（已记档，不影响其它产物）"
+fi
 find "$TOP/RPMS" -name '*.rpm' -exec cp {} "$OUT/" \;
 
 echo "== 6/6 AppImage =="
