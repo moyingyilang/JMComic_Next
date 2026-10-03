@@ -1,5 +1,7 @@
 package com.jmcomic_next.desktop
 
+import kotlinx.coroutines.CancellationException
+
 import androidx.compose.material3.TextButton
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
@@ -106,7 +108,9 @@ private fun HomeScreen(onOpen: (ListItem) -> Unit) {
             items = page.items
             page.items.take(3).forEach { System.err.println("[界面] 作品：${it.name} · ${it.author}") }
             status = "首页 ${page.items.size} 条" + if (page.hidden > 0) "（屏蔽规则挡掉 ${page.hidden} 条）" else ""
-        }.onFailure { if (it is kotlinx.coroutines.CancellationException) return@onFailure
+        }.onFailure {
+            if (it is CancellationException) return@onFailure
+            if (it is kotlinx.coroutines.CancellationException) return@onFailure
             status = "加载失败：${it.message}"
             System.err.println("[界面] $status")
         }
@@ -202,7 +206,7 @@ private fun App() {
         screen = Screen.Detail(item.id, item.name.orEmpty())
     }
 
-    Row(Modifier.fillMaxSize()) {
+    Row(Modifier.fillMaxWidth()) {
         SideNav(selected = navSelection, onSelect = { route ->
             System.err.println("[导航] $route")
             screen = if (route == "home") Screen.Home else Screen.Page(route)
@@ -247,6 +251,7 @@ private fun App() {
                         comicId = s.id,
                         onBack = { screen = Screen.Home },
                         onOpenComic = openComic,
+                        onOpenComments = { aid -> screen = Screen.Page("comments:" + aid) },
                         progress = readProgress,
                         // 章节顺序由详情页回传（接口下发的是从旧到新），阅读页据此判断上一话/下一话
                         onOpenChapter = { ch, ids ->
@@ -278,6 +283,12 @@ private fun App() {
                     is Screen.Page if s.route == "profile" -> ProfileScreen(repository, onGoLogin = { screen = Screen.Login })
                     is Screen.Page if s.route == "notifications" -> NotificationScreen(repository)
                     is Screen.Page if s.route == "creator" -> CreatorScreen(repository)
+                    // 评论页用路由字符串带 aid，避免再加一个 Screen 变体
+                    is Screen.Page if s.route.startsWith("comments:") -> CommentsScreen(
+                        repository = repository,
+                        aid = s.route.removePrefix("comments:"),
+                        onBack = { screen = Screen.Detail(s.route.removePrefix("comments:"), "") },
+                    )
                     is Screen.Page if s.route == "block" -> BlockScreen(repository)
                     is Screen.Page if s.route == "appearance" -> AppearanceScreen()
                     is Screen.Page if s.route == "tags" -> TagsScreen(repository, onSearch = { q ->

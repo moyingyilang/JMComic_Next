@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.jmcomic_next.lyqs.data.image.ImageUnscramble
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.skia.EncodedImageFormat
@@ -101,7 +102,9 @@ object RemoteImage {
                 val out = BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
                 out.setRGB(0, 0, w, h, fixed, 0, w)
                 out.toComposeImageBitmap()
-            }.onFailure { Log.error("图片", "反切片解码异常 url=$url", it) }.getOrNull()
+            }.onFailure {
+                if (it is CancellationException) return@onFailure
+                Log.error("图片", "反切片解码异常 url=$url", it) }.getOrNull()
         } ?: return null
         Log.line("图片", "反切片成功 ${bitmap.width}x${bitmap.height} ${bytes.size}B ${System.currentTimeMillis() - t0}ms")
         cache[url] = bitmap

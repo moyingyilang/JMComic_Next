@@ -1,5 +1,6 @@
 package com.jmcomic_next.desktop
 
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -79,7 +80,7 @@ private fun AccountListPage(
 
     Column(Modifier.fillMaxSize()) {
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {

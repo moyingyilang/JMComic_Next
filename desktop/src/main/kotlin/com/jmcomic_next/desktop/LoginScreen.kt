@@ -1,5 +1,7 @@
 package com.jmcomic_next.desktop
 
+import kotlinx.coroutines.CancellationException
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -82,6 +84,7 @@ fun LoginScreen(repository: JmRepository, onDone: () -> Unit) {
                                 onDone()
                             }
                             .onFailure {
+                                if (it is CancellationException) return@onFailure
                                 message = "登录失败：${it.message}"
                                 System.err.println("[登录] 失败：${it.message}")
                             }

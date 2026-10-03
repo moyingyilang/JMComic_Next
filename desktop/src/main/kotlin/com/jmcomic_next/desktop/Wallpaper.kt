@@ -1,5 +1,7 @@
 package com.jmcomic_next.desktop
 
+import kotlinx.coroutines.CancellationException
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -168,7 +170,9 @@ fun WallpaperLayer(modifier: Modifier = Modifier) {
                     val bytes = File(path).readBytes()
                     org.jetbrains.skia.Image.makeFromEncoded(bytes)
                         .toComposeImageBitmap()
-                }.onFailure { Log.error("外观", "本地壁纸解码失败：$path", it) }.getOrNull()
+                }.onFailure {
+                    if (it is CancellationException) return@onFailure
+                    Log.error("外观", "本地壁纸解码失败：$path", it) }.getOrNull()
             }
             if (image != null) {
                 androidx.compose.foundation.Image(

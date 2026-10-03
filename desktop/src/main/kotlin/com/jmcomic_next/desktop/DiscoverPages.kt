@@ -67,7 +67,7 @@ fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
 
     Column(Modifier.fillMaxSize()) {
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {

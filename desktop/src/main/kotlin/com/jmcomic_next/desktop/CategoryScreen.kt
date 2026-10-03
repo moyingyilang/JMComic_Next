@@ -106,7 +106,7 @@ fun CategoryScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             }
     }
 
-    Row(Modifier.fillMaxSize()) {
+    Row(Modifier.fillMaxWidth()) {
         // 左：分类树
         Column(
             modifier = Modifier

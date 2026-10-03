@@ -29,6 +29,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.unit.dp
 import com.jmcomic_next.lyqs.data.JmRepository
 import com.jmcomic_next.lyqs.data.remote.dto.ListItem
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /**
@@ -75,7 +76,9 @@ fun SearchScreen(
                     status = "共 $total 条，已加载 ${items.size} 条"
                     System.err.println("[搜索] $status（本页屏蔽 ${result.page.hidden} 条）")
                 }
-                .onFailure { if (it is kotlinx.coroutines.CancellationException) return@onFailure
+                .onFailure {
+                    if (it is CancellationException) return@onFailure
+                    if (it is kotlinx.coroutines.CancellationException) return@onFailure
                     status = "搜索失败：${it.message}"
                     System.err.println("[搜索] $status")
                 }

@@ -63,6 +63,7 @@ fun DetailScreen(
     // 第二个参数是本章节的顺序（从旧到新），阅读页据此判断上一话/下一话
     onOpenChapter: (SeriesItem, List<String>) -> Unit,
     progress: ReadProgressStore,
+    onOpenComments: (String) -> Unit,
     onOpenComic: (ListItem) -> Unit,
 ) {
     var detail by remember(comicId) { mutableStateOf<AlbumDetail?>(null) }
@@ -166,6 +167,7 @@ fun DetailScreen(
                                 }
                             },
                         ) { Text(if (tracked) "已追更" else "追更") }
+                    TextButton(onClick = { onOpenComments(d.id) }) { Text("评论") }
                     }
 
                     if (!repository.auth.isLoggedIn) {

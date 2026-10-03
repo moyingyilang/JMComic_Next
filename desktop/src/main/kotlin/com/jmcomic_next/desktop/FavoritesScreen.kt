@@ -141,7 +141,9 @@ fun FavoriteScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
                                         total = (total - 1).coerceAtLeast(0)
                                         Log.line("收藏", "已取消收藏：" + (item.name ?: item.id))
                                     }
-                                    .onFailure { Log.error("收藏", "取消收藏失败", it) }
+                                    .onFailure {
+                                        if (it is CancellationException) return@onFailure
+                                        Log.error("收藏", "取消收藏失败", it) }
                             }
                         },
                     ) { Text("取消收藏", style = MaterialTheme.typography.labelSmall) }
