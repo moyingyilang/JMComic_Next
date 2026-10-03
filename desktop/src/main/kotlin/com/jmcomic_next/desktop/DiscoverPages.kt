@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -150,12 +153,32 @@ fun WeekScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             Text("周刊", style = MaterialTheme.typography.titleLarge)
             Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (issues.isNotEmpty()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text("刊期", style = MaterialTheme.typography.labelSmall)
                     issues.take(24).forEach { (id, title) ->
                         Button(
                             enabled = !busy && id != issueId,
                             onClick = { issueId = id; typeId?.let { t -> loadList(id, t, 1) } },
+                        ) { Text(title, style = MaterialTheme.typography.labelSmall) }
+                    }
+                }
+            }
+            // 类型切换器：原先只用第一个类型，等于类型这一维完全没做。
+            if (types.size > 1) {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("类型", style = MaterialTheme.typography.labelSmall)
+                    types.take(24).forEach { (id, title) ->
+                        Button(
+                            enabled = !busy && id != typeId,
+                            onClick = { typeId = id; issueId?.let { i -> loadList(i, id, 1) } },
                         ) { Text(title, style = MaterialTheme.typography.labelSmall) }
                     }
                 }
