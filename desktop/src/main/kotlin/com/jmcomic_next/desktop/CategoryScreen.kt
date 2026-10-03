@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +53,8 @@ fun CategoryScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
     // 之前两者共用 current，点二级项时父类不再匹配 → 子项立刻收回（用户报的"直接收回"）。
     var expanded by remember { mutableStateOf<String?>(null) }
     var currentName by remember { mutableStateOf("全部") }
+    // 排序档位取自 Android 端 CategorySort：比搜索多出月榜与周榜。
+    var sort by remember { mutableStateOf("") }
     var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
     var hidden by remember { mutableStateOf(0) }
     var page by remember { mutableStateOf(1) }
@@ -62,7 +65,9 @@ fun CategoryScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
     fun filter(slug: String?, name: String, next: Int) {
         busy = true
         scope.launch {
-            runCatching { repository.categoryFilter(c = slug, page = next) }
+            runCatching {
+                repository.categoryFilter(c = slug, page = next, order = sort.takeIf { it.isNotEmpty() })
+            }
                 .onSuccess { paged ->
                     items = if (next == 1) paged.items else (items + paged.items).distinctBy { it.id }
                     hidden += paged.hidden
@@ -151,6 +156,19 @@ fun CategoryScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             ) {
                 Text(currentName, style = MaterialTheme.typography.titleLarge)
                 Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // 排序档位：换档后从第一页重新加载
+                listOf(
+                    "" to "最新",
+                    "tf" to "最多爱心",
+                    "mv" to "总排行",
+                    "mv_m" to "月排行",
+                    "mp_w" to "周排行",
+                ).forEach { (key, label) ->
+                    TextButton(onClick = { sort = key; filter(current, currentName, 1) }) {
+                        Text(if (sort == key) "· $label" else label, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+
                 if (items.isNotEmpty()) {
                     Button(onClick = { filter(current, currentName, page + 1) }, enabled = !busy) { Text("加载更多") }
                 }
