@@ -1095,3 +1095,46 @@ SharedPreferences 时它被吞掉，读回来每部作品的标签粘成**一个
 结论：**结构性改动（插入/删除整行、跨行字符串、包声明）不要用 sed 拼**。
 这次最终是靠**整文件重写**解决的 —— 重写一次就把两处破坏都修好了，
 比继续做定点修补快得多也稳得多。定点 sed 只适合"行内、单行、无转义"的替换。
+
+## aarch64 → x86_64 交叉打包：实测结果（2.0.0）
+
+### 已打通
+
+三件事换掉即可，**不需要交叉编译器**（桌面端是纯 JVM，没有自写原生代码）：
+
+1. **运行时**：用 x86_64 的 jmods 做 jlink。`jlink` 由 aarch64 的 JDK 提供也能生成 x86_64 运行时
+   （`bin/java` 的 ELF 头是 `x86-64`）。副作用：`--strip-debug` 会调 `objcopy`，
+   而它在 aarch64 主机上认不出 x86_64 格式并报错，**调试符号没剥掉**（只影响体积）。
+2. **Skiko**：换成 `skiko-awt-runtime-linux-x64:0.150.1` 里的 `libskiko-linux-x64.so`，
+   并**删掉** Arm 那份 `libskiko-linux-arm64.so`（两份并存会加载错的）。
+3. **启动器**：jpackage 不能跨平台生成启动器，改用 shell 脚本，
+   直接调自带运行时 + `-cp "lib/app/*"`，并用 `-Dskiko.library.path` 指原生库所在目录。
+
+`dpkg-deb` 与 rpmbuild 之外的环节都不关心目标架构，deb 用 `Architecture: amd64` 即可。
+
+### 真跑起来了（本容器能做到的最强验证）
+
+容器里装了 amd64 多架构 libc（`dpkg --add-architecture amd64` + `libc6:amd64`），
+并把 `/lib64/ld-linux-x86-64.so.2` 指向多架构加载器之后：
+
+```
+qemu-x86_64-static <deb 里解出来的运行时>/bin/java -version   → openjdk 21.0.12.1
+qemu-x86_64-static ... -cp "lib/app/*" com.jmcomic_next.desktop.MainKt
+  → 55 个 jar 加载成功，最终停在 java.awt.HeadlessException
+    (androidx.compose.ui.window.LayoutConfiguration_desktopKt.getGlobalDensity)
+```
+
+最后那个异常是**无头容器开不了窗口**，与架构无关（aarch64 上同样如此）。
+也就是说 x86_64 产物已经跑到"创建窗口"这一步 —— 这是本容器能给出的最强证据。
+
+### 尚未解决
+
+- **rpm 出不来**：rpm 4.18 直接拒绝跨架构构建（`No compatible architectures found for build`）。
+  试过 `_host_cpu`/`_target_cpu`/`_target`/`_arch`/`--target` 共八种组合，全部失败。
+  正道是在 x86_64 环境里构建 rpm（现在 amd64 的 libc 已就位，是朝这个方向的一步）。
+- **AppImage 未产出**：打包脚本 `set -e` 在 rpmbuild 失败处退出，后面两步没跑到。
+
+### 自己踩的坑
+
+打包脚本里把 rpmbuild 的输出重定向到了 `/dev/null`，于是失败时**看不到原因**，
+白跑一轮。构建命令不要静音。
