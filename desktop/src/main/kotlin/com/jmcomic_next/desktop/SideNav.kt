@@ -32,7 +32,7 @@ val NAV_ITEMS: List<Pair<String, String>> = listOf(
     "history" to "历史",
     "tracking" to "追更",
     "tags" to "标签",
-    "creator" to "创作者库",
+    "creator" to "画师与作品库",
     "notifications" to "通知",
     "block" to "屏蔽设置",
     "about" to "关于",

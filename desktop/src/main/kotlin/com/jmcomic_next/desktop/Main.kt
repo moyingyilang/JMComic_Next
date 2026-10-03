@@ -257,6 +257,7 @@ private fun App() {
                     is Screen.Page if s.route == "random" -> RandomScreen(repository, onOpenComic = openComic)
                     is Screen.Page if s.route == "week" -> WeekScreen(repository, onOpenComic = openComic)
 
+                    is Screen.Page if s.route == "block" -> BlockScreen(repository)
                     is Screen.Page if s.route == "search" -> SearchScreen(repository, onOpenComic = openComic)
                     is Screen.Page if s.route == "favorites" -> FavoriteScreen(repository, onOpenComic = openComic)
                     is Screen.Page if s.route == "history" -> HistoryScreen(repository, onOpenComic = openComic)
