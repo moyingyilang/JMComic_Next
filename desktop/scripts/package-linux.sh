@@ -40,12 +40,12 @@ CHK=$(mktemp -d)
 JAR=$(find "$APP/lib/app" -maxdepth 1 -name "JMComic_Next-Desktop-*.jar" -print -quit)   # 不用管道：head 提前关管道会让 find 收到 SIGPIPE，pipefail 下静默退出
 [ -n "$JAR" ] || { echo "  自检失败：找不到应用 jar"; rm -rf "$CHK"; exit 1; }
 unzip -q "$JAR" "*.class" -d "$CHK"   # 不要 cd 进临时目录：JAR 是相对路径，cd 之后就找不到了
-LEGACY=$(grep -rl '构建链验证窗口' "$CHK" 2>/dev/null | wc -l)
+LEGACY=$(grep -rl '构建链验证窗口' "$CHK" 2>/dev/null | wc -l) || true
 [ "$LEGACY" -eq 0 ] || { echo "  自检失败：早期验证窗口的类仍在（$LEGACY 个文件）"; rm -rf "$CHK"; exit 1; }
-NEW=$(grep -rl "$MARK_NEW" "$CHK" 2>/dev/null | wc -l)
+NEW=$(grep -rl "$MARK_NEW" "$CHK" 2>/dev/null | wc -l) || true
 [ "$NEW" -ge 1 ] || { echo "  自检失败：新标记「$MARK_NEW」在产物里找不到"; rm -rf "$CHK"; exit 1; }
 if [ -n "$MARK_OLD" ]; then
-  OLD=$(grep -rl "$MARK_OLD" "$CHK" 2>/dev/null | wc -l)
+  OLD=$(grep -rl "$MARK_OLD" "$CHK" 2>/dev/null | wc -l) || true
   [ "$OLD" -eq 0 ] || { echo "  自检失败：旧标记「$MARK_OLD」仍在（$OLD 个文件）"; rm -rf "$CHK"; exit 1; }
 fi
 rm -rf "$CHK"
