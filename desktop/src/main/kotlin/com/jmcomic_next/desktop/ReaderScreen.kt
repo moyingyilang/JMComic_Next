@@ -35,6 +35,7 @@ import com.jmcomic_next.lyqs.data.prefs.ReadProgressStore
 import com.jmcomic_next.lyqs.data.remote.dto.ReadImage
 import com.jmcomic_next.lyqs.data.remote.dto.ReadPayload
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * 阅读页（桌面端，1.9.x 全量移植中）。
@@ -61,6 +62,9 @@ fun ReaderScreen(
     onSwitchChapter: (String) -> Unit = {},
 ) {
     var payload by remember(chapterId) { mutableStateOf<ReadPayload?>(null) }
+    // 页级进度：桌面端专用（共享层那份是章节粒度，Android 按那个工作）
+    val pageProgress = remember { PageProgress(PreferencesKeyValueStore("jm_read_page")) }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     var status by remember(chapterId) { mutableStateOf("正在加载章节…") }
     var retryToken by remember(chapterId) { mutableStateOf(0) }
 
@@ -82,6 +86,24 @@ fun ReaderScreen(
                 status = "加载失败：${it.message}（点“重试”）"
                 System.err.println("[阅读] $status")
             }
+    }
+
+    // 恢复到上次读到的页：等章节数据到位后再滚（此前只记到章节，重进会从头开始）
+    androidx.compose.runtime.LaunchedEffect(payload) {
+        if (payload != null) {
+            val saved = pageProgress.lastPage(comicId, chapterId)
+            if (saved > 0) {
+                Log.line("阅读", "恢复到第 ${saved + 1} 页")
+                listState.scrollToItem(saved)
+            }
+        }
+    }
+
+    // 滚动时记页（只在页码变化时写，避免每帧都落盘）
+    androidx.compose.runtime.LaunchedEffect(listState, chapterId) {
+        androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex }
+            .distinctUntilChanged()
+            .collect { pageProgress.record(comicId, chapterId, it) }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -112,6 +134,7 @@ fun ReaderScreen(
 
         val p = payload ?: return@Column
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
