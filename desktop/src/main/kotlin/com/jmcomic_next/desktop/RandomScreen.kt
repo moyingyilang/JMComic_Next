@@ -68,11 +68,14 @@ fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
                 val batch = repository.randomRecommend()
                 if (!ranked) return@runCatching batch
 
-                // 偏好排序：先备好收藏标签权重（缓存优先，没有才扫一次）
+                // 偏好排序：先备好收藏标签权重。
+                // 过期判断照 Android 的 FavoriteTags.isFresh：7 天内直接用缓存，
+                // 过期或从未扫过才重扫。它的源码注释专门警告过语义 ——
+                // "刚好到期"按时效处理，判断写反了会变成永远不刷新（功能看着正常、数据永远旧）。
                 var counts = tagStore.cached()
-                if (counts.isEmpty()) {
-                    status = "首次开启偏好排序，正在扫描收藏标签…"
-                    counts = runCatching { tagStore.refresh(repository) }.getOrDefault(emptyMap())
+                if (!FavoriteTags.isFresh(tagStore.cachedAt(), System.currentTimeMillis())) {
+                    status = "收藏标签统计已过期（或从未扫描），正在重新扫描…"
+                    counts = runCatching { tagStore.refresh(repository) }.getOrDefault(counts)
                 }
                 if (counts.isEmpty()) return@runCatching batch
 
