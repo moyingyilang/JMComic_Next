@@ -155,7 +155,7 @@ fun CreatorScreen(repository: JmRepository) {
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxWidth().weight(1f),
         ) {
             if (mode == "author") {
                 items(authors, key = { it.id }) { a ->
