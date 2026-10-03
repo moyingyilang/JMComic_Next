@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -124,6 +125,11 @@ private fun HomeScreen(onOpen: (ListItem) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
+            // 推荐分区作为整行表头（跨满整行），下面才是最新列表
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                PromoteHeader(repository = repository, onOpenComic = onOpen)
+            }
+
             items(items, key = { it.id }) { item -> ComicCard(item, onOpen = { onOpen(item) }) }
         }
     }
