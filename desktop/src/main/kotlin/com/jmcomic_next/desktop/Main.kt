@@ -239,6 +239,7 @@ private fun App() {
                         comicId = s.id,
                         onBack = { screen = Screen.Home },
                         onOpenComic = openComic,
+                        progress = readProgress,
                         // 章节顺序由详情页回传（接口下发的是从旧到新），阅读页据此判断上一话/下一话
                         onOpenChapter = { ch, ids ->
                             System.err.println("[界面] 打开章节：sort=${ch.sort} id=${ch.id}（顺序 ${ids.size} 项）")

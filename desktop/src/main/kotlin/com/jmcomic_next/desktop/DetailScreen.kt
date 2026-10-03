@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.jmcomic_next.lyqs.data.JmRepository
+import com.jmcomic_next.lyqs.data.prefs.ReadProgressStore
 import com.jmcomic_next.lyqs.data.remote.dto.AlbumDetail
 import com.jmcomic_next.lyqs.data.remote.dto.ListItem
 import com.jmcomic_next.lyqs.data.remote.dto.SeriesItem
@@ -61,6 +62,7 @@ fun DetailScreen(
     onBack: () -> Unit,
     // 第二个参数是本章节的顺序（从旧到新），阅读页据此判断上一话/下一话
     onOpenChapter: (SeriesItem, List<String>) -> Unit,
+    progress: ReadProgressStore,
     onOpenComic: (ListItem) -> Unit,
 ) {
     var detail by remember(comicId) { mutableStateOf<AlbumDetail?>(null) }
@@ -152,6 +154,22 @@ fun DetailScreen(
                 favMessage?.let {
                     Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
+
+                // 继续阅读：进度存在本地（章节粒度）。只有"上次读的章节确实还在这一话列表里"
+                // 才显示 —— 否则会指向一个不存在的章节，点一下就报错（与 Android 端同一条规矩）。
+                val orderedIds = d.series.map { it.id }
+                val lastRead = remember(comicId, d.series.size) { progress.lastChapterId(comicId) }
+                val resumeIndex = lastRead?.let { orderedIds.indexOf(it) } ?: -1
+                if (d.series.isNotEmpty() && resumeIndex >= 0) {
+                    val target = d.series[resumeIndex]
+                    Button(
+                        onClick = { onOpenChapter(target, orderedIds) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("继续阅读 · 第 ${target.sort ?: (resumeIndex + 1).toString()} 话")
+                    }
+                }
+
 
                 InfoLine("标题", d.name.orEmpty())
                 InfoLine("作者", d.author.joinToString(" / "))
