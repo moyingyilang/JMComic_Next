@@ -153,3 +153,32 @@ photo, expinfo, name, replies: List<CommentItem>)`，另有便捷属性 `authorN
 已改为受保护脚本：只有日志出现 `BUILD SUCCESSFUL` 才覆盖包，失败则包不动并打印错误。
 **待补**：偶发失败自动重试一次（出现过一次"构建偶发失败、紧接着重跑即成功"，
 保护机制因此把一次**本可以成功**的更新憋住了）。
+
+## 随机页的"按收藏偏好排序"实现方案（1.9.x，接口已读全）
+
+Android 端做法（`ui/screens/random/RandomListScreen.kt`）：
+
+1. 取**本地缓存的**收藏标签统计 `FavoriteTags.cached()`；只有缓存过期才
+   `refresh(repo)`（`DEFAULT_MAX_WORKS = 60`、`DEFAULT_MAX_PARALLEL = 3`）——
+   即**不是每次随机都扫收藏**，这点很关键，否则每次点"换一批"都要几十个请求。
+2. 对这一批作品逐个取标签：`repo.album(id).tags.toSet()`。
+3. `RandomRanking.rank(items, tagsOf, favoriteTags, isBlocked)`。
+
+**签名上的关键细节**（读源码确认，不是猜的）：
+```kotlin
+fun rank(
+    items: List<ListItem>,
+    tagsOf: (ListItem) -> Set<String>?,     // ← 同步！不能在里面发请求
+    favoriteTags: Map<String, Int>,
+    isBlocked: (Set<String>) -> Boolean,
+): List<ListItem>
+```
+`tagsOf` 是**同步 lambda**，所以顺序必须是：**先并发取完这一批的标签存进 Map** →
+再把 `{ id -> map[id] }` 传给 rank。若偷懒在 `tagsOf` 里发请求，会阻塞且并发失控。
+
+**桌面端实现计划**：
+- 做成**开关**（默认关）：开启才付"每批 N 次详情请求"的代价，关闭时就是现在的随机。
+- 取标签时设**并发上限**（照 Android 的 3，或 4），避免把图床/接口打爆。
+- 用 `FavoriteTags` 的本地缓存 + 过期才刷新，沿用 Android 的判断。
+- 未命中标签的作品 `score = 0`，排序时沉底（`rank` 已如此处理）。
+- 代价如实写进界面提示：开启后每批会多 N 次请求、首次可能较慢。
