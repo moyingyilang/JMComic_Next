@@ -3,6 +3,7 @@ package com.jmcomic_next.desktop
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,52 +28,67 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import com.jmcomic_next.lyqs.data.JmRepository
 import com.jmcomic_next.lyqs.data.remote.dto.AlbumDetail
+import com.jmcomic_next.lyqs.data.remote.dto.ListItem
 import com.jmcomic_next.lyqs.data.remote.dto.SeriesItem
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 /**
- * 作品详情页（2.0.0 桌面端）。
+ * 作品详情页（桌面端，1.9.x 全量移植中）。
  *
- * 显示封面、标题、作者、标签、简介与章节列表；点章节进入阅读页。
+ * 已有：封面、标题、作者、标签、页数、简介、章节列表（倒序）、无章节作品直接开读、
+ * 收藏/取消收藏、相关作品。
  *
- * 章节列表按官方客户端的做法**倒序**：读者最常点的是最新一话，
- * 而接口下发的是从旧到新（与 `Detail.tsx` 一致）。
+ * 关于收藏：`toggleFavorite` 是**对服务端的写操作**，只在用户按下按钮时调用，
+ * 页面加载时绝不自动触发。开发期间我没有用自己的验证去点它（用的是用户账号），
+ * 所以"收藏成功"这条路径的真实结果未经我验证，界面显示服务端返回的原文。
+ *
+ * 尚未做：评论入口、追更、下载（在《PARITY.md》里挂着）。
  */
 @Composable
 fun DetailScreen(
-    repository: com.jmcomic_next.lyqs.data.JmRepository,
+    repository: JmRepository,
     comicId: String,
     onBack: () -> Unit,
     onOpenChapter: (SeriesItem) -> Unit,
+    onOpenComic: (ListItem) -> Unit,
 ) {
     var detail by remember(comicId) { mutableStateOf<AlbumDetail?>(null) }
     var status by remember(comicId) { mutableStateOf("正在加载作品…") }
+    var favorite by remember(comicId) { mutableStateOf(false) }
+    var favMessage by remember(comicId) { mutableStateOf<String?>(null) }
+    var favBusy by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(comicId) {
         System.err.println("[详情] 进入页面 comicId=$comicId")
         runCatching { repository.album(comicId) }
             .onSuccess {
                 detail = it
-                System.err.println("[详情] 数据到达：${it.name} 作者${it.author.size}人 标签${it.tags.size}个 章节${it.series.size}话")
-                status = "${it.name.orEmpty()} · ${it.series.size} 话"
+                favorite = it.isFavorite
+                status = "${it.name.orEmpty()} · ${it.series.size} 话 · 相关 ${it.relatedList.size} 部"
+                System.err.println("[详情] 数据到达：${it.name} 作者${it.author.size}人 标签${it.tags.size}个 章节${it.series.size}话 相关${it.relatedList.size}部")
             }
-            .onFailure { if (it is kotlinx.coroutines.CancellationException) return@onFailure
+            .onFailure {
+                if (it is CancellationException) return@onFailure
                 status = "加载失败：${it.message}"
                 it.printStackTrace()
-                System.err.println("[界面] $status")
             }
     }
 
     Column(Modifier.fillMaxSize()) {
-        System.err.println("[详情] 开始组合，detail=${detail != null}")
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TextButton(onClick = onBack) { Text("返回") }
@@ -81,7 +99,7 @@ fun DetailScreen(
         Row(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
             // 左栏：封面与基本信息
             Column(
-                modifier = Modifier.width(260.dp).verticalScroll(rememberScrollState()),
+                modifier = Modifier.width(280.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 val coverUrl = remember(d.id) { runCatching { repository.coverUrl(d.id) }.getOrNull() }
@@ -97,6 +115,43 @@ fun DetailScreen(
                         Image(bitmap, contentDescription = d.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     }
                 }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        enabled = !favBusy,
+                        onClick = {
+                            favBusy = true
+                            favMessage = null
+                            scope.launch {
+                                runCatching { repository.toggleFavorite(d.id) }
+                                    .onSuccess {
+                                        favorite = !favorite
+                                        favMessage = if (favorite) "已加入收藏" else "已取消收藏"
+                                        System.err.println("[详情] 收藏切换：$favMessage")
+                                    }
+                                    .onFailure {
+                                        if (it is CancellationException) return@onFailure
+                                        favMessage = "操作失败：${it.message}"
+                                        System.err.println("[详情] $favMessage")
+                                    }
+                                favBusy = false
+                            }
+                        },
+                    ) { Text(if (favorite) "已收藏" else "收藏") }
+
+                    if (!repository.auth.isLoggedIn) {
+                        Text(
+                            "未登录",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                    }
+                }
+                favMessage?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                }
+
                 InfoLine("标题", d.name.orEmpty())
                 InfoLine("作者", d.author.joinToString(" / "))
                 if (d.tags.isNotEmpty()) InfoLine("标签", d.tags.joinToString(" "))
@@ -104,12 +159,27 @@ fun DetailScreen(
                 if (!d.description.isNullOrBlank()) {
                     Text(d.description, style = MaterialTheme.typography.bodySmall)
                 }
+
+                // 相关作品（横向滚动）：接口直接给的就是 ListItem，可直接用现成卡片
+                if (d.relatedList.isNotEmpty()) {
+                    Text("相关作品", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        d.relatedList.forEach { item ->
+                            Box(Modifier.width(140.dp)) {
+                                ComicCover(repository, item) { onOpenComic(item) }
+                            }
+                        }
+                    }
+                }
             }
 
-            // 无章节作品（单话同人本很常见）：作品 id 自身就是可读单元。
-            // 这一条与 Android 端一致 —— 不补的话这类作品点了没反应，
-            // 表现成"详情页打开但读不了"。
+            // 右栏：章节列表（倒序，最新的在最上面）
             if (d.series.isEmpty()) {
+                // 无章节作品（单话同人本很常见）：作品 id 自身就是可读单元。
+                // 与 Android 端一致 —— 不补的话这类作品点了没反应。
                 LazyColumn(modifier = Modifier.fillMaxSize().padding(start = 16.dp)) {
                     item {
                         Text(
@@ -124,23 +194,21 @@ fun DetailScreen(
                         Text("该作品没有章节列表，直接阅读整本", style = MaterialTheme.typography.labelSmall)
                     }
                 }
-                return@Row
-            }
-
-            // 右栏：章节列表（倒序，最新的在最上面）
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(start = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                items(d.series.reversed(), key = { it.id }) { chapter ->
-                    Text(
-                        text = "第 ${chapter.sort ?: "?"} 话" + (chapter.name?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onOpenChapter(chapter) }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                    )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(start = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    items(d.series.reversed(), key = { it.id }) { chapter ->
+                        Text(
+                            text = "第 ${chapter.sort ?: "?"} 话" + (chapter.name?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onOpenChapter(chapter) }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                        )
+                    }
                 }
             }
         }

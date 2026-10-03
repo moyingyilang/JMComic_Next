@@ -238,6 +238,7 @@ private fun App() {
                         repository = repository,
                         comicId = s.id,
                         onBack = { screen = Screen.Home },
+                        onOpenComic = openComic,
                         onOpenChapter = { ch ->
                             System.err.println("[界面] 打开章节：sort=${ch.sort} id=${ch.id}")
                             screen = Screen.Reader(comicId = s.id, chapterId = ch.id)
