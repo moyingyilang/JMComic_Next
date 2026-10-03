@@ -65,6 +65,8 @@ fun ReaderScreen(
     // 页级进度：桌面端专用（共享层那份是章节粒度，Android 按那个工作）
     val pageProgress = remember { PageProgress(PreferencesKeyValueStore("jm_read_page")) }
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    // 当前页（0 基）：从列表状态派生，滚动时自动更新，给右侧页码栏用
+    val currentPage by androidx.compose.runtime.derivedStateOf { listState.firstVisibleItemIndex }
     var status by remember(chapterId) { mutableStateOf("正在加载章节…") }
     var retryToken by remember(chapterId) { mutableStateOf(0) }
 
@@ -133,9 +135,10 @@ fun ReaderScreen(
         }
 
         val p = payload ?: return@Column
+        Row(Modifier.fillMaxWidth().weight(1f)) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
             // 页面之间不留空隙：漫画是连续的，8dp 间距会把跨页画面割断
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
@@ -158,6 +161,10 @@ fun ReaderScreen(
                     }
                 }
             }
+        }
+
+        // 右侧竖排页码栏（仿 Android 版）：当前页 / 总页数 + 竖向进度
+        PageRail(current = currentPage, total = p.images.size)
         }
     }
 }
