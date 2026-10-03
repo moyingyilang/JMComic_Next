@@ -76,21 +76,21 @@
 deb 与 rpm 安装后（rpm 见[已知限制](#桌面端的已知限制)）：
 
 ```bash
-sudo dpkg -i jmcomic-next_1.9.002_arm64.deb     # 或 _amd64.deb
+sudo dpkg -i jmcomic-next_1.9.003_arm64.deb     # 或 _amd64.deb
 jmcomic-next
 ```
 
 AppImage：
 
 ```bash
-chmod +x jmcomic-next-1.9.002-aarch64.AppImage
-./jmcomic-next-1.9.002-aarch64.AppImage
+chmod +x jmcomic-next-1.9.003-aarch64.AppImage
+./jmcomic-next-1.9.003-aarch64.AppImage
 ```
 
 若系统缺 `libfuse.so.2`，AppImage 可用官方提供的方式直接运行（不挂载）：
 
 ```bash
-./jmcomic-next-1.9.002-aarch64.AppImage --appimage-extract-and-run
+./jmcomic-next-1.9.003-aarch64.AppImage --appimage-extract-and-run
 ```
 
 运行时需要图形环境（X11/Wayland）与 OpenGL；纯无头环境会在创建窗口时失败，
@@ -139,10 +139,10 @@ scripts/package-linux-x64.sh  dist-x64  # 交叉产出 x86_64（见下）
 
 ### 1.9.x 预构建线（与主板本的关系）
 
-1.9.001 与 1.9.002 是**桌面端的预构建**，用于跨架构打包与界面移植的验证，
+1.9.001 与 1.9.003 是**桌面端的预构建**，用于跨架构打包与界面移植的验证，
 **不含主项目（Android 端）的任何更新**。桌面端的功能线仍在 2.0.0。
 
-版本策略：1.9.002、1.9.003 这样正常递增（不用三位数小版本）；积累到一批修复就可以发一次预构建。
+版本策略：1.9.003、1.9.003 这样正常递增（不用三位数小版本）；积累到一批修复就可以发一次预构建。
 每次发布的附件见 Releases 页面。
 
 发布包的验证边界（每次发布都会在 Release 说明里重复）：界面观感、以及所有**写操作**

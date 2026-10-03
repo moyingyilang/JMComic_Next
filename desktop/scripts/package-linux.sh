@@ -53,7 +53,7 @@ echo "  应用 jar 1 个、启动类正确、标记检查通过"
 
 echo "== 3/6 便携包 =="
 rm -rf "$OUT" && mkdir -p "$OUT"
-tar czf "$OUT/jmcomic-next-1.9.002-linux-aarch64-portable.tar.gz" -C "$APP" .
+tar czf "$OUT/jmcomic-next-1.9.003-linux-aarch64-portable.tar.gz" -C "$APP" .
 
 echo "== 4/6 deb =="
 STAGE=$(mktemp -d)/jmcomic-next
@@ -67,7 +67,7 @@ printf '[Desktop Entry]\nType=Application\nName=JMComic_Next\nExec=/opt/jmcomic-
   > "$STAGE/usr/share/applications/jmcomic-next.desktop"
 cat > "$STAGE/DEBIAN/control" <<'CTL'
 Package: jmcomic-next
-Version: 1.9.002
+Version: 1.9.003
 Architecture: arm64
 Maintainer: moyingyilang
 Depends: libc6
@@ -76,7 +76,7 @@ Priority: optional
 Description: JMComic_Next desktop client
  A third-party JMComic client built with Kotlin and Compose Desktop.
 CTL
-dpkg-deb --build --root-owner-group "$STAGE" "$OUT/jmcomic-next_1.9.002_arm64.deb" >/dev/null
+dpkg-deb --build --root-owner-group "$STAGE" "$OUT/jmcomic-next_1.9.003_arm64.deb" >/dev/null
 
 echo "== 5/6 rpm =="
 TOP=$(mktemp -d)
@@ -85,7 +85,7 @@ cp -a "$APP" "$TOP/SOURCES/jmcomic-next-app"
 cp "$ICON" "$TOP/SOURCES/jmcomic-next.png"
 cat > "$TOP/SPECS/jmcomic-next.spec" <<'SPEC'
 Name:           jmcomic-next
-Version:        1.9.002
+Version:        1.9.003
 Release:        1
 Summary:        JMComic_Next desktop client
 License:        AGPL-3.0-only
@@ -130,8 +130,8 @@ if [ -f /root/runtime-aarch64 ]; then
     > "$APPDIR/jmcomic-next.desktop"
   SQ=$(mktemp -u).squashfs
   mksquashfs "$APPDIR" "$SQ" -root-owned -noappend -comp gzip -quiet
-  cat /root/runtime-aarch64 "$SQ" > "$OUT/jmcomic-next-1.9.002-aarch64.AppImage"
-  chmod 755 "$OUT/jmcomic-next-1.9.002-aarch64.AppImage"
+  cat /root/runtime-aarch64 "$SQ" > "$OUT/jmcomic-next-1.9.003-aarch64.AppImage"
+  chmod 755 "$OUT/jmcomic-next-1.9.003-aarch64.AppImage"
   rm -f "$SQ"
 else
   echo "  跳过：缺少 AppImage runtime（/root/runtime-aarch64）"
