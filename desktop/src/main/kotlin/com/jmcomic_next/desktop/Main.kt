@@ -188,6 +188,12 @@ private fun App() {
         else -> "home"
     }
 
+    // 列表页统一的"点作品进详情"，避免在每个分支里重复三段一样的代码
+    val openComic: (ListItem) -> Unit = { item ->
+        System.err.println("[界面] 打开作品：${item.name} (id=${item.id})")
+        screen = Screen.Detail(item.id, item.name.orEmpty())
+    }
+
     Row(Modifier.fillMaxSize()) {
         SideNav(selected = navSelection, onSelect = { route ->
             System.err.println("[导航] $route")
@@ -195,7 +201,6 @@ private fun App() {
         })
 
         Column(Modifier.weight(1f).fillMaxSize()) {
-            // 顶栏：账号状态常驻，任何页面都能登录/退出
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -227,12 +232,7 @@ private fun App() {
 
             Box(Modifier.weight(1f)) {
                 when (val s = screen) {
-                    is Screen.Home -> HomeScreen(
-                        onOpen = { item ->
-                            System.err.println("[界面] 打开作品：${item.name} (id=${item.id})")
-                            screen = Screen.Detail(item.id, item.name.orEmpty())
-                        },
-                    )
+                    is Screen.Home -> HomeScreen(onOpen = openComic)
 
                     is Screen.Detail -> DetailScreen(
                         repository = repository,
@@ -254,13 +254,10 @@ private fun App() {
 
                     is Screen.Login -> LoginScreen(repository = repository, onDone = { screen = Screen.Home })
 
-                    is Screen.Page if s.route == "search" -> SearchScreen(
-                        repository = repository,
-                        onOpenComic = { item ->
-                            System.err.println("[搜索] 打开作品：${item.name} (id=${item.id})")
-                            screen = Screen.Detail(item.id, item.name.orEmpty())
-                        },
-                    )
+                    is Screen.Page if s.route == "search" -> SearchScreen(repository, onOpenComic = openComic)
+                    is Screen.Page if s.route == "favorites" -> FavoriteScreen(repository, onOpenComic = openComic)
+                    is Screen.Page if s.route == "history" -> HistoryScreen(repository, onOpenComic = openComic)
+                    is Screen.Page if s.route == "tracking" -> TrackingScreen(repository, onOpenComic = openComic)
 
                     is Screen.Page -> {
                         val title = NAV_ITEMS.firstOrNull { it.first == s.route }?.second ?: s.route
