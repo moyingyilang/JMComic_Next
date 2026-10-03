@@ -166,6 +166,7 @@ fun ReaderScreen(
         }
 
         // 右侧竖排页码栏（仿 Android 版）：当前页 / 总页数 + 竖向进度
+        // 与 Android 的 PageSeekRow 同一套控件（只竖过来），见 PageRail.kt
         PageRail(
             current = currentPage,
             total = p.images.size,
@@ -174,6 +175,10 @@ fun ReaderScreen(
                 Log.line("阅读", "跳页 → 第 ${page + 1} 页")
                 scope.launch { listState.scrollToItem(page) }
             },
+            hasPrev = prevId != null,
+            hasNext = nextId != null,
+            onPrev = { prevId?.let(onSwitchChapter) },
+            onNext = { nextId?.let(onSwitchChapter) },
         )
         }
     }

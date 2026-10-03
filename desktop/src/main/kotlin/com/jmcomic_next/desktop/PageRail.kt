@@ -1,104 +1,97 @@
 package com.jmcomic_next.desktop
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 
 /**
- * 竖排页码栏（桌面端，1.9.x，仿 Android 版）。
+ * 竖排页码栏（桌面端，1.9.x）。
  *
- * 显示**当前页 / 总页数** + 竖向进度；**点击或上下拖动即可跳页**。
+ * **本文件是 Android 端 `PageSeekRow` 的原样移植，只多了一步"竖过来"。**
+ * 上一版我自己手搓了轨道、命中区和 pageAt 换算，用户评价"那个侧栏不像人做的" ——
+ * 说得对：自造控件既不像原生，手感也无从校准。现在不保留任何自创部件。
  *
- * 为什么竖着放：漫画纵向滚动，页码放右侧一列最省横向空间，也不会像浮动条那样遮住画面
- * （画面本身要求"两页之间不留空隙"）。
+ * Android 原版（`ui/screens/reader/ReaderScreen.kt`，注释原文）：
  *
- * 命中区比视觉条宽（14dp vs 4dp）：4dp 的细条点不中，而视觉上又不该占宽 ——
- * 所以拖拽区域做得比轨道宽，视觉仍是细线。
+ *     上行：上一话 · 当前页 · 滑块 · 总页数 · 下一话。 *\/
+ *     Row {
+ *         IconButton(ChevronLeft)      // 上一话
+ *         Text("${currentPage + 1}")   // 当前页
+ *         Slider(value = currentPage, valueRange = 0f..max, modifier = Modifier.weight(1f))
+ *         Text("$totalPages")          // 总页数
+ *         IconButton(ChevronRight)     // 下一话
+ *     }
  *
- * 页码换算用**像素高度**（onSizeChanged 拿到的实际高度），不是 dp 常量：
- * 这样窗口大小变化后换算仍然正确。
+ * 竖过来的做法：用 BoxWithConstraints 量出竖栏的高度，把这个 Row 的**宽度**设为该高度，
+ * 再绕中心旋转 -90 度。这样 Slider 的外观、拇指、主题色、无障碍与手感全部直接继承，
+ * 我只负责转向。
+ *
+ * 与原版的两处差异（如实记下，不是"照搬得一模一样"）：
+ *  1. 两端的 ChevronLeft/ChevronRight 图标按钮改用文字按钮「上一话 / 下一话」——
+ *     桌面端目前没有引入 material-icons 依赖，加依赖只为两个箭头不划算。
+ *  2. 增加了竖栏的最小长度兜底（窗口很矮时，旋转前的 Row 需要足够宽度才不被压扁）。
  */
 @Composable
-fun PageRail(current: Int, total: Int, onSeek: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val safeTotal = maxOf(total, 1)
-    val shown = (current + 1).coerceIn(1, safeTotal)
-    var railHeight by remember { mutableStateOf(0) }
+fun PageRail(
+    current: Int,
+    total: Int,
+    onSeek: (Int) -> Unit,
+    hasPrev: Boolean,
+    hasNext: Boolean,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val max = (total - 1).coerceAtLeast(0)
 
-    // 纵向位置 → 页码（0 基）
-    fun pageAt(y: Float): Int =
-        ((y / maxOf(railHeight, 1).toFloat()) * safeTotal).toInt().coerceIn(0, safeTotal - 1)
-
-    Column(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+    BoxWithConstraints(
+        modifier = modifier.width(56.dp).fillMaxHeight(),
+        contentAlignment = Alignment.Center,
     ) {
-        Text("$shown", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-        Text(
-            "/ $safeTotal",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        // 竖栏高度 = 旋转前 Row 的宽度；给一个最小长度，免得窗口很矮时被压扁
+        val length = maxHeight.coerceAtLeast(220.dp)
 
-        Box(
+        Row(
             modifier = Modifier
-                .padding(top = 10.dp)
-                .width(14.dp)
-                .height(160.dp)
-                .onSizeChanged { railHeight = it.height }
-                .pointerInput(safeTotal, railHeight) {
-                    detectTapGestures { offset -> onSeek(pageAt(offset.y)) }
-                }
-                .pointerInput(safeTotal, railHeight) {
-                    detectVerticalDragGestures { change, _ -> onSeek(pageAt(change.position.y)) }
-                },
-            contentAlignment = Alignment.Center,
+                .width(length)
+                .graphicsLayer { rotationZ = -90f },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            // 轨道
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            TextButton(onClick = onPrev, enabled = hasPrev) {
+                Text("上一话", style = MaterialTheme.typography.labelSmall)
+            }
+            Text(
+                text = "${current + 1}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            // 已读比例
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .width(4.dp)
-                    .fillMaxHeight(shown.toFloat() / safeTotal)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.primary),
+            Slider(
+                value = current.coerceIn(0, max).toFloat(),
+                onValueChange = { onSeek(it.roundToInt().coerceIn(0, max)) },
+                valueRange = 0f..max.toFloat().coerceAtLeast(1f),
+                modifier = Modifier.weight(1f),
             )
+            Text(
+                text = "$total",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = onNext, enabled = hasNext) {
+                Text("下一话", style = MaterialTheme.typography.labelSmall)
+            }
         }
-        Text(
-            "点/拖跳页",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 6.dp),
-        )
     }
 }
