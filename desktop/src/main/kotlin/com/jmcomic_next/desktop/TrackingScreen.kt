@@ -29,50 +29,19 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 /**
- * 追更（桌面端，1.9.x，整文件重写）。
+ * 追更（桌面端，1.9.x）。
  *
- * 布局约定与历史页一致（顶部条 fillMaxWidth + 列表 weight(1f)），原因见 HistoryScreen
- * 的注释：旧版共用页面给列表留下零高度，"数据到了但列表空"。
+ * **结构说明（与 Android 对齐中）**：Android 端的追更**不是独立页面**，而是收藏页里的一个
+ * 标签。桌面端此前做成了独立页，本轮把列表体抽成可复用的 [TrackingList] ——
+ * 收藏页的「追更」标签可以直接内嵌它，侧栏的独立入口也仍然可用。
  *
- * 结构说明：Android 端的追更**不是独立页面**，而是收藏页里的一个标签；
- * 桌面端暂时保留为独立页（侧栏有入口），是否合并到收藏页待定 —— 这一点如实记在
- * PARITY.md，不假装已经与 Android 一致。
+ * 布局约定（与历史/随机一致，见 HistoryScreen 注释）：
+ *   顶层 Column(fillMaxSize) → 顶部条 Row(fillMaxWidth) → 列表 weight(1f)
+ * 这条约定是为了根治"数据到了但列表不画"——它编译不报、只有跑起来才看得见。
  */
 @Composable
 fun TrackingScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
-    val loggedIn = repository.auth.isLoggedIn
-    val scope = rememberCoroutineScope()
-
-    var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
-    var hidden by remember { mutableStateOf(0) }
-    var total by remember { mutableStateOf(0) }
-    var page by remember { mutableStateOf(1) }
-    var busy by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf(if (loggedIn) "加载中…" else "需要登录后才能查看追更") }
-
-    fun load(next: Int) {
-        busy = true
-        scope.launch {
-            runCatching { repository.trackingList(page = next) }
-                .onSuccess { paged ->
-                    items = if (next == 1) paged.items else (items + paged.items).distinctBy { it.id }
-                    hidden += paged.hidden
-                    total = if (paged.total > 0) paged.total else items.size
-                    page = next
-                    status = if (items.isEmpty()) "还没有追更的作品" else "已加载 ${items.size} 条 / 共 $total 条"
-                    if (paged.hidden > 0) status += "（本页被屏蔽挡掉 ${paged.hidden} 条）"
-                    Log.line("追更", status)
-                }
-                .onFailure {
-                    if (it is CancellationException) return@onFailure
-                    status = "加载失败：${it.message}"
-                    Log.error("追更", "加载失败", it)
-                }
-            busy = false
-        }
-    }
-
-    LaunchedEffect(loggedIn) { if (loggedIn) load(1) }
+    var status by remember { mutableStateOf("") }
 
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -82,11 +51,78 @@ fun TrackingScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
         ) {
             Text("追更", style = MaterialTheme.typography.titleLarge)
             Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (items.isNotEmpty() && items.size < total) {
+        }
+        TrackingList(
+            repository = repository,
+            onOpenComic = onOpenComic,
+            onStatus = { status = it },
+            modifier = Modifier.fillMaxWidth().weight(1f),
+        )
+    }
+}
+
+/**
+ * 追更列表体（可内嵌）。
+ *
+ * 抽出来的目的：收藏页的「追更」标签要用同一份逻辑，而不是复制一遍 ——
+ * 否则两处会各自演化（这个项目里已经发生过几次）。
+ *
+ * 状态由本组件自己持有；[onStatus] 只用于把状态文字回传给外层标题栏（可选）。
+ */
+@Composable
+fun TrackingList(
+    repository: JmRepository,
+    onOpenComic: (ListItem) -> Unit,
+    modifier: Modifier = Modifier,
+    onStatus: (String) -> Unit = {},
+) {
+    val loggedIn = repository.auth.isLoggedIn
+    val scope = rememberCoroutineScope()
+
+    var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
+    var total by remember { mutableStateOf(0) }
+    var page by remember { mutableStateOf(1) }
+    var busy by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf(if (loggedIn) "加载中…" else "需要登录后才能查看追更") }
+
+    fun report(text: String) {
+        status = text
+        onStatus(text)
+    }
+
+    fun load(next: Int) {
+        busy = true
+        scope.launch {
+            runCatching { repository.trackingList(page = next) }
+                .onSuccess { paged ->
+                    items = if (next == 1) paged.items else (items + paged.items).distinctBy { it.id }
+                    total = if (paged.total > 0) paged.total else items.size
+                    page = next
+                    var text = if (items.isEmpty()) "还没有追更的作品" else "已加载 ${items.size} 条 / 共 $total 条"
+                    if (paged.hidden > 0) text += "（本页被屏蔽挡掉 ${paged.hidden} 条）"
+                    report(text)
+                    Log.line("追更", text)
+                }
+                .onFailure {
+                    if (it is CancellationException) return@onFailure
+                    report("加载失败：${it.message}")
+                    Log.error("追更", "加载失败", it)
+                }
+            busy = false
+        }
+    }
+
+    LaunchedEffect(loggedIn) { if (loggedIn) load(1) }
+
+    Column(modifier) {
+        if (items.isNotEmpty() && items.size < total) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Button(enabled = !busy, onClick = { load(page + 1) }) { Text("加载更多") }
             }
         }
-
         LazyVerticalGrid(
             columns = GridCells.Adaptive(168.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
