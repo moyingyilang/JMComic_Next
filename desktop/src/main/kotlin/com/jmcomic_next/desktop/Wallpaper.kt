@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toComposeImageBitmap
@@ -140,10 +141,15 @@ fun WallpaperLayer(modifier: Modifier = Modifier) {
     }
 }
 
-/** 玻璃面板：半透明表面 + 一圈描边。所有卡片/侧栏/顶栏都用它，风格切换时一起变。 */
+/**
+ * 玻璃面板：半透明表面 + 描边 + **上沿内高光**。
+ *
+ * 内高光是让面板"立起来"的关键细节：真实玻璃的边缘会反光，只靠半透明填充
+ * 看起来像一层灰蒙版。这里在顶边画一道渐隐的亮线，成本几乎为零。
+ */
 @Composable
 fun Modifier.glassPanel(
-    alpha: Float = Appearance.style.surfaceAlpha,
+    alpha: Float = Appearance.effectiveAlpha,
     corner: Int = Appearance.style.corner,
     shape: Shape = RoundedCornerShape(corner.dp),
 ): Modifier = this
@@ -151,6 +157,16 @@ fun Modifier.glassPanel(
     .background(
         MaterialThemeSurface(alpha),
     )
+    .drawBehind {
+        // 上沿高光：从左上稍亮、向右渐隐
+        val highlight = if (Appearance.dark) Color(0x33FFFFFF) else Color(0x8CFFFFFF)
+        drawLine(
+            brush = Brush.horizontalGradient(listOf(highlight, Color.Transparent)),
+            start = androidx.compose.ui.geometry.Offset(0f, 0.5f),
+            end = androidx.compose.ui.geometry.Offset(size.width, 0.5f),
+            strokeWidth = 1f,
+        )
+    }
     .border(1.dp, MaterialThemeStroke(), shape)
 
 /** 面板底色：浅色用白、深色用近黑，透明度由风格决定。 */
