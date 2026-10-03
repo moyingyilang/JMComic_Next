@@ -204,7 +204,9 @@ fun DetailScreen(
                 if (d.tags.isNotEmpty()) InfoLine("标签", d.tags.joinToString(" "))
                 InfoLine("页数", d.totalPhotos.toString())
                 if (!d.description.isNullOrBlank()) {
-                    Text(d.description, style = MaterialTheme.typography.bodySmall)
+                    // 简介也是 HTML（Android 的详情页同样走 plainText）。
+                    // plainText 在"剥完标签什么都不剩"时返回 null，此时渲染空串而不是回退原文。
+                    Text(d.description.plainText().orEmpty(), style = MaterialTheme.typography.bodySmall)
                 }
 
                 // 相关作品（横向滚动）：接口直接给的就是 ListItem，可直接用现成卡片
