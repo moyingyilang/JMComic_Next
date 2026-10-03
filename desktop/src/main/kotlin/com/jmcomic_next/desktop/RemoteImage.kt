@@ -81,13 +81,17 @@ object RemoteImage {
                     // 解法：让 Skiko 先解（Skia 编码器齐全，含 WebP），转成 PNG 再交给 ImageIO。
                     // 这样既保留"拿到像素数组做反切片"的前提，又不受 ImageIO 支持的格式限制。
                     Log.line("图片", "ImageIO 解不出，改用 Skiko 转码 url=$url bytes=${bytes.size} 头部=${bytes.take(12).joinToString(" ") { b -> "%02x".format(b) }}")
+                    // 计时：这条路径要走"Skiko 解码 → 编码 PNG → ImageIO 再解码"，
+                    // 体积放大 8 倍左右（日志实测中位数 8.21），但耗时一直没量过 ——
+                    // 先量再决定要不要改成 Skiko 直读像素。
+                    val tTranscode0 = System.currentTimeMillis()
                     val skia = Image.makeFromEncoded(bytes)
                     val png = skia.encodeToData(EncodedImageFormat.PNG, 100)?.bytes
                     if (png == null) {
                         Log.error("图片", "Skiko 也无法转码（连 Skia 都解不出）url=$url")
                         return@runCatching null
                     }
-                    Log.line("图片", "Skiko 转码为 PNG 成功 ${png.size}B（原 ${bytes.size}B）")
+                    Log.line("图片", "Skiko 转码为 PNG 成功 ${png.size}B（原 ${bytes.size}B，耗时 ${System.currentTimeMillis() - tTranscode0} ms）")
                     src = ImageIO.read(ByteArrayInputStream(png))
                     if (src == null) {
                         Log.error("图片", "转成 PNG 后 ImageIO 仍解不出（异常情况，请把这条日志发我）url=$url")
