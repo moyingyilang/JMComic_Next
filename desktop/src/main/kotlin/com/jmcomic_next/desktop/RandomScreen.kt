@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,35 +24,74 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.jmcomic_next.lyqs.data.FavoriteTags
 import com.jmcomic_next.lyqs.data.JmRepository
+import com.jmcomic_next.lyqs.data.RandomRanking
 import com.jmcomic_next.lyqs.data.remote.dto.ListItem
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 /**
- * 随机本子（桌面端，1.9.x，整文件重写）。
+ * 随机本子（桌面端，1.9.x）。
  *
- * 布局约定与历史/追更一致（顶部条 fillMaxWidth + 列表 weight(1f)）——
- * 旧版把顶部条写成 fillMaxSize，列表因此零高度（"数据到了但列表空"）。
+ * 布局约定（与历史/追更一致，见 HistoryScreen 注释）：
+ *   顶层 Column(fillMaxSize) → 顶部条 Row(fillMaxWidth) → 列表 weight(1f)
+ * 这条约定是为了根治"数据到了但列表不画"——它编译不报、只有跑起来才看得见。
  *
- * 与 Android 端的差别如实记档：那边还会按收藏标签偏好排序（RandomRanking），
- * 需要逐部作品取标签（一批约 20 部 = 20 次额外请求），桌面端尚未做。
+ * **按收藏偏好排序**（Android 端有）做成**开关**，默认关：开启后每取一批要多 N 次
+ * 详情请求（N = 这一批的条数），代价写在界面上，由用户决定。
+ *
+ * 实现要点（读共享层源码确认的）：
+ *  - `RandomRanking.rank` 的 `tagsOf` 是**同步 lambda**，不能在里面发请求；
+ *    所以顺序是"先并发把这一批的标签取进 Map，再把 { id -> map[id] } 传给 rank"。
+ *  - 收藏标签统计用**本地缓存**，没有才扫一次（Android 还判断过期，桌面端暂未做，
+ *    这一点如实标注：首次开启较慢，之后走缓存）。
+ *  - 取标签设并发上限（这里按 3 条一批），避免把接口打爆。
  */
 @Composable
 fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
     val scope = rememberCoroutineScope()
+    val tagStore = remember { FavoriteTags(PreferencesKeyValueStore("jm_favorite_tags")) }
 
     var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("正在取一批随机作品…") }
+    var ranked by remember { mutableStateOf(false) }
 
     fun roll() {
         busy = true
         scope.launch {
-            runCatching { repository.randomRecommend() }
+            runCatching {
+                val batch = repository.randomRecommend()
+                if (!ranked) return@runCatching batch
+
+                // 偏好排序：先备好收藏标签权重（缓存优先，没有才扫一次）
+                var counts = tagStore.cached()
+                if (counts.isEmpty()) {
+                    status = "首次开启偏好排序，正在扫描收藏标签…"
+                    counts = runCatching { tagStore.refresh(repository) }.getOrDefault(emptyMap())
+                }
+                if (counts.isEmpty()) return@runCatching batch
+
+                // 再并发取这一批的标签（每批 3 条，人为限流），存进 Map
+                val tagsOf = mutableMapOf<String, Set<String>>()
+                batch.chunked(3).forEach { chunk ->
+                    coroutineScope {
+                        chunk.map { item ->
+                            async { item.id to runCatching { repository.album(item.id).tags.toSet() }.getOrNull() }
+                        }.awaitAll()
+                    }.forEach { (id, tags) -> if (tags != null) tagsOf[id] = tags }
+                }
+                Log.line("随机", "偏好排序：取得 ${tagsOf.size}/${batch.size} 部作品的标签（权重 ${counts.size} 个）")
+                // isBlocked 一律返回 false：屏蔽已在数据层过滤，这里不重复过滤
+                RandomRanking.rank(batch, { tagsOf[it.id] }, counts) { false }
+            }
                 .onSuccess {
                     items = it
-                    status = "这一批 ${it.size} 条"
+                    status = if (ranked) "这一批 ${it.size} 条（已按收藏偏好排序）" else "这一批 ${it.size} 条"
                     Log.line("随机", status)
                 }
                 .onFailure {
@@ -74,7 +114,17 @@ fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             Text("随机本子", style = MaterialTheme.typography.titleLarge)
             Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(enabled = !busy, onClick = { roll() }) { Text(if (busy) "取中…" else "换一批") }
+            TextButton(
+                enabled = !busy,
+                onClick = { ranked = !ranked; roll() },
+            ) { Text(if (ranked) "· 按收藏偏好排序" else "按收藏偏好排序", style = MaterialTheme.typography.labelSmall) }
         }
+        Text(
+            "开启偏好排序后，取一批会额外请求这一批作品的详情以获取标签（每批约 20 到 30 次），首次还可能要扫描一次收藏标签。",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+        )
 
         LazyVerticalGrid(
             columns = GridCells.Adaptive(168.dp),
