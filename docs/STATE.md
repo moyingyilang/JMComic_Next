@@ -236,3 +236,21 @@ README 的写法建议：只写两个读法（X = cross 跨平台，加上最终
    带默认值，不影响既有调用）。要变成"跳搜索页"的正式路由，需要改 `Main.kt`，并给 `SearchScreen`
    加初始关键词参数（它现在没有这个参数，`TagsScreen` 的 `onSearch` 也是把 query 丢掉的，属既有缺口）。
 2. 未登录时点击下载只就地提示；若要跳登录页，需要改 `Main.kt` 的调用点。
+
+## 十七、第 7 项（连载更新提醒）状态：未完成（已中断代理）
+
+**事实**：为第 7 项派出的子代理在连续多轮内**没有产生任何文件改动**（`git status` 始终干净，
+`desktop/.../SerialReminder.kt` 未创建），因此该代理已被主动中断，避免留下一个随时可能写文件的悬挂任务、
+与下一个会话产生冲突。
+
+**方案已定、尚未实现**（接手直接照做即可）：
+
+- 桌面端形态（用户已定）：**系统托盘通知为主（`java.awt.SystemTray` + `TrayIcon.displayMessage`，零新依赖），
+  窗口内也显示**；`SystemTray.isSupported()` 为假或安装图标失败时必须**降级到窗口内提示**，
+  不可假装托盘可用、不可崩溃；
+- **必须在代码注释与文档里写明**：桌面端**只能在程序运行时提醒**（Android 靠 AlarmManager 可后台唤醒，桌面不行）；
+- 数据与间隔照 Android 的 `app/.../data/SerialNotify.kt`（先读它取准接口名与间隔、以及 `AppPrefs` 里的开关项名），
+  共享层调用要先用 grep 确认，不要猜；未登录不做无意义轮询；网络失败只记日志、保留上次状态、不弹错误托盘；
+- 允许改：`desktop/.../Main.kt`、`AppearanceScreen.kt`，并新建 `desktop/.../SerialReminder.kt`；不要改 `shared/`。
+
+接手顺序：第 7 项 → 标签级屏蔽整条链路 → 第 8 步（算法接线 → 1.9.443 → 改名 JMNeXt → 2.0.0）。
