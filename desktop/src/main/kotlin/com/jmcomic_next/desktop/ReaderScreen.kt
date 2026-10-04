@@ -138,7 +138,11 @@ fun ReaderScreen(
         )
     }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(
+        Modifier.fillMaxSize().onSizeChanged {
+            Log.line("阅读", "根 Column 尺寸 " + it.width + "x" + it.height + " 像素")
+        },
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
