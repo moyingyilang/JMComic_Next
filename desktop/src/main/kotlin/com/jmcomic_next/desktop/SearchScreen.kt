@@ -36,16 +36,16 @@ import kotlinx.coroutines.launch
 /**
  * 搜索页（桌面端）。
  *
- * 与 Android 端一致的约定（`SearchFilters.kt` 是权威来源，这里照抄）：
+ * 与 Android 端一致的约定（`SearchFilters.kt` 与 `AppPrefs` 是权威来源，这里照抄）：
  *  1. 结果带 redirect_aid 表示「按作品编号精确命中」，直接打开详情而不是列列表；
  *  2. 被屏蔽规则挡掉的条数要在顶部明示（BlockedNotice），不能静默少几条；
  *  3. 排序 5 档：`""` 最新、`mv` 最多点阅、`mp` 最多图片、`tf` 最多爱心、`old` 最旧；
  *     检索字段 5 档：`site` 站内、`work` 作品、`author` 作者、`tag` 标签、`character` 登场人物；
  *     另有年、月两个可选条件；
- *  4. 「最旧」这一档官方客户端会在**本地按 addDate 二次排序**，这里照做（服务端那档不可靠）。
+ *  4. 「最旧」这一档官方客户端会在**本地按 addDate 二次排序**，这里照做；
+ *  5. 搜索历史存本地、最多 20 条、最近的在前、大小写不敏感去重。
  *
- * 桌面端此前只有关键词输入，这些筛选是功能对齐审计里列为"严重"的缺口之一。
- * 回车即搜：桌面上敲完回车是本能动作，只给按钮会显得别扭。
+ * 桌面端此前只有关键词输入，这些是功能对齐审计里列为"严重"的缺口。
  */
 private val SEARCH_ORDERS = listOf(
     "" to "最新",
@@ -63,11 +63,37 @@ private val SEARCH_TYPES = listOf(
     "character" to "登场人物",
 )
 
+/** 搜索历史：语义照 Android 的 AppPrefs.searchHistory（最多 20 条、最近的在前、大小写不敏感去重）。 */
+private class SearchHistory(private val prefs: PreferencesKeyValueStore) {
+    fun load(): List<String> =
+        prefs.getString(KEY, null)?.split('\n')?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+
+    fun add(query: String): List<String> {
+        val q = query.trim()
+        if (q.isEmpty()) return load()
+        val next = (listOf(q) + load().filterNot { it.equals(q, ignoreCase = true) }).take(LIMIT)
+        prefs.putString(KEY, next.joinToString("\n"))
+        return next
+    }
+
+    fun clear(): List<String> {
+        prefs.putString(KEY, "")
+        return emptyList()
+    }
+
+    private companion object {
+        const val KEY = "history"
+        const val LIMIT = 20
+    }
+}
+
 @Composable
 fun SearchScreen(
     repository: JmRepository,
     onOpenComic: (ListItem) -> Unit,
 ) {
+    val historyStore = remember { SearchHistory(PreferencesKeyValueStore("jm_search_history")) }
+    var history by remember { mutableStateOf(historyStore.load()) }
     var query by remember { mutableStateOf("") }
     var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
     var hidden by remember { mutableStateOf(0) }
@@ -75,7 +101,6 @@ fun SearchScreen(
     var page by remember { mutableStateOf(1) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("输入关键词后回车搜索") }
-    // 筛选：桌面端此前只有关键词，这是审计里的严重缺口
     var order by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("site") }
     var year by remember { mutableStateOf("") }
@@ -84,6 +109,8 @@ fun SearchScreen(
 
     fun runSearch(nextPage: Int) {
         if (query.isBlank()) return
+        // 记历史只在真的发起搜索时做（翻页不重复记）
+        if (nextPage == 1) history = historyStore.add(query)
         busy = true
         scope.launch {
             runCatching {
@@ -198,6 +225,20 @@ fun SearchScreen(
                 modifier = Modifier.width(130.dp),
             )
             TextButton(enabled = !busy, onClick = { year = ""; month = "" }) { Text("不限") }
+        }
+
+        if (history.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text("搜索历史：", style = MaterialTheme.typography.labelMedium)
+                history.forEach { h ->
+                    TextButton(enabled = !busy, onClick = { query = h; runSearch(1) }) { Text(h) }
+                }
+                TextButton(enabled = !busy, onClick = { history = historyStore.clear() }) { Text("清空") }
+            }
         }
 
         BlockedNotice(hidden)
