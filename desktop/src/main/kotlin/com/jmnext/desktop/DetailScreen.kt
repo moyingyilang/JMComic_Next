@@ -350,7 +350,7 @@ fun DetailScreen(
                                             }
                                             Log.line("详情", "点赞：" + likeMessage)
                                             val msg = likeMessage
-                                            if (msg?.contains(成功) == true) Notices.success(msg) else Notices.show(msg ?: 点赞完成)
+                                            if (msg?.contains("成功") == true) Notices.success(msg) else Notices.show(msg ?: "点赞完成")
                                         }
                                         .onFailure {
                                             if (it is CancellationException) return@onFailure
