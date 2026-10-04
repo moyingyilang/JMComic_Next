@@ -419,3 +419,13 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 **执行时注意**（照第十九节的教训）：移到 `shared` 后要与 `app`、`desktop` 的 import 改动**放在同一次提交**里；
 `TagBlockResolverTest.kt`（393 行）也要一起移到 `shared/src/test/`，并确认它在 shared 的测试配置下能跑
 （`shared` 已有 JUnit 4.13.2 与 selftune 那批单测的先例，照它们的位置放即可）。
+
+### 二十一之三、标签级屏蔽：已完成的两步与剩余
+
+| 步 | 内容 | 提交 |
+| --- | --- | --- |
+| 1 | `TagBlockResolver.kt`（208 行）与 `TagCache.kt`（81 行）从 app 移进 shared（包名不变，故 app 侧 import 零改动），单测 393 行一并移到 `shared/src/test/`；三种构建全过（桌面 compileKotlin、`:shared:test --tests TagBlockResolverTest`、`:app:compileFullDebugKotlin`） | `f1f05fa` |
+| 2 | 桌面端新增 `TagBlocker.kt`（照 Android `JmApp.tagBlocker` 组装：并发 3、缓存落盘、规则跟随 `BlockStore`），并在 `Main.kt` 启动时 init；搜索页按标签过滤、明示挡住条数与命中标签、提供「允许一次」 | `d86a2f6` |
+
+**剩余（未做）**：首页、分类页、随机页、创作者页、「更多」页等列表尚未接（每页只需三步：提交 id、按 `TagBlocker.hidden` 过滤、给被挡的批次加提示与「允许一次」）。
+**证据边界**：只有编译证据；过滤的真实效果、标签接口在真账号下的返回、托盘与界面观感均未验证。
