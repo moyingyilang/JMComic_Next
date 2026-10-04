@@ -54,7 +54,7 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.AppImage,
             )
             packageName = "jmcomic-next"  // deb/rpm 对包名字符有限制，大写与下划线不合法
-            packageVersion = "1.9.129"
+            packageVersion = "1.9.139"
             description = "JMComic_Next 桌面版"
             vendor = "moyingyilang"
         }
@@ -107,7 +107,7 @@ tasks.register<Jar>("fatJar") {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
         attributes["Main-Class"] = "com.jmcomic_next.desktop.MainKt"
-        attributes["Implementation-Version"] = "1.9.129"
+        attributes["Implementation-Version"] = "1.9.139"
     }
     from(sourceSets.main.get().output)
     from({
