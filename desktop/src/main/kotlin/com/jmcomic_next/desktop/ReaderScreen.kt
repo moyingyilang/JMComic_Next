@@ -138,7 +138,7 @@ fun ReaderScreen(
         )
     }
 
-    Column(
+    Box(
         Modifier.fillMaxSize().onSizeChanged {
             Log.line("阅读", "根 Column 尺寸 " + it.width + "x" + it.height + " 像素")
         },
@@ -164,7 +164,7 @@ fun ReaderScreen(
             }
         }
 
-        val p = payload ?: return@Column
+        val p = payload ?: return@Box
 
         Log.line("阅读", "渲染内容：模式=" + mode + "，待显示图片 " + p.images.size + " 张")
 
@@ -208,7 +208,7 @@ fun ReaderScreen(
             }
         }
         Row(
-            Modifier.fillMaxWidth().weight(1f).onSizeChanged {
+            Modifier.fillMaxSize().onSizeChanged {
                 Log.line("阅读", "内容区尺寸 " + it.width + "x" + it.height + " 像素（若高度为 0 就是排版把内容压没了）")
             },
         ) {
@@ -258,7 +258,9 @@ fun ReaderScreen(
         // 与 Android 的一处差异如实标注：Android 的栏是浮在内容之上，这里是 Column 的最后一个子项
         // （隐藏时占 0dp，观感差别很小）；改成浮层需要把根布局 Column 换成 Box，会连带改动 weight 的
         // 作用域，风险大，故先不做。
+        }
         ReaderBottomBar(
+            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
             visible = true,
             current = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage,
             total = p.images.size,
@@ -307,7 +309,6 @@ fun ReaderScreen(
             onToggleFavorite = { scope.launch { repository.toggleFavorite(comicId); Log.line("阅读", "收藏状态已切换（写操作，未验证）") } },
             onToggleLike = { scope.launch { repository.like(comicId); Log.line("阅读", "已点赞（写操作，未验证）") } },
         )
-        }
     }
 }
 
