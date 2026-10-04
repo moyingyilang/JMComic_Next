@@ -557,3 +557,21 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 
 **主动不接**：`prefetchConcurrency`（桌面串行预取、Android 无并发上限，两端都没有对应物）。
 **边界**：全部只有编译与单测证据；效果要真机数据。下一步：发 **1.9.443 基线（+300）**。
+
+## 二十二、2.0.0 发布与两处遗留决定
+
+**2.0.0（JMNeXt 正式版）已发布**：9 个附件线上与本地逐项一致（见 release v2.0.0）。
+
+**改名已完成**：Kotlin 包、`namespace`、`applicationId`（`com.jmnext` / `com.jmnext.lite`）、展示名、
+产物名（`jmnext-2.0.0-*`）、日志名（`~/jmnext.log`，`.work/verify.sh` 已同步）、打包脚本与包内主类
+（`com.jmnext.desktop.MainKt`）全部改完。
+
+**遗留决定一（刻意不改）**：`desktop/.../PreferencesKeyValueStore.kt:15` 的
+`Preferences.userRoot().node("com/jmcomic_next/$node")` **保持旧字符串**。
+理由：这是桌面端本地设置的存储节点，改它等于让老用户的设置（壁纸、模糊、风格、阅读形态、屏蔽名单等）
+**全部丢失**；而它不对外可见、不与任何其它应用撞名。若以后要统一，必须同时写迁移逻辑（读旧节点 → 写新节点）。
+**Android 侧同类情况**：`SharedPrefsKeyValueStore` 用的是 Android 私有目录，随 applicationId 改变而换新，
+这部分无法避免（已接受）。
+
+**遗留决定二（已修）**：`origin` 这个 remote 的 push URL 曾被指向旧仓库名，已改为新仓库；
+注意本仓库推送实际走的是名为 `main` 的 remote（`git push main main`），别被 `origin` 误导。
