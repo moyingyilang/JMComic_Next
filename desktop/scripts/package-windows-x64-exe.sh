@@ -71,7 +71,13 @@ EXE="$OUT_DIR/Windows-x64-$VERSION.exe"
 echo "== 验收 =="
 printf "  %s  %s 字节\n" "$(basename "$EXE")" "$(stat -c %s "$EXE")"
 [ "$(head -c2 "$EXE")" = "MZ" ] && echo "  PE 头：MZ（Windows 可执行）" || { echo "  不是 PE 文件，拒绝出包"; exit 1; }
+# 判据用**解压后看实物**：NSIS 归档里路径带 $LOCALAPPDATA/JMNeXt 前缀，直接 grep 包清单容易写错
+CHK=$(mktemp -d); 7z x -y -o"$CHK" "$EXE" >/dev/null 2>&1 || true
 for m in runtime/bin/java.exe skiko-windows-x64.jar jmnext.jar; do
-  if 7z l "$EXE" 2>/dev/null | grep -q "$m"; then echo "  内含 $m"; else echo "  包内缺 $m"; exit 1; fi
+  f=$(find "$CHK" -path "*/$m" -print -quit 2>/dev/null)
+  [ -n "$f" ] && echo "  内含 $m ($(stat -c %s "$f") 字节)" || { echo "  包内缺 $m"; rm -rf "$CHK"; exit 1; }
 done
+JF=$(find "$CHK" -path "*/runtime/bin/java.exe" -print -quit)
+echo "  java.exe 架构: $(file -b "$JF" | cut -d, -f1-2)"
+rm -rf "$CHK"
 echo "单体 exe 完成：$EXE"
