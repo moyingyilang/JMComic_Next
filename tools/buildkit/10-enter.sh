@@ -1,5 +1,5 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # 进入构建用 Linux 环境，并**自检绑定挂载**（挂载掉了是最常见的坑：容器里路径看不见，
 # 报错却是"目录不存在"，很容易误判成项目被删）。
 set -u

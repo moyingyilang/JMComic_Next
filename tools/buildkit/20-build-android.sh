@@ -1,5 +1,5 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # 打 Android release 包（full + lite）。
 # 为什么必须用 release 而不是 debug：**debug 不跑 R8**，跨模块重复类、缺类、签名问题都查不出来。
 set -eu

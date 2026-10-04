@@ -1,5 +1,5 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: MPL-2.0
 # 验收 APK：包名、版本、签名、新鲜度。判据用**产物形态**，不看"命令是否跑完"。
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"; . "$HERE/build.env"
