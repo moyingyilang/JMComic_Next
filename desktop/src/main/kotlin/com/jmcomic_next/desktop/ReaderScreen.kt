@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.jmcomic_next.lyqs.data.JmRepository
+import com.jmcomic_next.lyqs.data.prefs.ReaderMode
 import com.jmcomic_next.lyqs.data.remote.dto.SeriesItem
 import com.jmcomic_next.lyqs.data.prefs.ReadProgressStore
 import com.jmcomic_next.lyqs.data.remote.dto.ReadImage
@@ -74,6 +75,12 @@ fun ReaderScreen(
     // 章节选择对话框的数据与开关（按 A 方案：打开时才请求一次 album 拿 series，含话名）
     var series by remember(comicId) { mutableStateOf<List<SeriesItem>>(emptyList()) }
     var pickerOpen by remember(comicId) { mutableStateOf(false) }
+    // 阅读模式：复用共享层的 ReaderMode（Scroll = 纵向连续滚动 / Page = 横向逐页适配整屏）。
+    // 这一步只做状态与持久化，翻页行为在下一步换成 PagedReader。
+    val modePrefs = remember { PreferencesKeyValueStore("jm_reader_mode") }
+    var mode by remember {
+        mutableStateOf(if (modePrefs.getString("mode", null) == "page") ReaderMode.Page else ReaderMode.Scroll)
+    }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var status by remember(chapterId) { mutableStateOf("正在加载章节…") }
     var retryToken by remember(chapterId) { mutableStateOf(0) }
@@ -221,6 +228,12 @@ fun ReaderScreen(
             onPrev = { prevId?.let(onSwitchChapter) },
             onNext = { nextId?.let(onSwitchChapter) },
             onOpenComments = { onOpenComments(comicId) },
+            onToggleMode = {
+                // 与 Android 同一个枚举、同一个语义；桌面端额外把选择存下来
+                mode = if (mode == ReaderMode.Scroll) ReaderMode.Page else ReaderMode.Scroll
+                modePrefs.putString("mode", if (mode == ReaderMode.Page) "page" else "scroll")
+                Log.line("阅读", "阅读模式切换为 " + (if (mode == ReaderMode.Page) "横向翻页" else "纵向滚动"))
+            },
             onOpenPicker = {
                 // 章节选择：点一次才请求 album（A 方案），拿到含话名的 series 再开对话框
                 scope.launch {

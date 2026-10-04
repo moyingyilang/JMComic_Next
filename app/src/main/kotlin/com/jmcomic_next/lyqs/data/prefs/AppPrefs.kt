@@ -17,13 +17,6 @@ enum class ThemeMode { System, Light, Dark }
  * （`Read.tsx` 里的 `SwiperSlide` + `onSlideChange`）。长条页漫画更适合连续滚动，
  * 单页构图的作品更适合横向翻页，因此做成用户可切换而不是替他决定。
  */
-enum class ReaderMode {
-    /** 纵向连续滚动。 */
-    Scroll,
-
-    /** 横向逐页翻动，每页适配整屏。 */
-    Page,
-}
 
 /**
  * 本地偏好。
