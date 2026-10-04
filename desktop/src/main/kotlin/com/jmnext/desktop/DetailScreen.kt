@@ -183,6 +183,7 @@ fun DetailScreen(
             return
         }
         store.addTag(tag)
+            Notices.success("已屏蔽标签：$tag")
         tagMessage = "已屏蔽标签：$tag（可在「屏蔽设置」里取消）"
         Log.line("详情", tagMessage.orEmpty())
     }
@@ -200,12 +201,14 @@ fun DetailScreen(
             runCatching { repository.updateFavoriteTags(if (add) "add" else "remove", listOf(tag)) }
                 .onSuccess {
                     tagMessage = (if (add) "已标星：" else "已取消标星：") + tag
+                    Notices.success(tagMessage.orEmpty())
                     Log.line("详情", tagMessage.orEmpty())
                     reloadStarredTags()
                 }
                 .onFailure {
                     if (it is CancellationException) return@onFailure
                     tagMessage = "标星操作失败：" + it.message
+                    Notices.error(tagMessage.orEmpty())
                     Log.error("详情", "标星操作失败 tag=" + tag, it)
                 }
             tagBusy = false
