@@ -275,7 +275,8 @@ fun DetailScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TextButton(onClick = onBack) { Text("返回") }
-            Text(status, style = MaterialTheme.typography.titleMedium)
+            // 状态/错误文案可选：用户常要把它贴给别人看（详情页加载失败、接口报错都走这里）
+            SelectionContainer { Text(status, style = MaterialTheme.typography.titleMedium) }
         }
 
         val d = detail ?: return@Column
