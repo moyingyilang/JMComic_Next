@@ -43,6 +43,9 @@ import com.jmnext.data.remote.dto.ListItem
 import com.jmnext.data.remote.dto.SeriesItem
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 
 /**
  * 作品详情页（桌面端，1.9.x 全量移植中）。
@@ -280,6 +283,15 @@ fun DetailScreen(
             ) {
                 val coverUrl = remember(d.id) { runCatching { repository.coverUrl(d.id) }.getOrNull() }
                 val bitmap = rememberRemoteImage(coverUrl)
+                // 封面进入的近似共享元素效果：从略小、透明放大到原尺寸。
+                // 与真正的共享元素（SharedTransitionLayout + sharedElement）不同：它不是从列表封面位置
+                // 连续过渡过来，而是在详情页内做一次有方向的入场。真正的共享元素需要把 scope 从根部
+                // 一路传到两个页面，改动面大，留作后续。
+                val coverIn by animateFloatAsState(
+                    targetValue = if (bitmap != null) 1f else 0f,
+                    animationSpec = tween(durationMillis = Motion.NORMAL_MS, easing = Motion.Enter),
+                    label = "detailCoverIn",
+                )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -288,7 +300,7 @@ fun DetailScreen(
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                 ) {
                     if (bitmap != null) {
-                        Image(bitmap, contentDescription = d.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        Image(bitmap, contentDescription = d.name, modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = 0.94f + 0.06f * coverIn; scaleY = 0.94f + 0.06f * coverIn; alpha = coverIn }.graphicsLayer { scaleX = 0.94f + 0.06f * coverIn; scaleY = 0.94f + 0.06f * coverIn; alpha = coverIn }, contentScale = ContentScale.Crop)
                     }
                 }
 
