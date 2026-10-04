@@ -26,18 +26,24 @@ import com.jmcomic_next.lyqs.data.JmRepository
 import kotlinx.coroutines.launch
 
 /**
- * 登录页（2.0.0 桌面端）。
+ * 登录 / 注册 / 找回密码（桌面端）。
  *
- * 为什么先做它：收藏、追更、评论、通知都要登录态，它是这些页面的前置。
+ * 补的是功能对齐审计发现的缺口：桌面端此前**只有登录**，而 Android 有注册与找回密码
+ * （AuthScreen 的三种模式）。字段、校验与取值照 Android 抄：
+ *  - 邮箱必须含 @（Android 的 validate 就是这么判的）；
+ *  - 注册要 用户名 / 密码 / 确认密码 / 邮箱 / 性别（gender 取 "m" 或 "f"）；
+ *  - 找回密码只发邮箱，成功后服务端发重置邮件。
  *
- * 提示语与 Android 端保持一致（"请输入用户名""请输入密码"），
- * 登录失败时直接显示服务端原文 —— 官方接口对失败原因的措辞是有用的
- * （例如"无效的用户名和/或密码!"比"登录失败"更能说明问题）。
+ * 失败时直接显示服务端原文 —— 官方接口对失败原因的措辞比"操作失败"更能说明问题。
  */
 @Composable
 fun LoginScreen(repository: JmRepository, onDone: () -> Unit) {
+    var mode by remember { mutableStateOf("login") }   // login / register / forgot
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordConfirm by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var gender by remember { mutableStateOf("m") }
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -46,58 +52,174 @@ fun LoginScreen(repository: JmRepository, onDone: () -> Unit) {
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("登录", style = MaterialTheme.typography.titleLarge)
+        Text(
+            when (mode) {
+                "register" -> "注册"
+                "forgot" -> "找回密码"
+                else -> "登录"
+            },
+            style = MaterialTheme.typography.titleLarge,
+        )
         Text(
             "登录后才能使用收藏、追更与评论。",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("用户名") },
-            singleLine = true,
-            modifier = Modifier.width(360.dp),
-        )
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("密码") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.width(360.dp),
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = { mode = "login"; message = null }) { Text((if (mode == "login") "· " else "") + "登录") }
+            TextButton(onClick = { mode = "register"; message = null }) { Text((if (mode == "register") "· " else "") + "注册") }
+            TextButton(onClick = { mode = "forgot"; message = null }) { Text((if (mode == "forgot") "· " else "") + "找回密码") }
+        }
+
+        if (mode != "forgot") {
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("用户名") },
+                singleLine = true,
+                modifier = Modifier.width(360.dp),
+            )
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("密码") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.width(360.dp),
+            )
+        }
+
+        if (mode == "register") {
+            OutlinedTextField(
+                value = passwordConfirm,
+                onValueChange = { passwordConfirm = it },
+                label = { Text("确认密码") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.width(360.dp),
+            )
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("邮箱") },
+                singleLine = true,
+                modifier = Modifier.width(360.dp),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("性别：", style = MaterialTheme.typography.labelMedium)
+                listOf("m" to "男", "f" to "女").forEach { (key, label) ->
+                    TextButton(onClick = { gender = key }) { Text((if (gender == key) "· " else "") + label) }
+                }
+            }
+        }
+
+        if (mode == "forgot") {
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("注册邮箱") },
+                singleLine = true,
+                modifier = Modifier.width(360.dp),
+            )
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                enabled = !busy && username.isNotBlank() && password.isNotBlank(),
-                onClick = {
-                    busy = true
-                    message = null
-                    scope.launch {
-                        runCatching { repository.login(username.trim(), password) }
-                            .onSuccess { info ->
-                                message = "欢迎回来，${info.username ?: info.uid ?: ""}"
-                                System.err.println("[登录] 成功：${info.username} uid=${info.uid}")
-                                password = ""
-                                onDone()
+            when (mode) {
+                "register" -> Button(
+                    enabled = !busy && username.isNotBlank() && password.isNotBlank() && email.isNotBlank(),
+                    onClick = {
+                        if (!email.contains('@')) {
+                            message = "请输入有效的邮箱"
+                        } else if (password != passwordConfirm) {
+                            message = "两次输入的密码不一致"
+                        } else {
+                            busy = true
+                            message = null
+                            scope.launch {
+                                runCatching {
+                                    repository.register(
+                                        username = username.trim(),
+                                        password = password,
+                                        passwordConfirm = passwordConfirm,
+                                        email = email.trim(),
+                                        gender = gender,
+                                    )
+                                }
+                                    .onSuccess { r ->
+                                        message = r.msg ?: "注册请求已提交"
+                                        Log.line("登录", "注册结果：" + message + "（isOk=" + r.isOk + "）")
+                                        if (r.isOk) {
+                                            mode = "login"
+                                            password = ""
+                                            passwordConfirm = ""
+                                        }
+                                    }
+                                    .onFailure {
+                                        if (it is CancellationException) return@onFailure
+                                        message = "注册失败：${it.message}"
+                                        Log.error("登录", "注册失败", it)
+                                    }
+                                busy = false
                             }
-                            .onFailure {
-                                if (it is CancellationException) return@onFailure
-                                message = "登录失败：${it.message}"
-                                System.err.println("[登录] 失败：${it.message}")
+                        }
+                    },
+                ) { Text(if (busy) "提交中…" else "注册") }
+
+                "forgot" -> Button(
+                    enabled = !busy && email.isNotBlank(),
+                    onClick = {
+                        if (!email.contains('@')) {
+                            message = "请输入有效的邮箱"
+                        } else {
+                            busy = true
+                            message = null
+                            scope.launch {
+                                runCatching { repository.forgotPassword(email.trim()) }
+                                    .onSuccess { r ->
+                                        message = r.msg ?: "重置邮件已发送，请查收"
+                                        Log.line("登录", "找回密码结果：" + message + "（isOk=" + r.isOk + "）")
+                                    }
+                                    .onFailure {
+                                        if (it is CancellationException) return@onFailure
+                                        message = "找回密码失败：${it.message}"
+                                        Log.error("登录", "找回密码失败", it)
+                                    }
+                                busy = false
                             }
-                        busy = false
-                    }
-                },
-            ) { Text(if (busy) "登录中…" else "登录") }
+                        }
+                    },
+                ) { Text(if (busy) "提交中…" else "发送重置邮件") }
+
+                else -> Button(
+                    enabled = !busy && username.isNotBlank() && password.isNotBlank(),
+                    onClick = {
+                        busy = true
+                        message = null
+                        scope.launch {
+                            runCatching { repository.login(username.trim(), password) }
+                                .onSuccess { info ->
+                                    message = "欢迎回来，${info.username ?: info.uid ?: ""}"
+                                    Log.line("登录", "成功：${info.username} uid=${info.uid}")
+                                    password = ""
+                                    onDone()
+                                }
+                                .onFailure {
+                                    if (it is CancellationException) return@onFailure
+                                    message = "登录失败：${it.message}"
+                                    Log.error("登录", "失败", it)
+                                }
+                            busy = false
+                        }
+                    },
+                ) { Text(if (busy) "登录中…" else "登录") }
+            }
 
             if (repository.auth.isLoggedIn) {
                 TextButton(onClick = {
                     scope.launch {
                         repository.logout()
-                        System.err.println("[登录] 已退出")
+                        Log.line("登录", "已退出")
                         message = "已退出登录"
                     }
                 }) { Text("退出登录") }
