@@ -763,3 +763,41 @@ buildarch_compat: aarch64: x86_64
 
 **教训（新增一条查证纪律）**：判断"某功能有没有"时，不能只 grep 关键字 —— 框架可能已经提供。
 要么查框架行为，要么在真机/真桌面实测。这已是本专项第二次因 grep 得出错误结论（上一次是"Android 详情页缺反馈"）。
+
+## 二十六、事故：2.1.2 的 release APK 缺失 manifest 与资源（未解决）
+
+### 现象
+
+`app-full-release.apk` = 2,216,565 字节、`app-lite-release.apk` = 2,200,181 字节（上一版分别 3,267,575 / 3,265,667），
+包内**只有 `classes.dex` 与 `META-INF`**，**没有 `AndroidManifest.xml`、没有 `resources.arsc`**；
+`aapt2 dump badging` 报 `could not identify format of APK` —— 即**装不上的坏包**。
+
+**已经误发**：这两个坏包曾被传到 v2.1.2，发现后用 `gh release delete-asset` 撤下。
+当前 v2.1.2 只有 12 个桌面附件，**Android 包暂缺**（诚实状态）。
+
+### 为什么没早发现（两条流程漏洞）
+
+1. 打包脚本把 Android 构建输出接了 `| tail -2`，那两行恰好不是 `BUILD SUCCESSFUL/FAILED` —— **我没看到构建结果就继续发布**；
+2. 验收只检查"文件存在 + 大小非零"，而 `aapt2` 输出为空时脚本仍打印 `[full] [lite]` 继续走 —— **一个只会通过的判据**。
+
+### 已排除的原因（都做过实验）
+
+| 假设 | 实验 | 结论 |
+| --- | --- | --- |
+| 残留中间产物 | `:app:clean` 后重建 | 排除（依旧坏） |
+| 构建缓存存了坏产物 | `--no-build-cache` + clean | 排除（依旧坏） |
+| 磁盘空间不足 | `df` 显示 43G 可用 | 排除 |
+| 资源收缩 `isShrinkResources` | 临时改为 false 重建 | 排除（依旧坏） |
+| 整个 Android 构建坏了 | 建 debug 包 | 排除（debug 25.7 MB，含 manifest 与 arsc，`aapt2` 可解析） |
+| 上一版也坏 | `aapt2` 验 2.1.1 的两个 APK | 排除（2.1.1 正常：v35，能解析） |
+
+**关键观察**：release 变体的资源中间产物 `processed_res`、`shrunk_processed_res`、`linked_res_for_bundle`
+**全都不存在**，而相关任务**报过 UP-TO-DATE**；`merged_res`（298 文件）与各种 `*Manifest.xml` 中间产物存在。
+即：资源链在"合并之后、打包之前"断了，且**不报错**。
+
+### 下一步诊断方向
+
+1. 用同一个 commit 在两个环境各建一次（例如把 2.1.1 的 commit 检出一份单独建）—— 判定是"代码变了"还是"环境变了"；
+2. 查 `mergeFullReleaseResources` 与 `processFullReleaseResources` 的输入输出是否为空，以及 AGP 有无警告被丢弃（构建输出不要接 `tail`）；
+3. 回忆时间线：2.1.1 的 APK 是 00:39 建的（正常），此后环境有过变化（安装 `rpm:amd64`、`nsis` 等）——
+   需验证是否影响 Android 资源链。
