@@ -36,6 +36,7 @@ import com.jmnext.ui.components.GlassSurface
 import com.jmnext.ui.theme.JmTheme
 import com.jmnext.ui.theme.Spacing
 import kotlinx.coroutines.launch
+import com.jmnext.ui.Notices
 
 /**
  * 首页的「随机本子」浮动按钮（1.5.6）。
@@ -181,17 +182,23 @@ fun DailyQuickFab(
                         val id = d?.dailyId
                         val today = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_MONTH)
                         when {
-                            id.isNullOrBlank() -> notice = "现在没有进行中的签到活动"
+                            id.isNullOrBlank() -> {
+                                notice = "现在没有进行中的签到活动"
+                                Notices.show("现在没有进行中的签到活动")
+                            }
                             Daily.isSignedToday(d.record, today) -> {
                                 // 服务端说今天签过了 —— 那就把状态置为已签，而不是只弹一句提示
                                 signedToday = true
                                 alreadyPrompted += 1
                                 notice = "今天已经签过了"
+                                Notices.show("今天已经签过了")
                             }
                             else -> runCatching { repo.dailyCheck(uid, id) }.fold(
                                 onSuccess = { res ->
                                     signedToday = true
-                                    notice = res.msg?.takeIf { it.isNotBlank() } ?: "签到成功"
+                                    val ok = res.msg?.takeIf { it.isNotBlank() } ?: "签到成功"
+                                    notice = ok
+                                    Notices.success(ok)
                                 },
                                 onFailure = {
                                     if (Daily.isAlreadyChecked(it.message)) {
@@ -199,7 +206,9 @@ fun DailyQuickFab(
                                         signedToday = true
                                         alreadyPrompted += 1
                                     }
-                                    notice = it.message?.takeIf { m -> m.isNotBlank() } ?: "签到失败，稍后再试"
+                                    val why = it.message?.takeIf { m -> m.isNotBlank() } ?: "签到失败，稍后再试"
+                                    notice = why
+                                    Notices.error(why)
                                 },
                             )
                         }
