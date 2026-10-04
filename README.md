@@ -1,215 +1,260 @@
 # JMComic_Next
 
-用 Kotlin 与 Compose 重写的 JMComic 客户端，分 **Android** 与 **桌面（Linux）** 两端，
-共用同一份跨平台数据层。视觉系统移植自 [moyingyilang.github.io](https://moyingyilang.github.io)
-的 **Fluent（Windows 11 Acrylic / Mica）× MIUI 毛玻璃** 设计语言。
+用 Kotlin 与 Compose 写成的 JMComic 客户端。**Android 是主项目**，桌面端（Linux / Windows）由
+Android 端移植而来，两端共用同一个 `shared` 数据层。这是一个**只读的阅读客户端**：能浏览、搜索、
+阅读、登录、收藏、追更、看评论；不做发帖、投票、购买，不含官方广告或任何埋点。
 
-原则沿用了原来的那句话 ——「Stability and simplicity are paramount」：
-**能少不写多，能显式不隐式。**
+原则沿用原来那句话 ——「Stability and simplicity are paramount」：**能少不写多，能显式不隐式。**
 
-> 这是一个**只读的阅读客户端**：能浏览、搜索、阅读、登录、收藏、看评论；
-> 不做发帖、投票、购买，也不包含官方的任何广告或埋点。
+[下载](#下载) · [快速开始](#快速开始) · [功能](#功能) · [现状](#现状这里说的话都算数) ·
+[自己构建](#自己构建) · [路线图](#路线图)
 
----
-
-## 目录
-
-- [下载](#下载)
-- [平台与架构支持](#平台与架构支持)
-- [桌面端](#桌面端)
-  - [运行](#运行)
-  - [自己构建](#自己构建)
-  - [跨架构是怎么做的](#跨架构是怎么做的)
-  - [已知限制](#桌面端的已知限制)
-- [Android 端](#android-端)
-- [界面风格](#界面风格)
-- [工程纪律](#工程纪律)
-- [许可](#许可)
+> 本项目与官方无关，禁漫、JMComic 及相关内容的权利归其权利人所有。里面是成人内容，
+> 请自行确认当地法律与年龄限制。
 
 ---
 
 ## 下载
 
-发布页在 [Releases](https://github.com/moyingyilang/JMComic_Next/releases)。
+发布页：[github.com/moyingyilang/JMComic_Next/releases](https://github.com/moyingyilang/JMComic_Next/releases)。
+桌面端当前版本 **1.9.153**，属于跨平台预构建线（GitHub 上标为 **pre-release**，见[路线图](#路线图)），
+每个版本固定 9 个附件，命名与下表一致。
 
-| 平台 | 架构 | 格式 | 状态 |
-| --- | --- | --- | --- |
-| Android | arm64-v8a / armeabi-v7a | APK（full / lite 两种变体） | 稳定，已发布至 1.8.2 |
-| Linux 桌面 | aarch64 (arm64) | 便携 tar.gz / deb / rpm / AppImage | 可用 |
-| Linux 桌面 | x86_64 (amd64) | 便携 tar.gz / deb / AppImage | 可用（**未经真实 x86_64 机器测试**） |
-| Windows 桌面 | arm64 (ARM64) | 免装 Java 的便携 ZIP | 产物已产出（**真机未验证**） |
-| Linux 桌面 | armv7a (arm32) | — | **上游不支持**，见下 |
-| Linux 桌面 | i686 (x86-32) | — | **上游不支持**，见下 |
+| 平台 | 架构 | 格式 | 附件名 | 状态 |
+| --- | --- | --- | --- | --- |
+| Linux | aarch64 | 便携 tar.gz | `jmcomic-next-1.9.153-linux-aarch64-portable.tar.gz` | 可用 |
+| Linux | aarch64 | deb | `jmcomic-next_1.9.153_arm64.deb` | 可用 |
+| Linux | aarch64 | rpm | `jmcomic-next-1.9.153-1.aarch64.rpm` | 可用 |
+| Linux | aarch64 | AppImage | `jmcomic-next-1.9.153-aarch64.AppImage` | 可用 |
+| Linux | x86_64 | 便携 tar.gz | `jmcomic-next-1.9.153-linux-x86_64-portable.tar.gz` | 未在真机跑过 |
+| Linux | x86_64 | deb | `jmcomic-next_1.9.153_amd64.deb` | 同左 |
+| Linux | x86_64 | AppImage | `jmcomic-next-1.9.153-x86_64.AppImage` | 同左 |
+| Linux | x86_64 | rpm | 无 | **出不来**，见[已知限制](#已知限制) |
+| Windows | x64 | 免装 Java 的 ZIP | `jmcomic-next-1.9.153-windows-x64.zip` | 可用（用户真机确认） |
+| Windows | arm64 | 免装 Java 的 ZIP | `jmcomic-next-1.9.153-windows-arm64.zip` | 真机未验证 |
+| Android | arm64 / armv7 | APK（`full` / `lite`） | 见 Releases 页 | 已发布至 1.8.2 |
 
-> `1.9.00x` 至 `1.9.xxx` 这一串版本号是**跨架构支持测试**专用的预构建序列（**不含** Android 端任何改动）。
-> 末三位是递增计数，按改动量取步长：**小功能 +001、大功能 +010、特大可行性验证 +100**；
-> 修好一个功能就发一版（例：1.9.017 → 小功能 1.9.017 → 大功能 1.9.017 → 特大 1.9.114）。
-> 不含 Android 端的任何改动；两个平台的正式版本仍按各自的主线推进。
+两个 Windows ZIP 都自带 Temurin JRE 21 与对应架构的 Skiko 原生库，解压后双击 `jmcomic-next.bat`，
+不需要另装 Java；包里另有 `diag.bat`，启动不了时收集系统信息与运行日志。Android 的 `full` 与 `lite`
+是同一个应用的两种裁剪，`applicationId` 不同，可以同时安装。Linux 只支持 64 位：渲染层 Skiko 不发布
+32 位 Linux 原生库（armv7a / i686 均为 404），32 位 JDK 也没有 —— 这是上游依赖缺失，不是打包问题。
+macOS 与 iOS 不再发布。
+---
 
-## 平台与架构支持
+## 快速开始
 
-桌面端建立在 Compose Desktop 之上，渲染层是 **Skiko**。Skiko 只发布 64 位 Linux 原生库，
-所以桌面端**只能覆盖 arm64 与 x86_64**：
+Linux 便携包（解压后运行 `./bin/jmcomic-next`）：
 
-| 目标 | Skiko 原生库 | 32 位 JDK（Temurin 21） | 结论 |
-| --- | --- | --- | --- |
-| linux-x64 | 有 | 有 | 可做 |
-| linux-arm64 | 有 | 有 | 可做 |
-| linux-arm（armv7a） | **无（404）** | **无** | 做不了 |
-| linux-x86 / ia32（i686） | **无（404）** | **无** | 做不了 |
+```bash
+tar xzf jmcomic-next-1.9.153-linux-aarch64-portable.tar.gz && ./bin/jmcomic-next
+```
 
-这不是打包问题，而是**上游依赖缺失**：要支持 32 位，得自己从源码编 Skiko 的 arm32/x86-32
-原生层，属于另一个量级的工程。所以桌面端现实可行的是 **arm64 与 x86_64** 两条线。
+deb（x86_64 换成 `_amd64.deb`）、rpm、AppImage：
+
+```bash
+sudo dpkg -i jmcomic-next_1.9.153_arm64.deb && jmcomic-next
+sudo rpm -i jmcomic-next-1.9.153-1.aarch64.rpm && jmcomic-next
+chmod +x jmcomic-next-1.9.153-aarch64.AppImage && ./jmcomic-next-1.9.153-aarch64.AppImage
+```
+
+系统缺 `libfuse.so.2` 时，AppImage 可以不挂载直接跑：加 `--appimage-extract-and-run`。运行时需要
+图形环境（X11 / Wayland）与 OpenGL；纯无头环境会在创建窗口时失败，这是 Compose Desktop 的既有
+行为，不是本项目的缺陷。Windows 解压 ZIP 后双击 `jmcomic-next.bat`；Android 装 APK 即可，
+登录是可选的，不登录也能浏览、搜索、阅读。
 
 ---
 
-## 桌面端
+## 功能
 
-形态上有意与手机端不同：**左侧常驻导航**（桌面上比底部标签栏更合适）、
-**阅读页纵向连续滚动**（鼠标滚轮纵向翻比左右翻自然）、**顶栏常驻账号状态**。
+两端共用的数据层带来这些能力（桌面端在列表形态上另有取舍：**左侧常驻导航**、
+**阅读页纵向连续滚动**、**顶栏常驻账号状态**、**方向键 / PageUp / PageDown 翻页**）：
 
-### 运行
+| 能力 | 说明 |
+| --- | --- |
+| 阅读 | 阅读页、章节选择、图片反切片还原、按字节上限的图片缓存、预取 |
+| 浏览 | 首页（分区 + 最新）、分类、周刊、随机、标签、画师与作品库 |
+| 搜索 | 关键词搜索；桌面端另有排序与检索字段筛选 |
+| 账号 | 登录、注册、找回密码 |
+| 收藏与历史 | 收藏夹增删改、收藏列表、历史、追更 |
+| 互动 | 评论列表、点赞、通知 |
+| 本地屏蔽 | 关键词 / 标签 / 分类三类名单，命中即从列表隐藏，并在页面顶部提示"挡掉多少条" |
+| 外观 | 多套界面风格、深浅色、背景（内置渐变或壁纸） |
 
-便携包解压后：
+**桌面端尚未追平 Android**：首页分区「更多」页与连载更新表、下载、连载更新提醒、标签级屏蔽整条
+链路，以及随机浮钮、签到日历与历史、详情标签可点可屏蔽、移入收藏夹、创作者作品内容、随机页版式
+切换、分类分组标签、阅读默认形态进设置页等中等缺口。逐条代码证据见 [docs/PARITY-AUDIT.md](docs/PARITY-AUDIT.md)。
 
-```bash
-./bin/jmcomic-next
-```
+---
 
-deb 与 rpm 安装后（rpm 见[已知限制](#桌面端的已知限制)）：
+## 现状：这里说的话都算数
 
-```bash
-sudo dpkg -i jmcomic-next_1.9.017_arm64.deb     # 或 _amd64.deb
-jmcomic-next
-```
+这个项目把「**已验证**」与「**未验证**」严格分开写，下面两份表是判断"能不能用"的准绳。
 
-AppImage：
+**已经验证过的**：
 
-```bash
-chmod +x jmcomic-next-1.9.017-aarch64.AppImage
-./jmcomic-next-1.9.017-aarch64.AppImage
-```
+| 项 | 证据 |
+| --- | --- |
+| 键盘翻页生效 | 真机日志 12 行 |
+| Windows x64 免装包能跑 | 用户真机确认 |
+| Android `full` / `lite` 编译通过 | `:app:compileFullDebugKotlin`、`:app:compileLiteDebugKotlin` |
+| 联网能力（登录 + 拉列表） | 无界面冒烟任务 |
+| 打包产物自检 | 应用 jar 唯一、启动类为全限定名、deb 内含图标条目、Windows ZIP 内含 skiko 原生库 |
+| 发布附件完整、算法核心、壁纸图源 | 每版 9 个附件线上大小与本地一致（波动 0.2% 到 0.3%，阈值 10%）；shared 单测与离线回放判据通过；Bing 与三个二次元源实测 200 |
 
-若系统缺 `libfuse.so.2`，AppImage 可用官方提供的方式直接运行（不挂载）：
+**明确未验证的**（不要当成已生效）：
 
-```bash
-./jmcomic-next-1.9.017-aarch64.AppImage --appimage-extract-and-run
-```
+| 项 | 现在到哪一步 |
+| --- | --- |
+| 界面观感与图标观感 | 开发环境渲染不了 Compose，只能由人过目 |
+| **1.9.153 这批 10 个改动** | **只过编译，界面一次没跑过** |
+| 所有写操作（点赞、标记已读、标签增删、注册、找回密码等） | 只到「接口返回什么就显示什么」，**账号内是否生效未确认** |
+| 预取 v2 与取消误报修复 | 是否降低翻页等待、是否不再出现 `The coroutine scope left the composition`，均未验证 |
+| issue #2 的两条修复 | 待报告者复测 |
+| 在线壁纸的界面与自动轮换，Windows arm64 与 Linux x86_64 包 | 图源与产物实测过，真机跑起来没验证 |
 
-运行时需要图形环境（X11/Wayland）与 OpenGL；纯无头环境会在创建窗口时失败，
-这是 Compose Desktop 的既有行为，不是本项目的缺陷。
+### 已知限制
 
-### 自己构建
+- **x86_64 的 rpm 出不来。** rpm 4.18 拒绝跨架构构建（`No compatible architectures found for build`，
+  八种 define 组合全部失败）；改用 qemu 运行 `rpm:amd64` 后，真实 spec 的 `%install` 仍会失败 ——
+  rpm 每个脚本段都要 `exec /bin/sh`，而环境里 binfmt_misc 不可用。需要真正的 x86_64 机器才能补上。
+- **x86_64 产物未在真实机器上运行过。** 只验证到 qemu 用户态模拟下"创建窗口"这一步。
+- 桌面端的半成品与未做页：标签、画师与作品库是半成品，评论未做。
 
-桌面端是**独立的 Gradle 构建**（`desktop/` 有自己的 `settings.gradle.kts`），
-它按路径直接编译 `:shared` 的源码，**不依赖 Android 的 SDK**，也顺带证明了数据层与 Android 无关。
+---
+
+## 自己构建
+
+### 项目结构与环境要求
+
+| 模块 | 是什么 | 构建方式 |
+| --- | --- | --- |
+| `app/` | Android 主项目，`full` 与 `lite` 两个变体 | 根 Gradle 构建 |
+| `shared/` | 两端共用的数据层（网络、DTO、prefs、屏蔽规则、算法） | 根 Gradle 构建，Android 侧使用 |
+| `desktop/` | Compose Multiplatform 桌面端（打包脚本在 `desktop/scripts/`） | **独立 Gradle 构建** |
+
+根 `settings.gradle.kts` 只 include `:app` 与 `:shared`；`desktop/` 有自己的 `settings.gradle.kts`，用
+`kotlin.srcDir("../shared/src/main/kotlin")` **直接编译 shared 源码**，因此桌面构建完全不需要 Android
+SDK；代价是 shared 会被编译两次。好处是它能在纯 JVM 环境里编译通过 —— 这本身证明了数据层与 Android
+无关。
+
+| 组件 | 版本 |
+| --- | --- |
+| JDK | 21（桌面端 jlink 运行时与 Windows 自带 JRE 都是 Temurin 21） |
+| Gradle | 9.x（仓库根有 wrapper；桌面构建另用系统 `gradle`） |
+| Android SDK | `compileSdk 37` / `minSdk 24` / `targetSdk 36`，含 build-tools 与 platform-tools |
+| 打包工具 | deb / rpm / AppImage 各自需要对应工具链，必须在目标平台或有交叉环境的机器上执行 |
+
+在 aarch64 设备上构建 Android 端还需一条规避：`android.aapt2FromMavenOverride` 指向本机
+build-tools 里的 arm64 `aapt2`（AGP 默认拉的是 x86_64 版，跑不了）。已写在根 `gradle.properties`。
+
+### 桌面端
+
+桌面端**不通过根构建**，要在 `desktop/` 目录里单独编（`cd desktop` 后用系统 `gradle`，
+也可从仓库根用 wrapper：`./gradlew -p desktop <任务>`）：
 
 ```bash
 cd desktop
 gradle createDistributable     # 产出可运行镜像
 gradle run                     # 直接跑（需要图形环境）
 gradle smoke                   # 无界面冒烟：登录 + 拉列表，凭据取 JM_USER / JM_PASS
+gradle compileKotlin           # 只做编译检查
 ```
 
-打包（必须在目标平台或已配好交叉环境的机器上执行）：
+打包（会先做**产物自检**，任一项不过就拒绝出包）：
 
 ```bash
-scripts/package-linux.sh      dist      # 本机架构：便携 tar.gz / deb / rpm / AppImage
-scripts/package-linux-x64.sh  dist-x64  # 交叉产出 x86_64（见下）
+scripts/package-linux.sh         dist         # 本机架构（aarch64）：portable / deb / rpm / AppImage
+scripts/package-linux-x64.sh     dist-x64     # 交叉产出 x86_64：portable / deb / AppImage
+scripts/package-windows-x64.sh   dist-win64   # x64 免装 Java ZIP
+scripts/package-windows-arm64-x.sh dist-win   # arm64 免装 Java ZIP
 ```
 
-两个脚本都会先做**产物自检**，任一项不过就拒绝出包：应用 jar 只能有一个
-（改代码后 Compose 会生成新的哈希文件名，旧 jar 残留会让旧类抢先加载）、
-启动类必须是全限定名、以及按字节 grep 核对新旧标记
-（`strings` 默认只输出 ASCII，**用它查中文等于没查**）。
+自检内容：应用 jar 只能有一个（改代码后 Compose 会生成新的哈希文件名，旧 jar 残留会让旧类抢先加载）、
+启动类必须是全限定名、Windows ZIP 里必须真有 `skiko-windows-*.dll`、按字节核对新旧标记
+（`strings` 默认只输出 ASCII，用它查中文等于没查）。
 
-### 跨架构是怎么做的
+跨架构不需要交叉编译器 —— 桌面端是纯 JVM、没有自写原生代码，只需换三样东西：目标架构的 JDK
+（用它的 jmods 跑 jlink）、目标架构的 Skiko 原生库（**删掉**宿主那份，两份并存会加载错的一份），
+以及启动器（jpackage 不能跨平台生成启动器，Linux 上改用等价的 shell 脚本）。细节见
+[docs/engineering-notes.md](docs/engineering-notes.md)。
 
-桌面端是纯 JVM、没有自写原生代码，所以"交叉"不需要交叉编译器，只需换三样东西：
+### Android 端与测试
 
-1. **运行时** —— 取目标架构的 JDK，用它的 jmods 做 jlink。
-   `jlink` 由本机 JDK 提供也能生成目标架构的运行时（`bin/java` 的 ELF 头会变成目标架构）。
-   注意 `--strip-debug` 会调用 `objcopy`，在异构主机上可能认不出目标格式而报错，
-   后果只是调试符号没剥掉，不影响正确性。
-2. **Skiko 原生库** —— 换成目标架构的
-   `org.jetbrains.skiko:skiko-awt-runtime-linux-<arch>`，并**删掉**原来那份
-   （两份并存会加载错的那一份）。
-3. **启动器** —— jpackage 不能跨平台生成启动器，Linux 上改用 shell 脚本，
-   行为等价：用自带运行时 + `-cp "lib/app/*"` 启动主类，
-   并用 `-Dskiko.library.path` 指向原生库所在目录。
+```bash
+./gradlew :app:assembleFullDebug      # full 变体
+./gradlew :app:assembleLiteDebug      # lite 变体
+./gradlew :app:assembleFullRelease    # 发布包（需要签名配置）
+```
 
-`dpkg-deb` 只需写对 `Architecture:` 字段；**rpm 则不行**，原因见下。
+任务名要写全：写 `:app:compileDebugKotlin` 会报 Ambiguous matches。
 
-### 1.9.x 预构建线（与主板本的关系）
+`shared` 有单元测试（图片反切片、动作形状、壁纸核心语义、自学习算法核心与离线回放），
+桌面端没有单元测试、只有上面那个无界面冒烟任务：
 
-1.9.001 与 1.9.017 是**桌面端的预构建**，用于跨架构打包与界面移植的验证，
-**不含主项目（Android 端）的任何更新**。桌面端的功能线仍在 2.0.0。
-
-版本策略：1.9.017、1.9.017 这样正常递增（不用三位数小版本）；积累到一批修复就可以发一次预构建。
-每次发布的附件见 Releases 页面。
-
-发布包的验证边界（每次发布都会在 Release 说明里重复）：界面观感、以及所有**写操作**
-（发表/回复/删除评论、删除历史、取消收藏、追更切换、收藏夹增删改）**均未经验证** ——
-开发环境无法渲染 Compose；写操作使用的是用户账号，开发期间没有点过。
-
-### 桌面端的已知限制
-
-- **x86_64 的 rpm 出不来。** rpm 4.18 直接拒绝跨架构构建
-  （`No compatible architectures found for build`，试过八种 define 组合全部失败）。
-  改成用 qemu 运行 `rpm:amd64` 后，最简 spec 能构建，但真实 spec 的 `%install` 会失败 ——
-  rpm 每个脚本段都要 `exec /bin/sh`，而构建环境里 **binfmt_misc 不可用**，
-  qemu 只能转译被直接指定的那一个二进制，子进程不会跟着转译。
-  需要一台真正的 x86_64 机器（或允许 binfmt_misc 的容器）才能补上这个格式。
-- **x86_64 产物未在真实机器上运行过。** 目前只在 qemu 用户态模拟下验证到
-  "创建窗口"这一步（55 个 jar 加载成功、Compose 初始化、随后因无头环境抛
-  `HeadlessException`）。
-- **界面尚无可视化确认。** 开发容器无法渲染 Compose，界面需要人工过目。
-- 空壳页与未做页：标签、画师与作品库（空壳），评论（未做）。
+```bash
+./gradlew :shared:test
+./gradlew :shared:test --tests "com.jmcomic_next.lyqs.selftune.*"
+```
 
 ---
 
-## Android 端
+## 路线图
 
-- **两种变体**：`full` 与 `lite`（精简掉部分依赖与功能），各自可独立安装。
-- **五套界面风格**可切换：WindowGlass / Translucent / FlatBlur / Miuix / Material。
-  换的不只是配色 —— 圆角尺度、表面工艺、字重与按压手感一起换；背景可选内置渐变或壁纸。
-- **主要内容页**：首页（分区 + 最新）、分区更多、周刊、随机本子、标签、分类、搜索、
-  收藏、历史、追更、通知、评论、画师与作品库、屏蔽设置、关于、我的。
-- **本地屏蔽**：关键词 / 标签 / 分类三类名单，命中即从所有列表隐藏，
-  并在页面顶部提示"被挡掉多少条"，不静默少几条。
+### 1.9.x：跨平台预构建线
+
+`1.9.00x` 到 `1.9.xxx` 是**跨架构支持与界面移植的预构建序列**，**每个版本的 CHANGELOG 都会写明
+「无主项目更新」** —— 不含 Android 端的任何改动。版本步长按改动量取：**小功能 +001、大功能 +010、
+特大可行性验证 +100**（例：1.9.129 → 大功能 1.9.139）。两端正式版各走各的主线。
+
+### 2.0.0：改名 JMNeXt
+
+2.0.0 将在项目改名为 **JMNeXt** 之后发布（大写 X 表示 cross / 跨平台），原因：与另一个项目重名。
+改名会**深改、改彻底**：包名去掉 `lyqs` 段、产物名、窗口标题、安装路径、日志名一起换。唯有一处
+不动 —— **Android 的 applicationId 这次不变**（保老用户能升级），2.0.0 之后另开一版再换。
+在这之前还要做完：首页分区「更多」页与连载更新表、几项中等缺口、下载、连载更新提醒、标签级屏蔽
+整条链路，以及把自学习算法接进两端（那一版走 +300）。
 
 ---
+
+## 工程与验证纪律
+
+每个版本都按同一条纪律走，写在 [CHANGELOG.md](CHANGELOG.md) 里：改动能说清「为什么慢 / 省了什么」，
+不靠感觉；**已验证**与**未验证**分开写，不许把"编译通过"说成"功能可用"；**已知未修**的明确记档，
+不含糊带过；判据要对症、改完要验证**产物**而不是只看配置；构建产物（APK / deb / rpm / AppImage）
+不进源码仓库，发版时作为 Release 附件。
 
 ## 界面风格
 
-桌面端直接采用 [moyingyilang.github.io](https://moyingyilang.github.io) 的设计令牌
-（取自该站 `src/styles/global.css`），所以两端观感统一：
+设计令牌取自 [moyingyilang.github.io](https://moyingyilang.github.io) 的
+**Fluent（Windows 11 Acrylic / Mica）× MIUI 毛玻璃** 设计语言，两端观感统一：
 
 | 令牌 | 浅色 | 深色 |
 | --- | --- | --- |
 | 强调色 | `#0f6cbd` | `#60cdff` |
 | 正文 | `#16181d` | `#f3f4f7` |
-| 次级文字 | `#4a4f5a` | 白 72% |
-| 三级文字 | `#767c88` | 白 50% |
+| 次级 / 三级文字 | `#4a4f5a` / `#767c88` | 白 72% / 白 50% |
 | 描边 | `rgba(15,23,42,0.09)` | 白 10% |
 | 圆角 | 8 / 12 / 18 px | 同左 |
 
-深色不是浅色的反相，而是另一套值（深底上强调色要更亮才看得清）。桌面端跟随系统深浅色。
+深色不是浅色的反相，而是另一套值。桌面端跟随系统深浅色。
 
-## 工程纪律
+## 深入阅读
 
-每个版本遵循同一条纪律，写在 [CHANGELOG](CHANGELOG.md) 里：
+- [docs/STATE.md](docs/STATE.md) —— 现状总表：环境、发布流程、已验证与未验证边界、未完成清单
+- [docs/PARITY-AUDIT.md](docs/PARITY-AUDIT.md) —— 桌面端与 Android 的功能对齐审计，逐条带代码行号
+- [docs/requirements.md](docs/requirements.md) —— 用户全部要求的归并表与落实状态
+- [desktop/SELFTUNE.md](desktop/SELFTUNE.md) —— 自学习算法的设计、判据与离线回放实测
+- [docs/engineering-notes.md](docs/engineering-notes.md) —— 工程笔记：构建坑、静默失败坑、判断依据
+- [CHANGELOG.md](CHANGELOG.md) —— 每个版本改了什么，含未验证项声明
 
-- 改动能说清「为什么慢 / 省了什么」；
-- **已验证**与**未验证**分开写；
-- **已知未修**的明确记档，不含糊带过；
-- 构建产物（APK / deb / rpm / AppImage）不进源码仓库，发版时作为 Release 附件。
+## 致谢
 
-开发过程中踩过的坑与判断依据记录在 [docs/engineering-notes.md](docs/engineering-notes.md)，
-桌面端的功能对齐清单在 [desktop/PARITY.md](desktop/PARITY.md)，
-跨架构打包的实测前提在 [desktop/CROSS.md](desktop/CROSS.md)。
+- 屏蔽功能的设计参考了 [haka_comic](https://github.com/raoxwup/haka_comic)（GPL-3.0）：它按
+  「标签命中 / 分类黑名单 / 标题含关键词」三条规则过滤列表。本项目是 Kotlin / Compose，
+  与它的 Flutter / Dart 实现**没有共用代码**（见 [shared/.../data/BlockRules.kt](shared/src/main/kotlin/com/jmcomic_next/lyqs/data/BlockRules.kt)）。
+- 界面设计语言参考 [moyingyilang.github.io](https://moyingyilang.github.io)。
 
 ## 许可
 
-本项目以 **AGPL-3.0-only** 授权。禁漫、JMComic 及相关内容的权利归其权利人所有；
-本应用与官方无关，仅提供客户端实现。
+本项目以 **AGPL-3.0-only** 授权，见 [LICENSE](LICENSE)。
+禁漫、JMComic 及相关内容的权利归其权利人所有；本应用与官方无关，仅提供客户端实现。
