@@ -1,4 +1,7 @@
 package com.jmcomic_next.desktop
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.OutlinedTextField
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,17 +54,45 @@ fun TagsScreen(repository: JmRepository, onSearch: (String) -> Unit) {
     var starred by remember { mutableStateOf<List<String>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf(if (counts.isEmpty()) "还没有本地统计，点右侧按钮扫描一次" else "本地统计 ${counts.size} 个标签") }
+    // 添加标星用的输入框（审计发现桌面端此前"只能看不能改"）
+    var draft by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(Unit) {
-        // 只读缓存的标星标签；扫描必须由用户触发（慢且请求多）
-        runCatching { repository.favoriteTags() }
-            .onSuccess { starred = it.map { t -> t.tag }.filter { t -> t.isNotBlank() } }
-            .onFailure {
-                if (it is CancellationException) return@onFailure
-                Log.line("标签", "标星标签读取失败：${it.message}")
-            }
+    /** 重新读取网站标星标签。增删之后也要重读，让服务端状态如实反映（不本地翻转）。 */
+    fun reloadStarred() {
+        scope.launch {
+            runCatching { repository.favoriteTags() }
+                .onSuccess { list ->
+                    starred = list.map { t -> t.tag }.filter { it.isNotBlank() }
+                    Log.line("标签", "标星标签 ${starred.size} 个")
+                }
+                .onFailure {
+                    if (it is CancellationException) return@onFailure
+                    Log.line("标签", "标星标签读取失败：${it.message}")
+                }
+        }
     }
+
+    /** 标星标签的增删：接口 type 取 add / remove（与 Android 端一致；tags 由共享层拼成逗号分隔）。 */
+    fun updateStar(type: String, tag: String) {
+        if (tag.isBlank()) return
+        busy = true
+        scope.launch {
+            runCatching { repository.updateFavoriteTags(type, listOf(tag)) }
+                .onSuccess {
+                    Log.line("标签", (if (type == "add") "已标星 " else "已取消标星 ") + tag)
+                    reloadStarred()
+                }
+                .onFailure {
+                    if (it is CancellationException) return@onFailure
+                    status = "标星操作失败：" + it.message
+                    Log.error("标签", "标星操作失败 type=" + type + " tag=" + tag, it)
+                }
+            busy = false
+        }
+    }
+
+    LaunchedEffect(Unit) { reloadStarred() }
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
         Text("标签", style = MaterialTheme.typography.titleLarge)
@@ -144,21 +175,45 @@ fun TagsScreen(repository: JmRepository, onSearch: (String) -> Unit) {
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(top = 22.dp),
             )
+            // 添加标星：桌面端此前"只能看不能改"（功能对齐审计发现的缺口）
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    label = { Text("标签名") },
+                    singleLine = true,
+                    modifier = Modifier.width(240.dp),
+                )
+                Button(
+                    enabled = !busy && draft.isNotBlank(),
+                    onClick = { updateStar("add", draft.trim()); draft = "" },
+                ) { Text("添加标星") }
+            }
             FlowRow(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 starred.sorted().forEach { tag ->
-                    Text(
-                        tag,
-                        style = MaterialTheme.typography.bodyMedium,
+                    Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(999.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { onSearch(tag) }
-                            .padding(horizontal = 12.dp, vertical = 7.dp),
-                    )
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Text(
+                            tag,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .clickable { onSearch(tag) }
+                                .padding(start = 12.dp, end = 6.dp, top = 7.dp, bottom = 7.dp),
+                        )
+                        // 取消标星：接口 type 取 remove（与 Android 端 updateFavoriteTags("remove", ...) 一致）
+                        TextButton(enabled = !busy, onClick = { updateStar("remove", tag) }) { Text("移除") }
+                    }
                 }
             }
         }
