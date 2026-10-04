@@ -172,6 +172,8 @@ fun ReaderScreen(
         // 应用内用 AWT Robot 导出不依赖网络，且导出的就是应用真实绘制的内容。
         // 输出：~/jmcomic-next-screen.png（覆盖写）。
         androidx.compose.runtime.LaunchedEffect(Unit) {
+            // 默认关闭；要看画面时设 JMCOMIC_DEBUG_DUMP=1（我在容器里靠它核对界面）
+            if (System.getenv("JMCOMIC_DEBUG_DUMP") != "1") return@LaunchedEffect
             while (true) {
                 kotlinx.coroutines.delay(20_000L)
                 runCatching {
@@ -188,7 +190,7 @@ fun ReaderScreen(
         // 横向翻页用的 pager 状态。放在这里（payload 可用之后）是因为页数取自 p.images.size；
         // 用全限定名调用，避免再动 import。（第 3 步接线时由 PagedReader 使用。）
         val pagerState = androidx.compose.foundation.pager.rememberPagerState(
-            initialPage = currentPage.coerceIn(0, (p.images.size - 1).coerceAtLeast(0)),
+            initialPage = (if (currentPage > 0) currentPage else remember(comicId, chapterId) { pageProgress.lastPage(comicId, chapterId) }).coerceIn(0, (p.images.size - 1).coerceAtLeast(0)),
         ) { p.images.size }
 
         // 横向模式也要记页：上面那条 flow 用的是 listState，横向下它不动。
