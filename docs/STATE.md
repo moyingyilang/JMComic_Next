@@ -400,3 +400,22 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 
 **核对纪律（这次起了作用）**：每步都"先打印目标行核对、再改、改完逐行打印核对"，所以三次失误**都只停在文档层**，
 没有一次碰到代码；但代价是这一轮为修文档用了四次提交。**下次直接用 heredoc + awk，不要用双引号写 sed 替换串。**
+
+### 二十一之二、可行性判断已做完：可以移进 shared（结论）
+
+查了那两个文件的**全部 import** 与 Android 专有符号：
+
+| 文件 | import 内容 | Android 符号 |
+| --- | --- | --- |
+| `TagBlockResolver.kt` | 只有 `java.util.concurrent.ConcurrentHashMap` 与 kotlinx.coroutines（`CoroutineScope`/`MutableStateFlow`/`StateFlow`/`launch`/`Semaphore`/`withPermit`） | 0 处 |
+| `TagCache.kt` | 只有 kotlinx.serialization（`ListSerializer`/`MapSerializer`/`serializer`/`Json`） | 0 处 |
+
+按 `android\.|Context|Application|CompositionLocal|@Composable` 搜两个文件，**无命中**。
+
+**结论：这两个文件是纯 Kotlin，可以原样移进 `shared`**，两端共用同一份判定逻辑
+（`LocalTagBlocker.kt` 那个 12 行的 CompositionLocal 是 Android UI 层的东西，**不必**跟着移；桌面端直接传参即可）。
+因此第二十一节里"移进 shared 复用"这条路是可行的，**不要选桌面端重写一份**（会漂）。
+
+**执行时注意**（照第十九节的教训）：移到 `shared` 后要与 `app`、`desktop` 的 import 改动**放在同一次提交**里；
+`TagBlockResolverTest.kt`（393 行）也要一起移到 `shared/src/test/`，并确认它在 shared 的测试配置下能跑
+（`shared` 已有 JUnit 4.13.2 与 selftune 那批单测的先例，照它们的位置放即可）。
