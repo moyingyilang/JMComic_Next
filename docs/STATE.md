@@ -685,3 +685,22 @@ gradle 构建 13 秒 + Linux aarch64 四件套 84 秒 + **Linux x86_64 四件套
 
 **已知未查明**：Windows x64 单体 exe 在第 1 轮出现过一次 `rc=1`（13 秒即退出），第 2 轮自动补跑成功；
 原因未定位，属偶发，已记录。
+
+### 编译速度：x86_64 的 rpm 不再走 qemu（省约 150 秒）
+
+**做法**：用**原生 aarch64 的 rpmbuild** 直接产 x86_64 的包 —— rpm 报"没有兼容架构"是 rpmrc 里的兼容表决定的，
+而包内容是架构无关的文件（x86_64 的运行时已交叉摆好），因此放开该检查、用 `--target x86_64` 指定目标即可：
+
+```
+arch_compat: aarch64: x86_64
+buildarch_compat: aarch64: x86_64
+```
+
+`rpmbuild -bb --rcfile <自定义> --target x86_64 --define "_buildrootdir …" --define "__strip /bin/true"`
+
+**实测**：Linux x86_64 四件套 **233 秒 → 83 秒**；产物 `jmnext 2.1.1 x86_64`、体积 89,386,057（此前 89,386,034）、
+包内含 `/opt/jmnext/lib/runtime/bin/java` —— 内容等价，架构字段正确。
+
+**代价/风险**：这是"绕过 rpm 的架构兼容检查"，语义上是撒谎（aarch64 机器并不会真去跑 x86_64 的 rpm）；
+安全性来自"包里全是数据文件、运行时是我们自己交叉摆好的"，所以此技巧**只适用于纯文件负载**的包。
+脚本里保留了日志与失败兜底；`__strip /bin/true` 仍然必要（宿主 strip 处理不了目标架构的 .so）。
