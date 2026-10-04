@@ -349,6 +349,8 @@ fun DetailScreen(
                                                 likeMessage = action.msg ?: "点赞失败"
                                             }
                                             Log.line("详情", "点赞：" + likeMessage)
+                                            val msg = likeMessage
+                                            if (msg?.contains(成功) == true) Notices.success(msg) else Notices.show(msg ?: 点赞完成)
                                         }
                                         .onFailure {
                                             if (it is CancellationException) return@onFailure
@@ -372,6 +374,7 @@ fun DetailScreen(
                                         .onSuccess {
                                             tracked = !tracked
                                             Log.line("详情", "追更切换：" + (if (tracked) "已追更" else "已取消追更"))
+                                            Notices.success(if (tracked) "已追更" else "已取消追更")
                                         }
                                         .onFailure {
                                             if (it !is CancellationException) Log.error("详情", "追更切换失败", it)

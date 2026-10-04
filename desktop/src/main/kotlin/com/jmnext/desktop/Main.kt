@@ -391,6 +391,7 @@ private fun App() {
             }
 
             Box(Modifier.weight(1f)) {
+                NoticeHost()   // 瞬时反馈覆盖层（不挡操作，底部居中）
                 AnimatedContent(
                     targetState = screen,
                     modifier = Modifier.fillMaxSize(),
