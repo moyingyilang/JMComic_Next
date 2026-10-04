@@ -76,6 +76,9 @@ fun CategoryScreen(
     var tagMode by remember { mutableStateOf<String?>(null) }
     var tagPage by remember { mutableStateOf(1) }
     val scope = rememberCoroutineScope()
+    // 标签级屏蔽：命中集合 + 把当前列表交给屏蔽器补标签（只在有规则时发请求）
+    val hiddenIds = rememberHiddenTagIds()
+    LaunchedEffect(items) { items.forEach { TagBlocker.request(it.id) } }
 
     fun filter(slug: String?, name: String, next: Int) {
         busy = true
@@ -307,6 +310,8 @@ fun CategoryScreen(
                     }
                 }
             } else {
+                val (blockedByTag, visibleItems) = splitBlockedByTag(items, hiddenIds)
+                BlockedByTagBanner(blockedByTag)
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(168.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
@@ -314,7 +319,7 @@ fun CategoryScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    items(items, key = { it.id }) { item -> ComicCover(repository, item) { onOpenComic(item) } }
+                    items(visibleItems, key = { it.id }) { item -> ComicCover(repository, item) { onOpenComic(item) } }
                     // 分组标签（categories 响应的 blocks）铺满整行放在结果之后 —— 照 Android：
                     // 它是「换个方式浏览」的出口，不该抢结果上方的位置，也不该与结果争列宽。
                     if (blocks.isNotEmpty() && tagMode == null) {
