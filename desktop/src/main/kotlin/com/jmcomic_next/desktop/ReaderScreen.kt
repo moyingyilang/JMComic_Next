@@ -243,7 +243,34 @@ fun ReaderScreen(
             }
         }
         Row(
-            Modifier.fillMaxSize().onSizeChanged {
+            Modifier.fillMaxSize()
+                .focusRequester(focusRequester)
+                .focusable()
+                .onPreviewKeyEvent { ev ->
+                    // 键盘翻页（桌面特有；Android 端只有手势）。只认按下，避免长按重复触发两遍。
+                    if (ev.type != KeyEventType.KeyDown) {
+                        false
+                    } else {
+                        val step = when (ev.key) {
+                            Key.DirectionLeft, Key.PageUp -> -1
+                            Key.DirectionRight, Key.PageDown -> 1
+                            else -> 0
+                        }
+                        if (step == 0) {
+                            false
+                        } else {
+                            val total = p.images.size
+                            if (mode == ReaderMode.Page) {
+                                scope.launch { pagerState.scrollToPage((pagerState.currentPage + step).coerceIn(0, (total - 1).coerceAtLeast(0))) }
+                            } else {
+                                scope.launch { listState.scrollToItem((currentPage + step).coerceIn(0, (total - 1).coerceAtLeast(0))) }
+                            }
+                            Log.line("阅读", "键盘翻页 " + (if (step < 0) "上一页" else "下一页"))
+                            true
+                        }
+                    }
+                }
+                .onSizeChanged {
                 Log.line("阅读", "内容区尺寸 " + it.width + "x" + it.height + " 像素（若高度为 0 就是排版把内容压没了）")
             },
         ) {
