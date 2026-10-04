@@ -116,7 +116,7 @@ private fun runApp() = application {
 }
 
 @Composable
-private fun HomeScreen(onOpen: (ListItem) -> Unit) {
+private fun HomeScreen(onOpen: (ListItem) -> Unit, onOpenSection: (String, String) -> Unit) {
     var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
     var status by remember { mutableStateOf("正在引导…") }
     var page by remember { mutableStateOf(1) }
@@ -200,7 +200,7 @@ private fun HomeScreen(onOpen: (ListItem) -> Unit) {
         ) {
             // 推荐分区作为整行表头（跨满整行），下面才是最新列表
             item(span = { GridItemSpan(maxLineSpan) }) {
-                PromoteHeader(repository = repository, onOpenComic = onOpen)
+                PromoteHeader(repository = repository, onOpenComic = onOpen, onOpenSection = onOpenSection)
             }
 
             items(items, key = { it.id }) { item -> ComicCard(item, updated = item.id in updatedIds, onOpen = { onOpen(item) }) }
@@ -320,7 +320,13 @@ private fun App() {
 
             Box(Modifier.weight(1f)) {
                 when (val s = screen) {
-                    is Screen.Home -> HomeScreen(onOpen = openComic)
+                    is Screen.Home -> HomeScreen(
+                        onOpen = openComic,
+                        onOpenSection = { id, title ->
+                            Log.line("首页", "打开分区更多：$title (id=$id)")
+                            screen = Screen.Page("more/$id?title=" + java.net.URLEncoder.encode(title, "UTF-8"))
+                        },
+                    )
 
                     is Screen.Detail -> DetailScreen(
                         repository = repository,
@@ -378,6 +384,23 @@ private fun App() {
                     // 侧栏「追更」→ 打开收藏页并选中「追更」标签（Android 那边追更就是收藏页里的标签，
                     // 不是独立页面；这样两处入口最终落到同一份 UI，不会各自演化）
                     is Screen.Page if s.route == "tracking" -> FavoriteScreen(repository, onOpenComic = openComic, initialTab = "tracking")
+                    // 首页分区「更多」：路由 more/<id>?title=<title>（title 用 URL 编码，
+                    // 避免标题里的 & 或 ? 破坏路由解析）
+                    is Screen.Page if s.route.startsWith("more/") -> {
+                        val rest = s.route.removePrefix("more/")
+                        val id = rest.substringBefore("?")
+                        // 分区 id 26 是「连载更新」：它不是普通分区，而是按类型 + 星期切的日更表
+                        if (id == JmRepository.WEEKLY_SECTION_ID) {
+                            WeeklyUpdateScreen(repository = repository, onOpenComic = openComic)
+                        } else {
+                            MoreListScreen(
+                                repository = repository,
+                                sectionId = id,
+                                title = java.net.URLDecoder.decode(rest.substringAfter("?title=", ""), "UTF-8"),
+                                onOpenComic = openComic,
+                            )
+                        }
+                    }
 
                     is Screen.Page -> {
                         val title = NAV_ITEMS.firstOrNull { it.first == s.route }?.second ?: s.route

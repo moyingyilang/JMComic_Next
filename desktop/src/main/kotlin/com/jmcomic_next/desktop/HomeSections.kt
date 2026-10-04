@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -29,13 +30,13 @@ import kotlinx.coroutines.CancellationException
  * 首页的推荐分区（桌面端，1.9.x 全量移植中）。
  *
  * 与 Android 端的结构一致：`promote()` 一次返回若干分区，每个分区自带一批作品。
- * 这里每个分区渲染成「标题 + 横向滚动的封面」；Android 端每个分区还有「更多」，
- * 走 `promoteList(section.id, page)` 看完整列表 —— 桌面这边**尚未做**，不做假按钮。
+ * 这里每个分区渲染成「标题 + 横向滚动的封面」；标题旁的「更多」走
+ * `onOpenSection(section.id, section.title)`，由 Main.kt 接到 MoreListScreen（promoteList 分页）。
  *
  * 桌面上横向滚动比手机上更自然（有滚轮与触控板横滑），所以整块做成横排。
  */
 @Composable
-fun PromoteHeader(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
+fun PromoteHeader(repository: JmRepository, onOpenComic: (ListItem) -> Unit, onOpenSection: (String, String) -> Unit) {
     var sections by remember { mutableStateOf<List<PromoteSection>>(emptyList()) }
 
     LaunchedEffect(Unit) {
@@ -66,12 +67,19 @@ fun PromoteHeader(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
 
     Column(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         sections.forEach { section ->
-            Text(
-                text = section.title ?: "(未命名分区)",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 8.dp),
-            )
+            ) {
+                Text(
+                    text = section.title ?: "(未命名分区)",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                TextButton(onClick = { onOpenSection(section.id, section.title.orEmpty()) }) {
+                    Text("更多")
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
