@@ -54,7 +54,8 @@ import kotlinx.coroutines.launch
  * 页面加载时绝不自动触发。开发期间我没有用自己的验证去点它（用的是用户账号），
  * 所以"收藏成功"这条路径的真实结果未经我验证，界面显示服务端返回的原文。
  *
- * 尚未做：评论入口、追更、下载（在《PARITY.md》里挂着）。
+ * 下载：`albumDownload(comicId)` 拿服务端下发的地址后交给系统浏览器 ——
+ * 桌面端没有 Android 的 DownloadManager，不在应用里另造下载管理器（与 Android 同一取舍）。
  */
 @Composable
 fun DetailScreen(
@@ -80,6 +81,9 @@ fun DetailScreen(
     var trackBusy by remember { mutableStateOf(false) }
     var favMessage by remember(comicId) { mutableStateOf<String?>(null) }
     var favBusy by remember { mutableStateOf(false) }
+    // 下载（照抄 Android 详情页那条「下载整部作品」入口）：忙碌标记与就地提示
+    var downloadBusy by remember { mutableStateOf(false) }
+    var downloadMessage by remember(comicId) { mutableStateOf<String?>(null) }
     // 标签交互（中等缺口）：点标签搜索、屏蔽标签、标星标签
     var tagBusy by remember { mutableStateOf(false) }
     var tagMessage by remember(comicId) { mutableStateOf<String?>(null) }
@@ -202,6 +206,58 @@ fun DetailScreen(
                     Log.error("详情", "标星操作失败 tag=" + tag, it)
                 }
             tagBusy = false
+        }
+    }
+
+    /**
+     * 取整部作品的下载链接并交给系统浏览器（照抄 Android `DetailViewModel.requestDownload`）。
+     *
+     * 需要登录，而且**失败不是 401**：实测未登录时是 HTTP 200 + `{"status":"0","msg":"請先登入"}`，
+     * 所以判断落在 `DownloadPayload.isOk`（download_url 非空）上，不看 HTTP 状态码 ——
+     * 把这种响应当成功会给出一个空链接。
+     *
+     * 桌面端没有 Android 的 DownloadManager，最接近的零依赖做法是把地址交给系统浏览器，
+     * 下载由浏览器负责（断点续传、下载记录都在那边）。浏览器拉不起来时**如实报失败**，
+     * 并把地址一并显示出来，不假装"已开始下载"。
+     */
+    fun downloadAlbum() {
+        if (!repository.auth.isLoggedIn) {
+            downloadMessage = "下载需要登录"
+            return
+        }
+        downloadBusy = true
+        downloadMessage = null
+        scope.launch {
+            runCatching { repository.albumDownload(comicId) }
+                .onSuccess { payload ->
+                    if (!payload.isOk) {
+                        downloadMessage = payload.msg ?: "这个作品暂时不能下载"
+                        Log.line("详情", "下载不可用：" + downloadMessage)
+                    } else {
+                        val title = payload.title.orEmpty()
+                        val url = payload.downloadUrl.orEmpty()
+                        val opened = runCatching {
+                            java.awt.Desktop.getDesktop().browse(java.net.URI(url))
+                        }
+                        downloadMessage = if (opened.isSuccess) {
+                            buildString {
+                                append("已开始下载")
+                                payload.title?.takeIf { it.isNotBlank() }?.let { append("：$it") }
+                                payload.fileSize?.takeIf { it.isNotBlank() }?.let { append("（$it）") }
+                            }
+                        } else {
+                            "获取到下载地址但打开系统浏览器失败：" +
+                                (opened.exceptionOrNull()?.message ?: "未知原因") + "；下载地址：$url"
+                        }
+                        Log.line("详情", "下载 title=$title 浏览器打开=" + opened.isSuccess)
+                    }
+                }
+                .onFailure {
+                    if (it is CancellationException) return@onFailure
+                    downloadMessage = "获取下载地址失败：" + it.message
+                    Log.error("详情", "获取下载地址失败", it)
+                }
+            downloadBusy = false
         }
     }
 
@@ -411,6 +467,37 @@ fun DetailScreen(
                     // 简介也是 HTML（Android 的详情页同样走 plainText）。
                     // plainText 在"剥完标签什么都不剩"时返回 null，此时渲染空串而不是回退原文。
                     Text(d.description.plainText().orEmpty(), style = MaterialTheme.typography.bodySmall)
+                }
+
+                // 下载（照抄 Android 详情页那条「下载整部作品」，位置同样在简介之后）。
+                // 官方是独立下载页（`/comic/detail/download`），两端都只做成一件事：
+                // 拿到服务端下发的 download_url 后交给系统去下，应用里不另造下载管理器。
+                // 桌面端没有 Android 的 DownloadManager，等价物是系统浏览器。
+                // 未登录时 Android 走 onNeedLogin("下载需要登录")；桌面端没有登录路由出口，
+                // 与点赞/标星同一做法：把同一句文案就地显示出来。
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .clickable(enabled = !downloadBusy) { downloadAlbum() }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        "下载整部作品",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "交给系统浏览器下载",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                downloadMessage?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
 
                 // 相关作品（横向滚动）：接口直接给的就是 ListItem，可直接用现成卡片
