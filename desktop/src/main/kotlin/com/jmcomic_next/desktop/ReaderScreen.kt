@@ -192,6 +192,16 @@ fun ReaderScreen(
             }
         }
         Row(Modifier.fillMaxWidth().weight(1f)) {
+        // 两种模式共用侧栏：只替换内容区（LazyColumn ↔ PagedReader），PageRail 留在外面
+        if (mode == ReaderMode.Page) {
+            PagedReader(
+                repository = repository,
+                payload = p,
+                state = pagerState,
+                onPageChange = { },
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            )
+        } else {
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
@@ -218,16 +228,17 @@ fun ReaderScreen(
                 }
             }
         }
+        }
 
         // 右侧竖排页码栏（仿 Android 版）：当前页 / 总页数 + 竖向进度
         // 与 Android 的 PageSeekRow 同一套控件（只竖过来），见 PageRail.kt
         PageRail(
-            current = currentPage,
+            current = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage,
             total = p.images.size,
             onSeek = { page ->
                 // 跳页用 scrollToItem：直接定位，不做动画（长列表做动画会又慢又抖）
                 Log.line("阅读", "跳页 → 第 ${page + 1} 页")
-                scope.launch { listState.scrollToItem(page) }
+                scope.launch { if (mode == ReaderMode.Page) pagerState.scrollToPage(page) else listState.scrollToItem(page) }
             },
             hasPrev = prevId != null,
             hasNext = nextId != null,
