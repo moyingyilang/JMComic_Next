@@ -13,7 +13,11 @@ set -euo pipefail
 
 JRE_DIR="${JRE_DIR:-/root/win-arm64-runtime}"
 OUT_DIR="${1:-dist-win}"
-VERSION="1.9.003"
+# 版本号从唯一来源读取（Version.kt），不再硬编码 ——
+# 起因：1.9.004 那次只更新了两个 Linux 打包脚本，漏了这个值，
+# 于是打出来的 Windows ZIP 名字仍是 1.9.003。
+VERSION="$(grep -oE '1\.9\.[0-9]+' src/main/kotlin/com/jmcomic_next/desktop/Version.kt | head -1)"
+[ -n "$VERSION" ] || { echo "没能从 Version.kt 读出版本号，中止"; exit 1; }
 JAR="build/libs/jmcomic-next-windows-arm64.jar"
 ZIP_NAME="jmcomic-next-${VERSION}-windows-arm64.zip"
 
