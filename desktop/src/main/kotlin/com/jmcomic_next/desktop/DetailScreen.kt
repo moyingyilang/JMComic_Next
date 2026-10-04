@@ -248,7 +248,26 @@ fun DetailScreen(
                     modifier = Modifier.fillMaxSize().padding(start = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    items(d.series.reversed(), key = { it.id }) { chapter ->
+                    // 顶部两个入口（用户要求）：从头开始 / 继续观看。
+                    // 进度就地查一次，避免为此把变量上提到左右分栏之前（那是结构性改动，风险更大）。
+                    item {
+                        val ids = d.series.map { it.id }
+                        val saved = remember(comicId, d.series.size) { progress.lastChapterId(comicId) }
+                        val idx = saved?.let { ids.indexOf(it) } ?: -1
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Button(onClick = { onOpenChapter(d.series.first(), ids) }) { Text("从头开始") }
+                            // 无记录时置灰（用户确认过：置灰而不是隐藏，便于一眼看出有没有进度）
+                            Button(
+                                enabled = idx >= 0,
+                                onClick = { if (idx >= 0) onOpenChapter(d.series[idx], ids) },
+                            ) { Text("继续观看") }
+                        }
+                    }
+                    // 章节列表**正序**（用户要求：从上到下 1、2、3…，不要倒序）
+                    items(d.series, key = { it.id }) { chapter ->
                         Text(
                             text = "第 ${chapter.sort ?: "?"} 话" + (chapter.name?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
                             style = MaterialTheme.typography.bodyMedium,
