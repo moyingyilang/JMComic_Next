@@ -46,6 +46,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.text.selection.SelectionContainer
 
 /**
  * 作品详情页（桌面端，1.9.x 全量移植中）。
@@ -598,6 +599,10 @@ private fun InfoLine(label: String, value: String) {
     if (value.isBlank()) return
     Column {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodyMedium)
+        // 值文本可选：标题/作者这类信息，用户常要复制去搜索或分享。
+        // 有意只在这一处加：按钮文案、标签、列表标题若也可选，会干扰点击与拖拽（选择性加，不全局铺开）。
+        SelectionContainer {
+            Text(value, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
