@@ -164,16 +164,27 @@ Android full/lite 两个 flavor 编译通过；算法核心 7 个单测、调参
 
 ## 十三、改名 JMNeXt 的命名语义（第 8 步要落实）
 
-用户提出：名字里的 X 除了 cross（跨平台，Cross Multiplatform 之意），也可读作 **enchanted**（着迷、倾心），
-寓意好。结论：采纳这层含义，并在写给人看的地方说明；**不影响任何改名工作**，因为改名是按拼写做的
-（包名、产物名、仓库名一律 `jmnext`，X 的大小写只出现在展示用文本里）。
+用户先提出 X 可读作 enchanted（着迷），随后**撤回**，改提"X 是 ex- 打头、意为增强的词（可能是合成词）"。
+据英文实情把候选列清（第 8 步定稿时从中选，或由用户指定）：
 
-用词上的提醒（避免写错被人看出来）：英文里是 **enchanted**，不是 exchanted —— `ex-` 是 former/out of 的
-前缀，写成 exchanted 读不通。
+| 候选 | 词义 | ex- 开头 |
+| --- | --- | --- |
+| exceed / exceeding | 超越、胜过 | 是 |
+| extend / extended / expand | 扩展、加强 | 是 |
+| excellent | 卓越 | 是 |
+| extreme | 极致 | 是 |
+| enhanced | 增强 | **否**（en- 前缀，不是 ex-） |
+
+结论：若要求"增强"且必须 ex- 开头，英语里没有完全对上的单词（enhanced 意思最贴但前缀不符）；
+ex- 打头里最接近的是 extended 与 exceed。若接受**合成词**，可把 ex- 当"超越"前缀配 next 造词
+（如 ex-next），但**必须标明是我们赋予的读法**，不能写成"英语里有这个词"。
+
+README 的写法建议：只写两个读法（X = cross 跨平台，加上最终选定的那一个），贪多会显得硬凑。
+**这层语义不影响任何改名工作** —— 包名、产物名、仓库名一律 `jmnext`，X 只出现在展示用文本里。
 
 第 8 步要做的事：
 1. 包根 `com.jmcomic_next.desktop` 改为 `com.jmnext.desktop`，`com.jmcomic_next.lyqs.*` 改为 `com.jmnext.*`（去掉 lyqs）；
 2. 窗口标题、`/opt` 安装路径、包名、脚本名、jar 名、产物文件名改为 jmnext（展示处写 JMNeXt）；
 3. 日志文件名如果改，要同步改 `.work/verify.sh`；
 4. **Android applicationId 本次不动**（保老用户能升级），留到 2.0.0 之后另开一版；
-5. README 与 2.0.0 发布说明里写一句命名语义："X 既是 cross（跨平台），也可读作 enchanted（着迷）"。
+5. README 与 2.0.0 发布说明里写一句命名语义
