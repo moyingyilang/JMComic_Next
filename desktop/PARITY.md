@@ -459,3 +459,23 @@ premultiplied 也只是数据本身的性质，不因搬行而改变。**真正�
 或看 Pixmap 是否有直接取字节的方法；仍要在本地合成图上先验证行序与内容，再谈接入。
 另外 `Bitmap.readPixels` 的 `$skiko` 变体（`readPixels$skiko(byte[], ImageInfo, ...)`）是内部 API，
 不适合直接用。**结论：先别动这条路径，等把像素导出的正确方式验证出来再说。**
+
+## Skiko 取像素：三次尝试的具体失败现象（供以后直接从第四步开始）
+
+| 尝试 | 调用 | 现象 |
+| --- | --- | --- |
+| 1 | `Bitmap.allocPixels(info)` → `Image.readPixels(bitmap)` → `Bitmap.readPixels(info, 0, 0, rowBytes)` | 前两步 true，**第三步返回 null** |
+| 2 | `Bitmap.installPixels(info, 自己的数组, rowBytes)` → `Image.readPixels(bitmap)` | 两步都 true，但**我的数组全零** —— installPixels 是拷贝而非引用 |
+| 3 | `new Pixmap()` → `Image.readPixels(pixmap, 0, 0, false)` → `Pixmap.getBuffer().getBytes()` | `readPixels` **返回 false**（新建 Pixmap 未分配存储） |
+
+已确认存在但**未验证成功**的 API：`Pixmap.getInfo(): ImageInfo`（不是 getImageInfo）、
+`Pixmap.getBuffer(): Data`、`Pixmap.readPixels(3 参数)`、`Image.peekPixels(Pixmap): Boolean`、
+`Bitmap.peekPixels(): Pixmap`、`Pixmap.reset`（有多个重载，参数类型未查清）。
+
+**第四步该试的**：先把 Pixmap 分配出来（查清 `reset` 的重载参数，可能接受 ImageInfo），
+再 `Image.readPixels(pixmap, ...)` 或 `Image.peekPixels(pixmap)`，然后 `getBuffer().getBytes()`。
+自验方式沿用合成图（200x300，每行颜色只由行号决定，行序或内容一错立刻看出来）。
+
+**结论（当前不动这条路径）**：我在"猜 API"上连续耗了三轮，收益为零。相比之下，
+1.9.004 里已发布的**六段耗时插桩**能直接回答"2715 ms 到底花在哪一段" ——
+用户跑一次就有数据，比继续猜 API 靠谱得多。**先拿数据，再决定要不要继续这条路。**
