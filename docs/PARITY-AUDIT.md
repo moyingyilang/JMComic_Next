@@ -81,3 +81,39 @@
 
 核心还剩：首页（更多 / 分页 / 刷新 / 更新标记）、搜索筛选、下载、标签收藏写操作、注册与找回密码、
 连载更新提醒、详情点赞、通知标记已读。**写操作两端都只接了接口，全都没有运行验证。**
+
+## 修复进度（按用户要求"按顺序全部修复"，逐项带提交）
+
+**已完成并提交**（每项都编译通过；提交号可回溯）：
+
+| 项 | 内容 | 提交 |
+| --- | --- | --- |
+| 1 | 桌面端在线壁纸（模式/Bing 每日/二次元/自动轮换/署名/自定义地址 + 尺寸段改写 + 缓存轮换） | `209479a` |
+| 2a | 详情页点赞 + 追更初始态从接口取（`isTracked`） | `c8adc38` |
+| 2b | 通知标记已读（`markNotificationRead`） | `eb1fc5a` |
+| 2c | 标签收藏写（`updateFavoriteTags` add/remove + 重载） | `33827de` |
+| 2d | 登录页补注册与找回密码（三种模式） | `cf3e491` |
+| 3a | 搜索整套筛选（排序 5 档 / 字段 5 档 / 年月 / `old` 本地二次排序） | `cd0dafc` |
+| 3b | 搜索历史（本地 20 条、最近在前、大小写不敏感去重） | `7a6efa7` |
+| 3c | 热门标签 + 随机推荐建议面板（未搜索时显示） | `3bd995e` |
+| 4b/4c/4d | 首页分页 + 刷新 + 追更更新集合（来自服务端追更通知） | `cdc8a88` |
+| 4d' | 首页刷新/加载更多按钮 + 逐卡「更新」角标 | `f65ab27` |
+
+**未完成（按顺序，接手时从这里继续）**：
+
+| 项 | 内容 | 已摸清的接口/依据 |
+| --- | --- | --- |
+| 4a | 首页分区「更多」页 + 连载更新表（类型 + 星期筛选） | 共享层 `promoteList(id, page)` ✓、`weekIssues()` / `weekList(issueId, type, page)` / `weeklyUpdate(...)` ✓；Android 页面在 `ui/screens/more/MoreListScreen.kt`，路由 `more/{id}?title=…`（`JmNavHost.kt:148-152`）；桌面导航在 `Main.kt` 的 `Screen.Page(route)` + `when` 分支 |
+| 5 | 中等缺口 8 项：随机/签到浮钮、签到日历与历史、详情标签可点可屏蔽、移入收藏夹、创作者作品内容（`creatorWorkContent`）、随机页版式切换、分类分组标签、阅读默认形态进设置页 | 审计表里有逐条 `文件:行号` 证据 |
+| 6 | 下载（`albumDownload`） | Android `DetailScreen.kt:1054-1058`、`JmRepository.kt:595` |
+| 7 | 连载更新提醒（系统通知） | Android `data/SerialNotify.kt`、`AppPrefs.kt:77`、Manifest 权限/receiver |
+| 8 | 算法接进桌面端与 Android 端（预取深度/并发）→ 发 1.9.443 基线（+300）→ 文档整理 → 改名 JMNeXt → 2.0.0 | 算法核心与调参器已完成并单测通过（`a6ba409`、`738ff1e`），离线回放方向判据通过（`8606083`） |
+| 另立 | 标签级屏蔽整条链路（`TagBlockResolver` + `TagCache` + 「允许一次」） | 桌面端**完全没有**这套；只加"允许一次"按钮毫无作用（没有东西被标签挡住） |
+
+**跑法提醒（接手必读）**：
+- 构建必须进容器：`/data/data/com.termux/files/home/jmc/.work/enter.sh`（chroot 里才有 JDK 与 Gradle）；
+- 桌面模块是**独立构建**（`cd desktop && gradle compileKotlin`），根项目只有 `:app` 与 `:shared`；
+- Android 端核验任务名要写全：`:app:compileFullDebugKotlin` 与 `:app:compileLiteDebugKotlin`（写 `compileDebugKotlin` 会报 Ambiguous matches）；
+- 构建失败时用 `grep -E "^e: "` 看 Kotlin 错误（**不要加 `tail`** —— 报错在输出前部，帮助文本在尾部）；
+- 改文件：整行替换或行间插入，**不要在单行内插换行**（曾把 `.clickable { … }` 切断）；改前先断言目标行内容，改后按内容 grep 计数核对；
+- `/tmp` 在 Termux 侧**不可写**，临时文件放 `.work/`。
