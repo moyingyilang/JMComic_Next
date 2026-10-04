@@ -936,3 +936,31 @@ deb 条目数 452 vs 正常的 234），内容是 `lib/app/app/libskiko-linux-ar
 **操作纪律**：改前先 `grep -n` 重新核对上述四个行号（我这几轮的锚点漂移过多次）；
 A、B 用 `sed "${N}r 片段"`；C、D 用单行替换（先 `grep -c` 确认唯一）；
 改完 `head -1` 看文件头、再构建；成功才提交。
+
+## 横翻的两个缺口：修法锚点（下一轮执行）
+
+**缺口一：Page 模式不记录页级进度**
+
+已查到的锚点：`pageProgress` 在第 71 行创建（`PreferencesKeyValueStore("jm_read_page")`）；
+`currentPage` 在第 74 行由 `listState.firstVisibleItemIndex` 派生（**只反映纵向列表**）；
+第 236 行侧栏已按模式二选一取页码。进度写入点用 `grep -n "pageProgress\."` 定位（本轮已执行，
+见提交说明里的行号）。
+
+**修法（最小改动）**：把进度写入的来源从 `currentPage` 改成"按模式取"的同一个表达式
+（与第 236 行一致）：`val shownPage = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage`，
+写入与预加载判断都用它 —— 一处新增局部变量 + 替换两处引用，都是单行改动。
+
+**缺口二：键盘翻页**
+
+`Main.kt` 的 `Window(` 在第 86 行 —— 键盘事件挂在**窗口级**最省事（不需要焦点 plumbing，
+不用给 Row 加 focusable/focusRequester）。但窗口级拿不到阅读页的 `pagerState`（状态在 ReaderScreen 内），
+所以两种做法：
+- (a) 用一个可组合间共享的小状态（例如 `mutableStateOf<((Int) -> Unit)?>(null)`，阅读页注册回调、
+      窗口调用它）—— 改动小但属于"跨层约定"，要写清注释；
+- (b) 给阅读页内容区加 `Modifier.focusable()` + `FocusRequester` + `onPreviewKeyEvent` ——
+      更局部，但要处理"点击后才获得焦点"的细节。
+
+**倾向 (b)**：键盘属于阅读页自身的行为，不该由窗口代管；(b) 的细节只影响"何时能按键"，
+比 (a) 的跨层回调更容易理解。实施前先把 (b) 的焦点行为在真机确认（我用日志打"是否已获得焦点"）。
+
+**未做**：本轮只定位锚点并记录，未改代码。
