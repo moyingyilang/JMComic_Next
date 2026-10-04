@@ -252,7 +252,6 @@ private fun App() {
                         onBack = { screen = Screen.Home },
                         onOpenComments = { aid -> screen = Screen.Page("comments:" + aid) },
                         onOpenComic = openComic,
-                        onOpenComments = { aid -> screen = Screen.Page("comments:" + aid) },
                         progress = readProgress,
                         // 章节顺序由详情页回传（接口下发的是从旧到新），阅读页据此判断上一话/下一话
                         onOpenChapter = { ch, ids ->
@@ -267,6 +266,7 @@ private fun App() {
                         comicId = s.comicId,
                         chapterId = s.chapterId,
                         chapterIds = s.chapterIds,
+                        onOpenComments = { aid -> screen = Screen.Page("comments:" + aid) },
                         onBack = { screen = Screen.Home },
                         onSwitchChapter = { id ->
                             System.err.println("[界面] 切换章节 → $id")

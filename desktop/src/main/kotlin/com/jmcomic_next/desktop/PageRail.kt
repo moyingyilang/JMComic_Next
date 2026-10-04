@@ -76,17 +76,10 @@ fun PageRail(
                     valueRange = 0f..max.toFloat().coerceAtLeast(1f),
                     modifier = Modifier
                         .width(maxHeight.coerceAtLeast(120.dp))
-                        .graphicsLayer { rotationZ = -90f },
+                        .graphicsLayer { rotationZ = 90f },
                 )
             }
         }
-
-        // 页码贴在滑块下方（不占额外竖向空间之外的位置，两字以内）
-        Text(
-            text = "${current + 1}/$total",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
 
         // ── 2. 五个功能按钮（Android 底栏那五个；传 null 的置灰）──
         RailAction("纵向", onToggleMode)
@@ -94,6 +87,14 @@ fun PageRail(
         RailAction("评论", onOpenComments)
         RailAction("收藏", onToggleFavorite)
         RailAction("点赞", onToggleLike)
+
+        // 页码贴在滑块与按钮之外的位置：放到功能按钮下面，
+        // 这样滑块能从栏顶一直延伸到功能按钮上方（用户要求"滑条从顶到功能按钮顶"）。
+        Text(
+            text = "${current + 1}/$total",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
         // ── 3. 上一话 / 下一话：挨在一起，上为上一话、下为下一话 ──
         TextButton(onClick = onPrev, enabled = hasPrev, contentPadding = tight) {
