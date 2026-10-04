@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -61,16 +62,18 @@ fun PageRail(
 ) {
     val max = (total - 1).coerceAtLeast(0)
     val tight = PaddingValues(0.dp)
+    // px 与 dp 要按显示器缩放换算，插桩里两个都报，避免拿 px 直接和 dp 比
+    val density = LocalDensity.current
 
     Column(
         modifier = modifier.width(40.dp).fillMaxHeight().padding(vertical = 2.dp)
-            .onSizeChanged { Log.line("阅读", "侧栏尺寸：总高 " + it.height + "px") },
+            .onSizeChanged { val h = it.height; Log.line("阅读", "侧栏尺寸：总高 " + h + "px / " + with(density) { h.toDp() } + "dp") },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // ── 1. 滑块：占中间剩余高度的全部（即侧栏一半以上）──
         Box(
             modifier = Modifier.fillMaxWidth().weight(1f)
-                .onSizeChanged { Log.line("阅读", "侧栏尺寸：滑块区高 " + it.height + "px") },
+                .onSizeChanged { val h = it.height; Log.line("阅读", "侧栏尺寸：滑块区高 " + h + "px / " + with(density) { h.toDp() } + "dp") },
             contentAlignment = Alignment.Center,
         ) {
             BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
