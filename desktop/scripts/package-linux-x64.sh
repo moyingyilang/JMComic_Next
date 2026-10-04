@@ -12,11 +12,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 V=${VERSION:-$(grep -oE '[0-9]+.[0-9]+.[0-9]+' src/main/kotlin/com/jmnext/desktop/Version.kt | tail -1)}
+[ -n "$V" ] || { echo '拿不到版本号（Version.kt）'; exit 1; }
+OUT=${1:-dist-x64}
 . "$(dirname "$0")/lib-gate.sh"
 GATE_EXPECT="$OUT/Linux-x86_64-$V.tar.gz $OUT/Linux-x86_64-$V.deb $OUT/Linux-x86_64-$V.rpm $OUT/Linux-x86_64-$V.AppImage"
 if ! gate_begin linux-x86_64 "$OUT" build/compose/binaries/main/app/jmnext src/main/resources/icon.png; then exit 0; fi
-[ -n "$V" ] || { echo '拿不到版本号（Version.kt）'; exit 1; }
-OUT=${1:-dist-x64}
 APP=build/compose/binaries/main/app/jmnext
 X64_RUNTIME=${X64_RUNTIME:-/root/x64-runtime}
 SKIKO_JAR=${SKIKO_JAR:-/root/skiko-win-none.jar}     # 名字起错了，内容是 linux-x64 的
