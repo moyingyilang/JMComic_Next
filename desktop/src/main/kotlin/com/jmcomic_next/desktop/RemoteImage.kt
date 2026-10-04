@@ -173,15 +173,13 @@ object RemoteImage {
      * 任一步异常或尺寸异常都返回 null，由调用方退回 PNG 兜底路径 —— 宁可慢，不可画错。
      */
     private fun unscrambleViaCanvas(bytes: ByteArray, aid: Int, page: String): ImageBitmap? {
+        val tA = System.currentTimeMillis()
         val src = Image.makeFromEncoded(bytes)
+        val tB = System.currentTimeMillis()
         val w = src.width
         val h = src.height
         if (w <= 0 || h <= 0) return null
         val bands = ImageUnscramble.bandsFor(w, h, aid, page)
-        // 单独记"画 band"的耗时：外层日志的总时长含网络下载，
-        // 不拆开就无法判断新路径本身到底省了多少（本地实测该段 81 ms，
-        // 但真机上是多少、以及网络占多少，只有拆开才看得清）。
-        val tDraw0 = System.currentTimeMillis()
         val surf = Surface.makeRasterN32Premul(w, h)
         val canvas = surf.canvas
         for (b in bands) {
@@ -191,8 +189,13 @@ object RemoteImage {
                 Rect.makeLTRB(0f, b.dstY.toFloat(), w.toFloat(), (b.dstY + b.height).toFloat()),
             )
         }
+        val tC = System.currentTimeMillis()
         val out = surf.makeImageSnapshot().toComposeImageBitmap()
-        Log.line("图片", "画 band 用了 " + (System.currentTimeMillis() - tDraw0) + " ms（" + w + "x" + h + "，band " + bands.size + " 个）")
+        val tD = System.currentTimeMillis()
+        // 分阶段打点：解码 / 画 band / snapshot+转位图 各自耗时。
+        // 为什么拆开：外层"反切片总耗时"含网络下载，不拆开就分不清瓶颈在下载、解码还是绘制。
+        // 实测（改造前）：总耗时中位数 1394ms、画band 98ms，差额约 1.1s 只能在解码这一段 —— 需要直接量。
+        Log.line("图片", "反切片阶段：解码 " + (tB - tA) + "ms，画 band " + (tC - tB) + "ms（" + bands.size + " 个），转位图 " + (tD - tC) + "ms（" + w + "x" + h + "）")
         return out
     }
 
