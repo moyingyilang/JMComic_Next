@@ -192,6 +192,28 @@ fun AppearanceScreen() {
         // 阅读默认形态（照 Android 的 AppPrefs.readerMode 与「我的」页的 ReadingCard）。
         // 设置页只写，取值在阅读页：两边共用 ReaderModePref 这一个键，
         // 所以这里选完，下次进阅读页就是所选形态。
+        // 连载更新提醒（照 Android 的 AppPrefs.serialNotify）：开关默认关，由用户主动打开。
+        // 桌面端只能在程序运行时提醒 —— Android 靠 AlarmManager 可在后台唤醒，桌面端没有等价机制；
+        // 系统托盘不可用时改为在窗口内提示（见 SerialReminder）。
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("连载更新提醒", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "你追的连载有更新时提醒（默认关）。桌面端仅在程序运行时有效；系统托盘不能用时改为在窗口内提示。",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(true to "开启", false to "关闭").forEach { (on, label) ->
+                    Button(
+                        onClick = { SerialReminder.enabled = on; refresh++ },
+                        modifier = Modifier.height(38.dp),
+                    ) {
+                        Text(if (SerialReminder.enabled == on) "· $label" else label)
+                    }
+                }
+            }
+        }
+
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("阅读形态", style = MaterialTheme.typography.titleMedium)
             Text(

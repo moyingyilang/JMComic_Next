@@ -323,6 +323,13 @@ private fun App() {
         }
     }
 
+    // 连载更新提醒：开关在设置页，默认关（与 Android 的 AppPrefs.serialNotify 一致）；
+    // 桌面端只能在程序运行时提醒，托盘发不出去时降级为上面那条提示。
+    var serialNotice by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        SerialReminder.start(scope, repository) { serialNotice = it }
+    }
+
     Row(Modifier.fillMaxWidth()) {
         SideNav(selected = navSelection, unreadNotifications = unreadNotifications, onSelect = { route ->
             System.err.println("[导航] $route")
@@ -330,6 +337,21 @@ private fun App() {
         })
 
         Column(Modifier.weight(1f).fillMaxSize()) {
+            // 连载更新提醒的降级提示（托盘不可用或发送失败时才出现，见 SerialReminder）
+            serialNotice?.let { notice ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Text(
+                        text = notice,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    TextButton(onClick = { serialNotice = null }) { Text("知道了") }
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
