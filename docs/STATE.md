@@ -134,3 +134,30 @@ Android full/lite 两个 flavor 编译通过；算法核心 7 个单测、调参
 
 另记一条已确认的限制：`weeklyUpdate` 在共享层**没有**走 `blockFiltered`，所以那张表的 `hidden` 恒为 0，
 `BlockedNotice` 对它不会显示内容 —— 这是共享层的既有实现，不是桌面端漏做。
+
+## 十二、运行时验证能做到什么程度（本环境实测，含我自己的调用错误）
+
+**结论：这个 chroot 里做不了 GUI 运行时验证。**
+
+实测过程（都发生在 1.9.153 的构建产物 `/root/jmnext-new/` 上）：
+
+1. `/root/jmnext-new/bin/jmcomic-next` 是 **ELF 原生启动器**（不是脚本）。用 `bash -x` 跑它会报
+   `cannot execute binary file`（退出码 126）；包内也**没有** `lib/runtime/bin/java`（这个 app-image 不带内置 JRE），
+   所以原生启动器在无 JRE 环境下会立刻退出（退出码 1、无输出）。
+2. 直接用 jar 跑主类可以起来：
+   `java -cp "lib/app/*" com.jmcomic_next.desktop.MainKt`，日志写入
+   `[启动] 渲染后端：软件渲染` 与 `版本 1.9.153，构建时间 2026-10-04 17:41` —— **说明包里带的是这一版**。
+3. 随后崩在 `Main.kt:109` 的 `painterResource`（窗口图标）：
+   加载 PNG 会初始化 Skiko 的 `Image`，而 **Skiko 原生库在本 chroot 里加载不了**（`ExceptionInInitializerError`，
+   栈顶 `org.jetbrains.skiko.Library.load`）。包内 skiko jar 是齐的
+   （`skiko-awt-0.150.1-*.jar`、`skiko-awt-runtime-linux-arm64-0.150.1-*.jar` 都在），所以不是打包漏文件。
+4. 曾怀疑是 `/tmp` 不可写导致 Skiko 解压原生库失败：改用 `-Djava.io.tmpdir=<可写目录>` 后**仍然失败**，
+   该假设不成立。
+5. 冒烟模式**不是环境变量开关**：它是 `desktop/.../Smoke.kt` 里另一个 `main`，用 Gradle 的 `smoke` 任务跑，
+   需要 `JM_USER`/`JM_PASS` 登录凭据 —— 本环境没有凭据，因此**数据层的运行时验证也做不了**。
+
+**我自己的调用错误（三次，记下来避免重犯）**：用不可写的 `/tmp` 接输出；用 `bash -x` 跑 ELF 启动器；
+把冒烟模式当成环境变量。三次都是"没先确认对象的形态就下手"。
+
+**因此，本环境能给出的最高证据是：编译通过 + 启动到写出启动日志**。
+界面、交互、写操作是否生效、自动轮换等，只能靠用户或群友在真机上看。
