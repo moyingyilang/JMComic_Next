@@ -110,10 +110,12 @@ RPM_OK=0
 RPM_OK=0
 if [ -x /usr/bin/qemu-x86_64-static ]; then
   # 本机 rpmbuild 是 aarch64，跨架构会被拒；qemu 跑 x86_64 的 rpmbuild，并显式指定 buildroot（否则 %install 失败）
-  /usr/bin/qemu-x86_64-static /usr/bin/rpmbuild -bb --define "_topdir $TOP" --define "_buildrootdir $TOP/BUILDROOT" "$TOP/SPECS/jmnext.spec" 2>&1 | tail -3 || true
+  # strip 必须禁用：%install 末尾的 brp-strip 会用宿主的 aarch64 strip 去处理 x86_64 的 .so，报
+  # "Unable to recognise the format" 并让整个 %install 失败（这是跨架构 rpm 的核心坑）
+  /usr/bin/qemu-x86_64-static /usr/bin/rpmbuild -bb --define "_topdir $TOP" --define "_buildrootdir $TOP/BUILDROOT" --define "__strip /bin/true" "$TOP/SPECS/jmnext.spec" >/tmp/rpm-x64.log 2>&1 || true
   if [ -n "$(find "$TOP/RPMS" -name "*.rpm" 2>/dev/null)" ]; then RPM_OK=1; fi
-  [ "$RPM_OK" = 1 ] || { echo "  rpmbuild 完整输出（末尾 30 行）:"; tail -30 "$TOP/rpm.log" | sed "s/^/    /"; }
-  [ "$RPM_OK" = 1 ] || { echo "  rpmbuild 完整输出的末尾 25 行（含失败的那条命令）:"; tail -25 "$TOP/rpm.log" | sed 's/^/    /'; }
+  [ "$RPM_OK" = 1 ] || { echo "  rpmbuild 完整输出（末尾 30 行）:"; tail -30 /tmp/rpm-x64.log | sed "s/^/    /"; }
+  [ "$RPM_OK" = 1 ] || { echo "  rpmbuild 完整输出的末尾 25 行（含失败的那条命令）:"; tail -30 /tmp/rpm-x64.log | sed 's/^/    /'; }
 fi
 if [ "$RPM_OK" = 1 ]; then
   find "$TOP/RPMS" -name "*.rpm" -exec cp {} "$OUT/Linux-x86_64-$V.rpm" \;
