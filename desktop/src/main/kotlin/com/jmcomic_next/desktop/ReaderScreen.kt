@@ -305,6 +305,61 @@ Log.line("阅读", "章节选择：开始请求 album(comicId)…")
                 }
             },
         )
+
+        // 底栏（仿 Android 的阅读页底栏；容器见 ReaderBottomBar.kt）。
+        // 暂以 visible = true 常显，先确认外观与交互无碍，下一轮再加"鼠标移到底部/点击才出现、几秒隐藏"。
+        // 与 Android 的一处差异如实标注：Android 的栏是浮在内容之上，这里是 Column 的最后一个子项
+        // （隐藏时占 0dp，观感差别很小）；改成浮层需要把根布局 Column 换成 Box，会连带改动 weight 的
+        // 作用域，风险大，故先不做。
+        ReaderBottomBar(
+            visible = true,
+            current = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage,
+            total = p.images.size,
+            onSeek = { page ->
+                scope.launch {
+                    if (mode == ReaderMode.Page) pagerState.scrollToPage(page) else listState.scrollToItem(page)
+                }
+            },
+            hasPrevChapter = prevId != null,
+            hasNextChapter = nextId != null,
+            onPrevChapter = { prevId?.let(onSwitchChapter) },
+            onNextChapter = { nextId?.let(onSwitchChapter) },
+            hasPrevPage = (if (mode == ReaderMode.Page) pagerState.currentPage else currentPage) > 0,
+            hasNextPage = (if (mode == ReaderMode.Page) pagerState.currentPage else currentPage) < p.images.size - 1,
+            onPrevPage = {
+                scope.launch {
+                    if (mode == ReaderMode.Page) pagerState.scrollToPage((pagerState.currentPage - 1).coerceAtLeast(0))
+                    else listState.scrollToItem((currentPage - 1).coerceAtLeast(0))
+                }
+            },
+            onNextPage = {
+                scope.launch {
+                    if (mode == ReaderMode.Page) pagerState.scrollToPage((pagerState.currentPage + 1).coerceAtMost(p.images.size - 1))
+                    else listState.scrollToItem((currentPage + 1).coerceAtMost(p.images.size - 1))
+                }
+            },
+            onToggleMode = {
+                scope.launch {
+                    if (mode == ReaderMode.Page) listState.scrollToItem(pagerState.currentPage) else pagerState.scrollToPage(currentPage)
+                }
+                mode = if (mode == ReaderMode.Scroll) ReaderMode.Page else ReaderMode.Scroll
+                modePrefs.putString("mode", if (mode == ReaderMode.Page) "page" else "scroll")
+                Log.line("阅读", "阅读模式切换为 " + (if (mode == ReaderMode.Page) "横向翻页" else "纵向滚动"))
+            },
+            onOpenPicker = {
+                scope.launch {
+                    runCatching { repository.album(comicId) }
+                        .onSuccess { series = it.series; pickerOpen = true }
+                        .onFailure {
+                            if (it is CancellationException) return@onFailure
+                            Log.error("阅读", "打开章节选择失败", it)
+                        }
+                }
+            },
+            onOpenComments = { onOpenComments(comicId) },
+            onToggleFavorite = { scope.launch { repository.toggleFavorite(comicId); Log.line("阅读", "收藏状态已切换（写操作，未验证）") } },
+            onToggleLike = { scope.launch { repository.like(comicId); Log.line("阅读", "已点赞（写操作，未验证）") } },
+        )
         }
     }
 }
