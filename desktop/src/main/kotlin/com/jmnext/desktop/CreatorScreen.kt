@@ -63,6 +63,14 @@ fun CreatorScreen(repository: JmRepository) {
     var query by remember { mutableStateOf("") }
     var authors by remember { mutableStateOf<List<CreatorAuthor>>(emptyList()) }
     var works by remember { mutableStateOf<List<CreatorWork>>(emptyList()) }
+    // 标签级屏蔽：作者与作品两个列表各自过滤（放在列表声明之后，两者元素类型不同故各自计算）
+    val hiddenIds = rememberHiddenTagIds()
+    val (blockedAuthors, visibleAuthors) = splitBlockedByTag(authors, hiddenIds) { it.id.toString() }
+    val (blockedWorks, visibleWorks) = splitBlockedByTag(works, hiddenIds) { it.id.toString() }
+    LaunchedEffect(authors.map { it.id }, works.map { it.id }) {
+        authors.forEach { TagBlocker.request(it.id.toString()) }
+        works.forEach { TagBlocker.request(it.id.toString()) }
+    }
     var total by remember { mutableStateOf(0) }
     var page by remember { mutableStateOf(1) }
     var busy by remember { mutableStateOf(false) }
@@ -293,6 +301,8 @@ fun CreatorScreen(repository: JmRepository) {
             return@Column
         }
 
+        BlockedByTagBanner(blockedAuthors) { it.id.toString() }
+        BlockedByTagBanner(blockedWorks) { it.id.toString() }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(150.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -301,7 +311,7 @@ fun CreatorScreen(repository: JmRepository) {
             modifier = Modifier.fillMaxWidth().weight(1f),
         ) {
             if (mode == "author") {
-                items(authors, key = { it.id }) { a ->
+                items(visibleAuthors, key = { it.id }) { a ->
                     Column(
                         modifier = Modifier.clickable {
                             selectedAuthor = a
@@ -341,7 +351,7 @@ fun CreatorScreen(repository: JmRepository) {
                     }
                 }
             } else {
-                items(works, key = { it.id }) { w ->
+                items(visibleWorks, key = { it.id }) { w ->
                     Column(
                         modifier = Modifier.clickable { openWork(w.id, w.title) },
                     ) {

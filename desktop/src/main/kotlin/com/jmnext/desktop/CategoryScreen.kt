@@ -310,8 +310,8 @@ fun CategoryScreen(
                     }
                 }
             } else {
-                val (blockedByTag, visibleItems) = splitBlockedByTag(items, hiddenIds)
-                BlockedByTagBanner(blockedByTag)
+                val (blockedByTag, visibleItems) = splitBlockedByTag(items, hiddenIds) { it.id }
+                BlockedByTagBanner(blockedByTag) { it.id }
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(168.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),

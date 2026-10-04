@@ -32,24 +32,24 @@ fun rememberHiddenTagIds(): Set<String> {
 }
 
 /** 按命中集合拆成「被挡」与「可见」。 */
-fun splitBlockedByTag(items: List<ListItem>, hiddenIds: Set<String>): Pair<List<ListItem>, List<ListItem>> =
-    items.partition { it.id in hiddenIds }
+fun <T> splitBlockedByTag(items: List<T>, hiddenIds: Set<String>, idOf: (T) -> String): Pair<List<T>, List<T>> =
+    items.partition { idOf(it) in hiddenIds }
 
 /** 被挡条目提示条 + 「允许一次」。 */
 @Composable
-fun BlockedByTagBanner(blocked: List<ListItem>) {
+fun <T> BlockedByTagBanner(blocked: List<T>, idOf: (T) -> String) {
     if (blocked.isEmpty()) return
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        val tags = blocked.flatMap { TagBlocker.blockedTagsOf(it.id) }.distinct().take(4)
+        val tags = blocked.flatMap { TagBlocker.blockedTagsOf(idOf(it)) }.distinct().take(4)
         Text(
             "已按标签屏蔽 ${blocked.size} 条（命中：${tags.joinToString("、")}）",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        TextButton(onClick = { TagBlocker.allowOnce(blocked.map { it.id }.toSet()) }) { Text("允许一次") }
+        TextButton(onClick = { TagBlocker.allowOnce(blocked.map { idOf(it) }.toSet()) }) { Text("允许一次") }
     }
 }
