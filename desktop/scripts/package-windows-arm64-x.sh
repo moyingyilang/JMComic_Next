@@ -2,6 +2,9 @@
 # Windows ARM64 免装 Java 包（与 x64 同理：fat jar 缺 Skiko 原生库，必须补）
 set -euo pipefail
 OUT_DIR="${1:-dist-win}"; VERSION=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' src/main/kotlin/com/jmnext/desktop/Version.kt | tail -1)
+. "$(dirname "$0")/lib-gate.sh"
+GATE_EXPECT="$OUT_DIR/Windows-arm64-$VERSION.zip"
+if ! gate_begin win-arm64 "$OUT_DIR" src/main/kotlin ../shared/src/main/kotlin build.gradle.kts ../gradle/libs.versions.toml; then exit 0; fi
 W=$(mktemp -d); trap 'rm -rf "$W"' EXIT; STAGE="$W/stage"; mkdir -p "$STAGE"
 echo "== 1/4 fatJar(arm64) + Skiko 原生库 =="
 /opt/gradle-9.8.0/bin/gradle --console=plain fatJar -Ptarget=windows-arm64 >/dev/null
@@ -25,3 +28,5 @@ Z="$OUT_DIR/Windows-arm64-$VERSION.zip"; rm -f "$Z"; (cd "$STAGE" && zip -qr "$A
 unzip -l "$Z" > "$W/list.txt" 2>/dev/null
 for m in runtime/bin/java.exe skiko-windows-arm64.jar jmnext.jar jmnext.bat; do grep -q "$m" "$W/list.txt" || { echo "  验收失败：缺 $m"; exit 1; }; done
 echo "  通过：$(stat -c %s "$Z") 字节"
+
+gate_commit

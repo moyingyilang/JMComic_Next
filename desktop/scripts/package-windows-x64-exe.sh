@@ -11,6 +11,9 @@
 set -euo pipefail
 OUT_DIR="${1:-dist-win64}"
 VERSION=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' src/main/kotlin/com/jmnext/desktop/Version.kt | tail -1)
+. "$(dirname "$0")/lib-gate.sh"
+GATE_EXPECT="$OUT_DIR/Windows-x64-$VERSION.exe"
+if ! gate_begin win-x64-exe "$OUT_DIR" src/main/kotlin ../shared/src/main/kotlin build.gradle.kts ../gradle/libs.versions.toml; then exit 0; fi
 W=$(mktemp -d); trap 'rm -rf "$W"' EXIT
 STAGE="$W/stage"; mkdir -p "$STAGE"
 
@@ -81,3 +84,5 @@ JF=$(find "$CHK" -path "*/runtime/bin/java.exe" -print -quit)
 echo "  java.exe 架构: $(file -b "$JF" | cut -d, -f1-2)"
 rm -rf "$CHK"
 echo "单体 exe 完成：$EXE"
+
+gate_commit

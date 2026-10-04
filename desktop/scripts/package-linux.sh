@@ -11,6 +11,9 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 V=${VERSION:-$(grep -oE '[0-9]+.[0-9]+.[0-9]+' src/main/kotlin/com/jmnext/desktop/Version.kt | tail -1)}
+. "$(dirname "$0")/lib-gate.sh"
+GATE_EXPECT="$OUT/Linux-aarch64-$V.tar.gz $OUT/Linux-aarch64-$V.deb $OUT/Linux-aarch64-$V.rpm $OUT/Linux-aarch64-$V.AppImage"
+if ! gate_begin linux-aarch64 "$OUT" build/compose/binaries/main/app/jmnext src/main/resources/icon.png; then exit 0; fi
 [ -n "$V" ] || { echo '拿不到版本号（Version.kt）'; exit 1; }
 OUT=${1:-dist}
 GRADLE=${GRADLE:-/opt/gradle-9.8.0/bin/gradle}
@@ -146,3 +149,5 @@ fi
 echo
 echo "== 成品 =="
 ls -lh "$OUT" | tail -6
+
+gate_commit

@@ -10,6 +10,9 @@
 set -euo pipefail
 OUT_DIR="${1:-dist-win64}"
 VERSION=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' src/main/kotlin/com/jmnext/desktop/Version.kt | tail -1)
+. "$(dirname "$0")/lib-gate.sh"
+GATE_EXPECT="$OUT_DIR/Windows-x64-$VERSION.zip"
+if ! gate_begin win-x64 "$OUT_DIR" src/main/kotlin ../shared/src/main/kotlin build.gradle.kts ../gradle/libs.versions.toml; then exit 0; fi
 W=$(mktemp -d); trap 'rm -rf "$W"' EXIT
 STAGE="$W/stage"; mkdir -p "$STAGE"
 
@@ -52,3 +55,5 @@ for must in runtime/bin/java.exe skiko-windows-x64.jar jmnext.jar jmnext.bat dia
   unzip -l "$Z" > "$W/list.txt" 2>/dev/null; grep -q "$must" "$W/list.txt" || { echo "  验收失败：缺 $must"; exit 1; }
 done
 echo "  通过：$(stat -c %s "$Z") 字节 -> $Z"
+
+gate_commit
