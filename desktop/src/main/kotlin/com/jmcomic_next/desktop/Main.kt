@@ -161,6 +161,9 @@ private fun HomeScreen(
         }
     }
 
+    // 标签级屏蔽：与 Android 的 JmApp.tagBlocker 用同一份共享层实现（TagBlockResolver + TagCache）。
+    // 没有标签规则时它一个请求都不会发；规则跟随屏蔽名单，加规则立刻生效且只用缓存重算。
+    LaunchedEffect(Unit) { repository.blockStore?.let { TagBlocker.init(repository, it) } }
     LaunchedEffect(Unit) {
         // 「你追的连载里哪些更新了」：数据来自服务端通知（comic_follow 里未读的那批），
         // 照 Android 的 HomeScreen：不要拿阅读时间去猜（既不准又多一次判断）。失败留空，不打扰列表。

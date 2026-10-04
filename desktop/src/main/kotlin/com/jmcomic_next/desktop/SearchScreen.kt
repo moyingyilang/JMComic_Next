@@ -1,4 +1,5 @@
 package com.jmcomic_next.desktop
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 
 import androidx.compose.foundation.layout.Arrangement
@@ -107,6 +108,9 @@ fun SearchScreen(
     var year by remember { mutableStateOf("") }
     var month by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    // 标签级屏蔽的命中集合（未初始化时为 null，此时不做任何过滤）
+    val hiddenFlow = TagBlocker.hidden
+    val hiddenIds by (hiddenFlow?.collectAsState() ?: remember { mutableStateOf<Set<String>>(emptySet()) })
 
     // 未搜索时的建议：热门标签 + 随机推荐（照 Android：这两个只影响"没搜索时"那一屏，失败就留空）
     var hotTags by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -157,6 +161,8 @@ fun SearchScreen(
                         list = list.sortedBy { it.addDate.orEmpty() }
                     }
                     items = list
+                    // 把结果交给标签屏蔽器补标签（只有存在标签规则时才真正发请求）
+                    list.forEach { TagBlocker.request(it.id) }
                     hidden += result.page.hidden
                     total = result.page.total
                     page = nextPage
@@ -294,6 +300,25 @@ fun SearchScreen(
 
         BlockedNotice(hidden)
 
+        // 按标签屏蔽过滤（与 Android 同样：被挡的条数要明示，并提供「允许一次」）
+        val blockedItems = items.filter { it.id in hiddenIds }
+        val visibleItems = items.filterNot { it.id in hiddenIds }
+        if (blockedItems.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                val tags = blockedItems.flatMap { TagBlocker.blockedTagsOf(it.id) }.distinct().take(4)
+                Text(
+                    "已按标签屏蔽 ${blockedItems.size} 条（命中：${tags.joinToString("、")}）",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = { TagBlocker.allowOnce(blockedItems.map { it.id }.toSet()) }) { Text("允许一次") }
+            }
+        }
+
         LazyVerticalGrid(
             columns = GridCells.Adaptive(168.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
@@ -301,7 +326,7 @@ fun SearchScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
-            items(items, key = { it.id }) { item ->
+            items(visibleItems, key = { it.id }) { item ->
                 ComicCover(repository, item) { onOpenComic(item) }
             }
             if (items.isNotEmpty() && items.size < total) {
