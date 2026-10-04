@@ -99,6 +99,8 @@ class JmApp : Application(), SingletonImageLoader.Factory {
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader.Builder(context)
+            // 图片淡入而不是"啪"地出现（列表滚动与详情页都受益）；全局一处，避免各页面各写一遍
+            .crossfade(true)
             .components {
                 // 复用业务请求的客户端：这样图片通道同样受 AdBlocker 保护，
                 // 也共享连接池与超时设置。若在此 new 一个默认客户端，
