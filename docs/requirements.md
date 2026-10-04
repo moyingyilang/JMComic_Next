@@ -60,11 +60,14 @@
 | `README.md` | 门面，给人看 | 重写：项目简介、特性、下载、运行、自己构建、项目结构、路线图、诚实的验证状态、许可 |
 | `docs/README.md` | 文档索引 | 新建：谁该读哪份 |
 | `docs/requirements.md` | 用户要求总表 | 本文件 |
-| `docs/STATUS.md` | 已验证 / 未验证账本 | 新建（从 `PARITY.md` 提炼，简洁可核对） |
-| `docs/DEV-NOTES.md` | 工程教训精选 | 新建（从 `PARITY.md` 与 `engineering-notes.md` 提炼要点） |
-| `docs/SELFTUNE.md` | 自学习设计 | 从 `desktop/` 移入 |
-| `docs/PACKAGING.md` | 打包与跨架构 | 新建（含 `desktop/CROSS.md` 内容） |
-| `docs/archive/` | 详细历史 | 原 `PARITY.md`、`docs/lite-plan.md` 等留档，不删除 |
+| `docs/STATE.md` | 现状总表（原计划叫 STATUS） | **已建**（`docs/STATE.md`，含现状、环境、构建命令、发布流程、已验证边界、未完成清单、约定与教训） |
+| `docs/DEV-NOTES.md` | 工程教训精选 | **未单独建**：教训写进了 `docs/STATE.md` 第七节（避免同一件事写两处、日后不同步） |
+| `desktop/SELFTUNE.md` | 自学习设计 | **未移动**：留在 `desktop/`（原计划移入 `docs/`）。`docs/README.md` 与 `README.md` 均按实际位置链接，已核对无死链 |
+| `docs/PACKAGING.md` | 打包与跨架构 | **未建**：打包流程写进 `docs/STATE.md` 第四节；跨架构细节仍在 `desktop/CROSS.md` |
+| `docs/archive/parity-log.md` | 详细历史 | **已建**：原 `desktop/PARITY.md` 全文归档（并在 `PARITY.md` 顶部加了"多处已过时"的警示） |
+
+**说明**：上表是"计划与实际"的对照。计划写在前面、落地时按"同一件事只写一处"的原则做了合并
+（STATUS→STATE、DEV-NOTES 并入 STATE），所以实际文件数少于原计划 —— 这是有意为之，不是漏做。
 
 ## 五、工程与验证纪律
 
