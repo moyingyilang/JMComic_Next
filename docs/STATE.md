@@ -514,3 +514,29 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 
 我的倾向是 1（能真学、也不撒谎），但**必须连单测一起补**：证明"bytes 未知"的样本不会让算法学到错误方向。
 在选定之前，Android 反馈侧**不上线**——按第二十之四节的纪律：缺真值就宁可不接。
+
+### 二十之六、Android 反馈侧的落点与一个会毁掉算法的细节
+
+**已就绪**：`ImageBytes.diskSize(context, diskCacheKey)`（提交 `0c56f3b`）—— 取 Coil 落盘文件的真实大小，
+拿不到返回 `null`（共享层的 `PageSample.bytes` 已支持"未知"）。
+
+**落点已确认**：阅读页的 `LaunchedEffect(state)`（`ReaderScreen.kt:957`）里已有
+`if (state is AsyncImagePainter.State.Success)` —— 这是"图到位"的时刻，可记 latency/hitCache/bytes。
+
+**必须注意（否则算法会学错方向）**：阅读页的图片组件是**按页实例化**的（每个 page 一个 composable），
+所以"组件存活时间"**不等于**"用户停留时间"：
+- 分页模式下相邻页也会被组合（预加载）；
+- 滚动模式下页面会被懒加载与回收。
+
+因此 **`dwellMs` 必须在屏幕级测**（`currentPage` 变化时结算上一页），若用页级组件的存活时长当 dwell，
+`Fitness` 依据的中位停留时长会被污染，`Habit`（QUICK/SLOW）判断就错了 —— 而"快翻加深预取、慢读减小"
+正是整个算法的立论基础，污染它的后果比不接更糟。
+
+**实现方案（下一步照做）**：
+1. 页级 `State.Success` 处记录 `latencyMs`（该页进入时的屏幕级时间戳 → 此刻）、
+   `hitCache`（`SuccessResult.dataSource == DataSource.MEMORY_CACHE`）、`bytes`（`ImageBytes.diskSize`），
+   按页号存进一个小映射；
+2. 屏幕级 `LaunchedEffect(chapterId, currentPage)` 结算 `dwellMs = now - 进页时间戳`，
+   从映射里取出该页的 latency/hitCache/bytes，组装 `PageSample` 喂 `SelfTuner.onPage`；
+3. 图未到位就被取消的，记 `failed=true` 并调 `SelfTuner.onCancellation()`（取消单独统计）；
+4. 两种变体（full/lite）编译都过才算完成。
