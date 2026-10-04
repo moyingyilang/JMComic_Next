@@ -52,7 +52,7 @@ file "$STAGE/lib/runtime/bin/java" | grep -q "x86-64" || { echo "  失败：运�
 echo "  运行时 x86-64、Skiko x86_64、Arm 原生库已清"
 
 echo "== 3/5 便携包 =="
-tar czf "$OUT/jmcomic-next-1.9.004-linux-x86_64-portable.tar.gz" -C "$STAGE" .
+tar czf "$OUT/jmcomic-next-1.9.014-linux-x86_64-portable.tar.gz" -C "$STAGE" .
 
 echo "== 4/5 deb(amd64) 与 rpm(x86_64) =="
 D=$(mktemp -d)/jmcomic-next
@@ -63,7 +63,7 @@ chmod 755 "$D/usr/bin/jmcomic-next"
 cp "$OUT/jmcomic-next.png" "$D/usr/share/icons/hicolor/256x256/apps/jmcomic-next.png" 2>/dev/null || true
 cat > "$D/DEBIAN/control" <<'CTL'
 Package: jmcomic-next
-Version: 1.9.004
+Version: 1.9.014
 Architecture: amd64
 Maintainer: moyingyilang
 Depends: libc6
@@ -72,14 +72,14 @@ Priority: optional
 Description: JMComic_Next desktop client (x86_64)
  A third-party JMComic client built with Kotlin and Compose Desktop.
 CTL
-dpkg-deb --build --root-owner-group "$D" "$OUT/jmcomic-next_1.9.004_amd64.deb" >/dev/null
+dpkg-deb --build --root-owner-group "$D" "$OUT/jmcomic-next_1.9.014_amd64.deb" >/dev/null
 
 TOP=$(mktemp -d)
 mkdir -p "$TOP"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 cp -a "$STAGE" "$TOP/SOURCES/jmcomic-next-app"
 cat > "$TOP/SPECS/jmcomic-next.spec" <<'SPEC'
 Name:           jmcomic-next
-Version:        1.9.004
+Version:        1.9.014
 Release:        1
 Summary:        JMComic_Next desktop client (x86_64)
 License:        AGPL-3.0-only
@@ -131,8 +131,8 @@ if [ -f /root/runtime-x86_64 ]; then
   printf '[Desktop Entry]\nType=Application\nName=JMComic_Next\nExec=jmcomic-next\nIcon=jmcomic-next\nTerminal=false\nCategories=Utility;Graphics;\n' > "$AD/jmcomic-next.desktop"
   SQ=$(mktemp -u).squashfs
   mksquashfs "$AD" "$SQ" -root-owned -noappend -comp gzip -quiet
-  cat /root/runtime-x86_64 "$SQ" > "$OUT/jmcomic-next-1.9.004-x86_64.AppImage"
-  chmod 755 "$OUT/jmcomic-next-1.9.004-x86_64.AppImage"
+  cat /root/runtime-x86_64 "$SQ" > "$OUT/jmcomic-next-1.9.014-x86_64.AppImage"
+  chmod 755 "$OUT/jmcomic-next-1.9.014-x86_64.AppImage"
   rm -f "$SQ"
 else
   echo "  跳过：缺少 x86_64 的 AppImage runtime"
