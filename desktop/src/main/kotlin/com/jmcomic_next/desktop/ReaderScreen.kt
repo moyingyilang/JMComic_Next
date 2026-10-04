@@ -1,5 +1,5 @@
 package com.jmcomic_next.desktop
-import androidx.compose.ui.zIndex
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.layout.onSizeChanged
 
 import androidx.compose.foundation.Image
@@ -145,7 +145,7 @@ fun ReaderScreen(
         },
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).zIndex(1f),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -167,30 +167,12 @@ fun ReaderScreen(
 
         val p = payload ?: return@Box
 
-        // 调试用：每 20 秒把屏幕导出成 PNG，便于远程核对界面（用户允许我看画面）。
-        // 为什么不用 VNC 客户端：chroot 与宿主网络命名空间不同，vncsnapshot 连不上 5902；
-        // 应用内用 AWT Robot 导出不依赖网络，且导出的就是应用真实绘制的内容。
-        // 输出：~/jmcomic-next-screen.png（覆盖写）。
-        androidx.compose.runtime.LaunchedEffect(Unit) {
-            // 默认关闭；要看画面时设 JMCOMIC_DEBUG_DUMP=1（我在容器里靠它核对界面）
-            if (System.getenv("JMCOMIC_DEBUG_DUMP") != "1") return@LaunchedEffect
-            while (true) {
-                kotlinx.coroutines.delay(20_000L)
-                runCatching {
-                    val size = java.awt.Toolkit.getDefaultToolkit().screenSize
-                    val img = java.awt.Robot().createScreenCapture(java.awt.Rectangle(size))
-                    javax.imageio.ImageIO.write(img, "png", java.io.File(System.getProperty("user.home"), "jmcomic-next-screen.png"))
-                    Log.line("调试", "已导出画面 " + size.width + "x" + size.height + " 到 ~/jmcomic-next-screen.png")
-                }.onFailure { Log.error("调试", "导出画面失败", it) }
-            }
-        }
-
         Log.line("阅读", "渲染内容：模式=" + mode + "，待显示图片 " + p.images.size + " 张")
 
         // 横向翻页用的 pager 状态。放在这里（payload 可用之后）是因为页数取自 p.images.size；
         // 用全限定名调用，避免再动 import。（第 3 步接线时由 PagedReader 使用。）
         val pagerState = androidx.compose.foundation.pager.rememberPagerState(
-            initialPage = (if (currentPage > 0) currentPage else remember(comicId, chapterId) { pageProgress.lastPage(comicId, chapterId) }).coerceIn(0, (p.images.size - 1).coerceAtLeast(0)),
+            initialPage = currentPage.coerceIn(0, (p.images.size - 1).coerceAtLeast(0)),
         ) { p.images.size }
 
         // 横向模式也要记页：上面那条 flow 用的是 listState，横向下它不动。
@@ -227,7 +209,8 @@ fun ReaderScreen(
             }
         }
         Row(
-            Modifier.fillMaxSize().padding(top = 52.dp, bottom = 76.dp).onSizeChanged {
+            Modifier.fillMaxSize().onSizeChanged {
+                Log.line("阅读", "内容区尺寸 " + it.width + "x" + it.height + " 像素（若高度为 0 就是排版把内容压没了）")
             },
         ) {
         // 两种模式共用侧栏：只替换内容区（LazyColumn ↔ PagedReader），PageRail 留在外面
@@ -277,6 +260,71 @@ fun ReaderScreen(
         // （隐藏时占 0dp，观感差别很小）；改成浮层需要把根布局 Column 换成 Box，会连带改动 weight 的
         // 作用域，风险大，故先不做。
         }
+        PageRail(
+            modifier = Modifier.align(androidx.compose.ui.Alignment.CenterEnd).width(40.dp),
+            current = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage,
+            total = p.images.size,
+            onSeek = { page ->
+                // 跳页用 scrollToItem：直接定位，不做动画（长列表做动画会又慢又抖）
+                Log.line("阅读", "跳页 → 第 ${page + 1} 页")
+                scope.launch { if (mode == ReaderMode.Page) pagerState.scrollToPage(page) else listState.scrollToItem(page) }
+            },
+            hasPrev = prevId != null,
+            hasNext = nextId != null,
+            onPrev = { prevId?.let(onSwitchChapter) },
+            onNext = { nextId?.let(onSwitchChapter) },
+            onOpenComments = { onOpenComments(comicId) },
+            onToggleMode = {
+                // 切换模式前先把位置同步到对方：否则横向翻到第 80 页、切回纵向会回到旧位置
+                // （两种模式索引同一张图片列表，语义相同，只是载体不同，所以同步的是同一个下标）
+                scope.launch {
+                    if (mode == ReaderMode.Page) {
+                        listState.scrollToItem(pagerState.currentPage.coerceIn(0, (p.images.size - 1).coerceAtLeast(0)))
+                    } else {
+                        pagerState.scrollToPage(currentPage.coerceIn(0, (p.images.size - 1).coerceAtLeast(0)))
+                    }
+                }
+                // 与 Android 同一个枚举、同一个语义；桌面端额外把选择存下来
+                mode = if (mode == ReaderMode.Scroll) ReaderMode.Page else ReaderMode.Scroll
+                modePrefs.putString("mode", if (mode == ReaderMode.Page) "page" else "scroll")
+                Log.line("阅读", "阅读模式切换为 " + (if (mode == ReaderMode.Page) "横向翻页" else "纵向滚动"))
+            },
+            onOpenPicker = {
+                // 章节选择：点一次才请求 album（A 方案），拿到含话名的 series 再开对话框
+                scope.launch {
+Log.line("阅读", "章节选择：开始请求 album(comicId)…")
+                    runCatching { repository.album(comicId) }
+                        .onSuccess {
+                            series = it.series
+                            pickerOpen = true
+                        }
+                        .onFailure {
+                            if (it is CancellationException) return@onFailure
+                            Log.error("阅读", "打开章节选择失败", it)
+                        }
+                }
+            },
+            onToggleFavorite = {
+                scope.launch {
+                    runCatching { repository.toggleFavorite(comicId) }
+                        .onSuccess { Log.line("阅读", "收藏状态已切换（写操作，未验证）") }
+                        .onFailure {
+                            if (it is CancellationException) return@onFailure
+                            Log.error("阅读", "切换收藏失败", it)
+                        }
+                }
+            },
+            onToggleLike = {
+                scope.launch {
+                    runCatching { repository.like(comicId) }
+                        .onSuccess { Log.line("阅读", "已点赞（写操作，未验证）") }
+                        .onFailure {
+                            if (it is CancellationException) return@onFailure
+                            Log.error("阅读", "点赞失败", it)
+                        }
+                }
+            },
+        )
         ReaderBottomBar(
             modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
             visible = true,

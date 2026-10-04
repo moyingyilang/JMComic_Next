@@ -30,3 +30,4 @@ desktop/build/
 shared/build/
 desktop/dist-x64/
 desktop/dist-win/
+desktop/dist-win64/

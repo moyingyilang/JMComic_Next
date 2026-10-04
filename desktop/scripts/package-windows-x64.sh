@@ -45,9 +45,10 @@ printf '@echo off\r\ncd /d "%%~dp0"\r\nset OUT=diag.txt\r\necho ==== JMComic_Nex
 
 echo "== 5/5 打包 + 验收 =="
 mkdir -p "$OUT_DIR"
+ABS="$(cd "$OUT_DIR" && pwd)/jmcomic-next-$VERSION-windows-x64.zip"
 Z="$OUT_DIR/jmcomic-next-$VERSION-windows-x64.zip"
-rm -f "$Z"; (cd "$STAGE" && zip -qr "$(cd "$OLDPWD" && pwd)/$Z" . 2>/dev/null) || (cd "$STAGE" && zip -qr "$Z" .)
+rm -f "$Z"; (cd "$STAGE" && zip -qr "$(cd "$OLDPWD" && pwd)/$Z" . 2>/dev/null) || (cd "$STAGE" && zip -qr "$ABS" .)
 for must in runtime/bin/java.exe skiko-windows-x64.jar jmcomic-next.jar jmcomic-next.bat diag.bat; do
-  unzip -l "$Z" | grep -q "$must" || { echo "  验收失败：缺 $must"; exit 1; }
+  unzip -l "$Z" > "$W/list.txt" 2>/dev/null; grep -q "$must" "$W/list.txt" || { echo "  验收失败：缺 $must"; exit 1; }
 done
 echo "  通过：$(stat -c %s "$Z") 字节 -> $Z"

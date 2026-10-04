@@ -19,6 +19,8 @@ unzip -q "$W/jre.zip" -d "$W/jre" && mv "$W"/jre/*/ "$STAGE/runtime"
 echo "== 3/4 启动脚本 =="
 printf '@echo off\r\nset JMCOMIC_RENDER=GL\r\ncd /d "%%~dp0"\r\nruntime\\bin\\java.exe -cp "jmcomic-next.jar;skiko-windows-arm64.jar" com.jmcomic_next.desktop.MainKt\r\npause\r\n' > "$STAGE/jmcomic-next.bat"
 echo "== 4/4 打包 + 验收 =="
-Z="$OUT_DIR/jmcomic-next-$VERSION-windows-arm64.zip"; rm -f "$Z"; (cd "$STAGE" && zip -qr "$Z" .)
+mkdir -p "$OUT_DIR"
+ABS="$(cd "$OUT_DIR" && pwd)/jmcomic-next-$VERSION-windows-arm64.zip"
+Z="$OUT_DIR/jmcomic-next-$VERSION-windows-arm64.zip"; rm -f "$Z"; (cd "$STAGE" && zip -qr "$ABS" .)
 for m in runtime/bin/java.exe skiko-windows-arm64.jar jmcomic-next.jar jmcomic-next.bat; do unzip -l "$Z" | grep -q "$m" || { echo "  验收失败：缺 $m"; exit 1; }; done
 echo "  通过：$(stat -c %s "$Z") 字节"
