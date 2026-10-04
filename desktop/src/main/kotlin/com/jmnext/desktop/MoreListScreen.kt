@@ -51,6 +51,10 @@ fun MoreListScreen(
     onOpenComic: (ListItem) -> Unit,
 ) {
     var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
+    // 标签级屏蔽：命中集合 + 过滤 + 把列表交给屏蔽器补标签（放在 items 声明之后）
+    val hiddenIds = rememberHiddenTagIds()
+    val (blockedByTag, visibleItems) = splitBlockedByTag(items, hiddenIds) { it.id }
+    LaunchedEffect(items.map { it.id }) { items.forEach { TagBlocker.request(it.id) } }
     var hidden by remember { mutableStateOf(0) }
     var total by remember { mutableStateOf(0) }
     // promoteList 的 page 是 0 起算（见函数注释第 1 条）
@@ -117,6 +121,7 @@ fun MoreListScreen(
 
         BlockedNotice(hidden)
 
+        BlockedByTagBanner(blockedByTag) { it.id }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(168.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
@@ -124,7 +129,7 @@ fun MoreListScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
-            items(items, key = { it.id }) { item ->
+            items(visibleItems, key = { it.id }) { item ->
                 ComicCover(repository, item) { onOpenComic(item) }
             }
         }
@@ -179,6 +184,10 @@ private fun todayWeekDay(): Int {
 @Composable
 fun WeeklyUpdateScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
     var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
+    // 标签级屏蔽：命中集合 + 过滤 + 把列表交给屏蔽器补标签（放在 items 声明之后）
+    val hiddenIds = rememberHiddenTagIds()
+    val (blockedByTag, visibleItems) = splitBlockedByTag(items, hiddenIds) { it.id }
+    LaunchedEffect(items.map { it.id }) { items.forEach { TagBlocker.request(it.id) } }
     // serialization 的 page 从 1 起算（与 promoteList 相反）
     var page by remember { mutableStateOf(1) }
     var type by remember { mutableStateOf(JmRepository.WEEKLY_TYPE_ALL) }
@@ -257,6 +266,7 @@ fun WeeklyUpdateScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit
             }
         }
 
+        BlockedByTagBanner(blockedByTag) { it.id }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(168.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
@@ -264,7 +274,7 @@ fun WeeklyUpdateScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
-            items(items, key = { it.id }) { item ->
+            items(visibleItems, key = { it.id }) { item ->
                 ComicCover(repository, item) { onOpenComic(item) }
             }
         }
