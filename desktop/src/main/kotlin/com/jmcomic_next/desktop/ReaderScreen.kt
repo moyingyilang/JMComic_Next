@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.jmcomic_next.lyqs.data.JmRepository
+import com.jmcomic_next.lyqs.data.remote.dto.SeriesItem
 import com.jmcomic_next.lyqs.data.prefs.ReadProgressStore
 import com.jmcomic_next.lyqs.data.remote.dto.ReadImage
 import com.jmcomic_next.lyqs.data.remote.dto.ReadPayload
@@ -70,6 +71,9 @@ fun ReaderScreen(
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     // 当前页（0 基）：从列表状态派生，滚动时自动更新，给右侧页码栏用
     val currentPage by androidx.compose.runtime.derivedStateOf { listState.firstVisibleItemIndex }
+    // 章节选择对话框的数据与开关（按 A 方案：打开时才请求一次 album 拿 series，含话名）
+    var series by remember(comicId) { mutableStateOf<List<SeriesItem>>(emptyList()) }
+    var pickerOpen by remember(comicId) { mutableStateOf(false) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var status by remember(chapterId) { mutableStateOf("正在加载章节…") }
     var retryToken by remember(chapterId) { mutableStateOf(0) }
@@ -110,6 +114,19 @@ fun ReaderScreen(
         androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex }
             .distinctUntilChanged()
             .collect { pageProgress.record(comicId, chapterId, it) }
+    }
+
+    // 章节选择对话框（按 Android 的 ChapterPickerDialog 移植，见该文件注释）
+    if (pickerOpen && series.isNotEmpty()) {
+        ChapterPickerDialog(
+            series = series,
+            currentChapterId = chapterId,
+            onPick = { id ->
+                pickerOpen = false
+                onSwitchChapter(id)
+            },
+            onDismiss = { pickerOpen = false },
+        )
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -204,6 +221,20 @@ fun ReaderScreen(
             onPrev = { prevId?.let(onSwitchChapter) },
             onNext = { nextId?.let(onSwitchChapter) },
             onOpenComments = { onOpenComments(comicId) },
+            onOpenPicker = {
+                // 章节选择：点一次才请求 album（A 方案），拿到含话名的 series 再开对话框
+                scope.launch {
+                    runCatching { repository.album(comicId) }
+                        .onSuccess {
+                            series = it.series
+                            pickerOpen = true
+                        }
+                        .onFailure {
+                            if (it is CancellationException) return@onFailure
+                            Log.error("阅读", "打开章节选择失败", it)
+                        }
+                }
+            },
             onToggleFavorite = {
                 scope.launch {
                     runCatching { repository.toggleFavorite(comicId) }
