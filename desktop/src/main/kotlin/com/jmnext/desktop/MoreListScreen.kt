@@ -27,6 +27,7 @@ import com.jmnext.data.JmRepository
 import com.jmnext.data.remote.dto.ListItem
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.Color
 
 /**
  * 首页某个推荐分区的「更多」页（桌面端）。
@@ -115,7 +116,7 @@ fun MoreListScreen(
                     enabled = !busy && items.isNotEmpty() && !exhausted && moreLeft,
                     onClick = { load(page + 1) },
                 ) { Text("加载更多") }
-                Text(status, style = MaterialTheme.typography.labelSmall)
+StatusLine(status, busy, style = MaterialTheme.typography.labelSmall, color = Color.Unspecified)
             }
         }
 
@@ -262,7 +263,7 @@ fun WeeklyUpdateScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit
                     enabled = !busy && items.isNotEmpty() && !exhausted,
                     onClick = { load(page + 1) },
                 ) { Text("加载更多") }
-                Text(status, style = MaterialTheme.typography.labelSmall)
+StatusLine(status, busy, style = MaterialTheme.typography.labelSmall, color = Color.Unspecified)
             }
         }
 

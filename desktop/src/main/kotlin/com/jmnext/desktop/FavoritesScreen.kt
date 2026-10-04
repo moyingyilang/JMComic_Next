@@ -107,7 +107,7 @@ fun FavoriteScreen(
                 Text(if (tab == "tracking") "· 追更" else "追更", style = MaterialTheme.typography.titleMedium)
             }
             if (tab == "favorite") {
-                Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+StatusLine(status, busy)
                 if (items.isNotEmpty() && items.size < total) {
                     Button(enabled = !busy, onClick = { load(page + 1) }) { Text("加载更多") }
                 }

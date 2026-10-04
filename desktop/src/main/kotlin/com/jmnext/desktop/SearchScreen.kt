@@ -34,6 +34,7 @@ import com.jmnext.data.JmRepository
 import com.jmnext.data.remote.dto.ListItem
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.Color
 
 /**
  * 搜索页（桌面端）。
@@ -212,7 +213,7 @@ fun SearchScreen(
             Button(enabled = !busy && query.isNotBlank(), onClick = { runSearch(1) }) {
                 Text(if (busy) "搜索中…" else "搜索")
             }
-            Text(status, style = MaterialTheme.typography.labelSmall)
+StatusLine(status, busy, style = MaterialTheme.typography.labelSmall, color = Color.Unspecified)
         }
 
         Row(

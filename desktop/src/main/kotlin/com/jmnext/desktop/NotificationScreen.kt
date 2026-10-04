@@ -138,7 +138,7 @@ fun NotificationScreen(repository: JmRepository) {
             if (unread > 0) {
                 Text("未读 $unread", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
-            Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+StatusLine(status, busy)
             if (items.isNotEmpty()) {
                 Button(enabled = !busy, onClick = { load(page + 1) }) { Text("加载更多") }
             }

@@ -94,7 +94,7 @@ fun ProfileScreen(repository: JmRepository, onGoLogin: () -> Unit) {
         }
 
         Card("每日签到") {
-            Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+StatusLine(status, busy)
             Row(
                 modifier = Modifier.padding(top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),

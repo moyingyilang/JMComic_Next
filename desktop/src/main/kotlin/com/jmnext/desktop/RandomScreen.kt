@@ -133,7 +133,7 @@ fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("随机本子", style = MaterialTheme.typography.titleLarge)
-            Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+StatusLine(status, busy)
             Button(enabled = !busy, onClick = { roll() }) { Text(if (busy) "取中…" else "换一批") }
             // 版式切换：按钮文字写"切过去会变成什么"（照 Android 的按钮语义）
             TextButton(

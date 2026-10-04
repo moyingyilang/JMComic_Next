@@ -88,7 +88,7 @@ fun HistoryScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("历史", style = MaterialTheme.typography.titleLarge)
-            Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+StatusLine(status, busy)
             if (items.isNotEmpty() && items.size < total) {
                 Button(enabled = !busy, onClick = { load(page + 1) }) { Text("加载更多") }
             }
