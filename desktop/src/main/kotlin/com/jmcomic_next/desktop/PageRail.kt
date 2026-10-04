@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,25 +22,20 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 /**
- * 竖排页码栏（桌面端，1.9.x）。
+ * 竖排页码栏（桌面端，1.9.x）。控件仍是 Android `PageSeekRow` 那一套
+ * （上一话 · 当前页 · 滑块 · 总页数 · 下一话），只是竖过来。
  *
- * 控件与 Android 阅读页的 `PageSeekRow` 一致：上一话 · 当前页 · 滑块 · 总页数 · 下一话；
- * 只是**竖过来**。原版（`ui/screens/reader/ReaderScreen.kt`）注释原文：
+ * 用户 1.9.014 之后的反馈与本次改动（逐条对应）：
+ *  1. "往里缩一点" —— 宽度 48dp 收窄到 **36dp**；
+ *  2. "滑条拉长点" —— 滑块独占中间全部高度（两端只留页码文字与一个按钮的高度），
+ *     最小长度从 160dp 提到 200dp；
+ *  3. "上一话下一话用左右大于小于号，左边上一话，右边下一话" ——
+ *     文字按钮换成 `<`（上）与 `>`（下）：竖过来之后"左"对应"上"，与用户描述一致；
+ *  4. "最外层把功能按钮放上" —— `<` 贴最上方、`>` 贴最下方（竖栏的两端就是"最外层"），
+ *     页码文字与滑块夹在中间。
  *
- *     上行：上一话 · 当前页 · 滑块 · 总页数 · 下一话。
- *
- * 上一版我把**整条 Row** 旋转，结果它的布局宽度等于竖栏高度（几百 dp），
- * 布局盒被撑开、视觉上跑到画面中间去了 —— 用户指出"侧栏占正中间"。
- * 现在改成：
- *   - 外层是**普通 Column**（宽 48dp、占满高度），由父级 Row 放在右侧，
- *     它是常规子项，位置可预测，不可能跑到中间；
- *   - 只把 **Slider 单独旋转**（上下拖动），并给它**固定宽度**，避免旋转撑开布局盒。
- *
- * 这样 Slider 的外观、拇指、主题色与手感仍然直接继承 Android 用的同一个控件。
- *
- * 与原版的两处差异（如实记下）：
- *  1. 两端箭头图标按钮用文字按钮「上一话 / 下一话」（桌面端未引入 material-icons 依赖）；
- *  2. 滑块长度取可用高度，并设 160dp 下限，避免窗口很矮时滑块短到没法拖。
+ * 竖过来的做法：BoxWithConstraints 量出中间可用高度，把它作为 Row 的宽度，
+ * 再绕中心旋转 -90 度 —— Slider 的外观、拇指、主题色与手感全部继承自 material3。
  */
 @Composable
 fun PageRail(
@@ -53,27 +49,29 @@ fun PageRail(
     modifier: Modifier = Modifier,
 ) {
     val max = (total - 1).coerceAtLeast(0)
+    val tight = PaddingValues(0.dp)          // 窄栏里按钮内边距要收掉，否则把宽度撑开
 
     Column(
-        modifier = modifier.width(48.dp).fillMaxHeight().padding(vertical = 8.dp),
+        modifier = modifier.width(36.dp).fillMaxHeight().padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        TextButton(onClick = onPrev, enabled = hasPrev) {
-            Text("上一话", style = MaterialTheme.typography.labelSmall)
+        // 最外层（上）：上一话
+        TextButton(onClick = onPrev, enabled = hasPrev, contentPadding = tight) {
+            Text("<", style = MaterialTheme.typography.titleMedium)
         }
         Text(
             text = "${current + 1}",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // 滑块：独占中间的剩余高度（"滑条拉长点"）
         Box(
-            modifier = Modifier.fillMaxWidth().weight(1f).padding(vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().weight(1f).padding(vertical = 2.dp),
             contentAlignment = Alignment.Center,
         ) {
             BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                // 旋转前长度 = 可用高度（下限 160dp）；旋转后就是竖着的滑块
-                val length = maxHeight.coerceAtLeast(160.dp)
+                val length = maxHeight.coerceAtLeast(200.dp)
                 Slider(
                     value = current.coerceIn(0, max).toFloat(),
                     onValueChange = { onSeek(it.roundToInt().coerceIn(0, max)) },
@@ -89,8 +87,9 @@ fun PageRail(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        TextButton(onClick = onNext, enabled = hasNext) {
-            Text("下一话", style = MaterialTheme.typography.labelSmall)
+        // 最外层（下）：下一话
+        TextButton(onClick = onNext, enabled = hasNext, contentPadding = tight) {
+            Text(">", style = MaterialTheme.typography.titleMedium)
         }
     }
 }
