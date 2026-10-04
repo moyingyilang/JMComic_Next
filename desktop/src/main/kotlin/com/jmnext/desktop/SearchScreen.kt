@@ -196,7 +196,17 @@ fun SearchScreen(
                 label = { Text("搜索作品") },
                 singleLine = true,
                 modifier = Modifier.width(360.dp).onKeyEvent { e ->
-                    if (e.key == Key.Enter) { runSearch(1); true } else false
+                    when {
+                        e.key == Key.Enter -> { runSearch(1); true }
+                        // Esc：清空并收起结果，回到"没搜索"那一屏 —— 与 Enter 配套的取消动作
+                        e.key == Key.Escape -> {
+                            query = ""
+                            items = emptyList()
+                            status = "输入关键词后回车搜索"
+                            true
+                        }
+                        else -> false
+                    }
                 },
             )
             Button(enabled = !busy && query.isNotBlank(), onClick = { runSearch(1) }) {
