@@ -20,6 +20,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.jmnext.data.JmRepository
 import com.jmnext.data.remote.dto.ListItem
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.alpha
+import androidx.compose.runtime.getValue
 
 /**
  * 作品卡片（2.0.0 桌面端）：封面 + 标题 + 作者。
@@ -33,6 +37,12 @@ import com.jmnext.data.remote.dto.ListItem
 fun ComicCover(repository: JmRepository, item: ListItem, onOpen: () -> Unit) {
     val coverUrl = remember(item.id) { runCatching { repository.coverUrl(item) }.getOrNull() }
     val bitmap = rememberRemoteImage(coverUrl)
+    // 图片淡入（数值取自 Motion）：从空/占位到实图不啪地出现
+    val imgAlpha by animateFloatAsState(
+        targetValue = if (bitmap != null) 1f else 0f,
+        animationSpec = tween(durationMillis = Motion.IMAGE_MS, easing = Motion.Standard),
+        label = "coverAlpha",
+    )
 
     Column(modifier = Modifier.clickable { onOpen() }) {
         Box(
@@ -46,7 +56,7 @@ fun ComicCover(repository: JmRepository, item: ListItem, onOpen: () -> Unit) {
                 Image(
                     bitmap = bitmap,
                     contentDescription = item.name,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().alpha(imgAlpha),
                     contentScale = ContentScale.Crop,
                 )
             }
