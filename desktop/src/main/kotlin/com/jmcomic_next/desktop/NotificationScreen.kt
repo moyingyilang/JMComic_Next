@@ -86,6 +86,26 @@ fun NotificationScreen(repository: JmRepository) {
         }
     }
 
+    /**
+     * 标记一条通知为已读。
+     * 与 Android 一致：只做"标记已读"，不自己判断有没有更新；成功后重新拉第一页与未读数。
+     */
+    fun markRead(id: String) {
+        busy = true
+        scope.launch {
+            runCatching { repository.markNotificationRead(id, true) }
+                .onSuccess { Log.line("通知", "已标记已读 id=" + id) }
+                .onFailure {
+                    if (it is CancellationException) return@onFailure
+                    status = "标记已读失败：" + it.message
+                    Log.error("通知", "标记已读失败 id=" + id, it)
+                }
+            runCatching { repository.notificationsUnread() }.onSuccess { unread = it.total }
+            busy = false
+            load(1)
+        }
+    }
+
     LaunchedEffect(tab) {
         page = 1
         load(1)
@@ -175,6 +195,14 @@ fun NotificationScreen(repository: JmRepository) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                    }
+                    // 标记已读：Android 端也是单条标记（markNotificationRead(id, true)）。
+                    // 只对未读显示按钮；读完重新拉第一页与未读数，让服务端状态如实反映。
+                    if (!item.isRead) {
+                        TextButton(
+                            enabled = !busy,
+                            onClick = { item.idText?.let { markRead(it) } },
+                        ) { Text("标记已读") }
                     }
                 }
             }
