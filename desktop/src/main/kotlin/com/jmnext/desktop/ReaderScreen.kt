@@ -105,14 +105,14 @@ fun ReaderScreen(
             .onSuccess {
                 payload = it
                 status = "${it.images.size} 页"
-                    loading = false
+                loading = false
                 runCatching { progress.record(comicId, chapterId) }
                 System.err.println("[阅读] 已加载 $status（章节 ${index + 1}/${chapterIds.size}）")
             }
             .onFailure {
                 if (it is CancellationException) return@onFailure
                 status = "加载失败：${it.message}（点“重试”）"
-                    loading = false
+                loading = false
                 System.err.println("[阅读] $status")
             }
     }
