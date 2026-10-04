@@ -70,7 +70,8 @@ fun ReaderBottomBar(
     ) {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
             Surface(
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.78f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
                 tonalElevation = 6.dp,
                 shadowElevation = 8.dp,
                 shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp),
@@ -101,7 +102,7 @@ fun ReaderBottomBar(
                         TextButton(onClick = onNextChapter, enabled = hasNextChapter) { Text("下一话") }
 
                         Spacer(Modifier.weight(1f))
-                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             BarAction("纵向", onToggleMode)
                             BarAction("章节", onOpenPicker)
                             BarAction("评论", onOpenComments)
@@ -122,7 +123,7 @@ private fun BarAction(label: String, action: (() -> Unit)?) {
         onClick = { action?.invoke() },
         enabled = action != null,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-        modifier = Modifier.height(28.dp),
+        modifier = Modifier.height(28.dp).padding(horizontal = 8.dp),
     ) {
         Text(label, style = MaterialTheme.typography.labelMedium)
     }
