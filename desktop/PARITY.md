@@ -408,3 +408,36 @@ PNG 编码（实测 206 ms 那一行就是它）、12MB 中间产物、ImageIO �
 BufferedImage→Compose 的转换。风险是像素格式（ARGB 与 premultiplied RGBA 的差别）可能导致
 颜色错乱，因此**必须保留现有的 ImageIO/PNG 兜底路径**，并先用一张图对比新旧两条路径的输出
 （逐像素比对或至少尺寸与通道顺序检查），再交给用户看颜色。
+
+## 大功能方案（1.9.014）：Skiko 直读像素，砍掉 WebP→PNG→ImageIO 往返
+
+**API 已核实**（`javap` 读 skiko-awt-0.150.1，不是凭记忆）：
+
+| 用途 | 方法 |
+| --- | --- |
+| 解码（含 WebP） | `Image.makeFromEncoded(byte[])` |
+| 建目标位图 | `Bitmap().allocPixels(ImageInfo.makeN32Premul(w, h))` |
+| Skia 图像 → 位图 | `Image.readPixels(Bitmap)`（另有带 srcX/srcY 的重载） |
+| 位图 → 字节 | `Bitmap.readPixels(ImageInfo, srcX, srcY, rowBytes): byte[]` |
+| 字节 → 位图 | `Bitmap.installPixels(ImageInfo, byte[], rowBytes)` |
+| 位图 → Skia 图像 | `Image.makeFromBitmap(Bitmap)` / `Image.makeFromPixmap(Pixmap)` |
+| 位图 → 像素视图 | `Bitmap.peekPixels(): Pixmap` |
+
+**关键发现：反切片只是按 band 整行搬移，与通道顺序无关。**
+我此前担心"ARGB 与 premultiplied RGBA 不一致会导致颜色错乱"，现在看这个担心被夸大了：
+`System.arraycopy` 搬的是**整行**，同一行的字节一起移动，通道顺序是 RGB 还是 BGR 都不影响结果；
+premultiplied 也只是数据本身的性质，不因搬行而改变。**真正要保证的只有两点**：
+1. 读与写用**同一个 ImageInfo**（同一 alpha 类型与色彩空间）；
+2. 行跨度（rowBytes）按 `info.minRowBytes` 对齐，不能假设等于 width*4。
+这两点都是可核对的，不是碰运气。
+
+**收益（按已有数据推算）**：省掉一次 PNG 编码（日志里那一行本身花 206 ms 且产出 12MB）、
+一次 ImageIO 对 12MB PNG 的解码、`getRGB`/`setRGB`（本地基准共约 100 ms）
+以及 BufferedImage→Compose 的转换；保留 `toComposeImageBitmap()` 这一步（它仍需要）。
+
+**兜底**：新路径任何一步返回 null/false 或抛异常，就退回现有的 ImageIO → Skiko 转码 PNG 路径，
+并在日志里写明走了哪条路（`反切片：直读路径` / `反切片：PNG 兜底路径`），
+这样用户日志能直接看出两条路各用了多少次，不必靠猜。
+
+**自验方式**（不需要界面）：写一个本地比对程序，对同一张 WebP 分别用两条路径解出像素数组，
+逐行比较（band 搬移是确定的，两条路应当得到相同的行分布）；若一致再请用户看颜色。
