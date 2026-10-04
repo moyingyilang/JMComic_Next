@@ -340,3 +340,19 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 
 **纪律提醒**：接线的证据等级只能到"编译通过 + 日志显示参数被读取"。**"算法真的改善了体验"必须靠真机数据**，
 本环境做不了（第十二节），不要用"已经接上"来暗示效果，也不要用日志里出现过某参数就当成功。
+
+### 二十之一、Android 侧旋钮已定位（补第二十节的"待定位"）
+
+**位置**：`app/src/main/kotlin/com/jmcomic_next/lyqs/ui/screens/reader/ReaderScreen.kt`：
+- 第 1029 到 1031 行是预取窗口 `PREFETCH_BEFORE` / `PREFETCH_AFTER`，注释写明取自 `LiteFeatures`；
+- 第 1045 行的 `PrefetchPages(...)` 是预取实现，第 1054 到 1055 行用 `center ± PREFETCH_*` 算前后页范围；
+- 第 784 行的注释说明：**Compose 的 Pager 自带相邻页预加载**，所以 Android 的"往前取几页"就是这套窗口。
+
+**一条重要发现（接线前必须决定）**：Android 的阅读页预取**没有并发上限**（全库搜 `semaphore|concurren`
+只在随机页的标签读取里有信号量，阅读页没有）。而 SELFTUNE 的 `prefetchConcurrency`（1 到 3）是第二十个旋钮之一 —— 
+也就是说它**在 Android 侧没有对应物**。接 Android 时必须二选一，并写明选了哪个：
+1. 给 Android 阅读页预取**新加一个并发上限**（改动更大，属新功能），或
+2. 明确把 `prefetchConcurrency` 标为**仅桌面端可用**，Android 侧不使用这一个旋钮（改动小、也更诚实）。
+
+另注：`PREFETCH_*` 取自 `LiteFeatures`（lite 变体的功能开关），Android 有 full 与 lite 两个变体，
+接线时要**两个变体都看一遍**，不要只按其中一个的取值下结论。
