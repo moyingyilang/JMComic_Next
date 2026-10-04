@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -61,12 +63,14 @@ fun PageRail(
     val tight = PaddingValues(0.dp)
 
     Column(
-        modifier = modifier.width(40.dp).fillMaxHeight().padding(vertical = 2.dp),
+        modifier = modifier.width(40.dp).fillMaxHeight().padding(vertical = 2.dp)
+            .onSizeChanged { Log.line("阅读", "侧栏尺寸：总高 " + it.height + "px") },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // ── 1. 滑块：占中间剩余高度的全部（即侧栏一半以上）──
         Box(
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier.fillMaxWidth().weight(1f)
+                .onSizeChanged { Log.line("阅读", "侧栏尺寸：滑块区高 " + it.height + "px") },
             contentAlignment = Alignment.Center,
         ) {
             BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -97,10 +101,10 @@ fun PageRail(
         )
 
         // ── 3. 上一话 / 下一话：挨在一起，上为上一话、下为下一话 ──
-        TextButton(onClick = onPrev, enabled = hasPrev, contentPadding = tight) {
+        TextButton(onClick = onPrev, enabled = hasPrev, contentPadding = tight, modifier = Modifier.height(26.dp)) {
             Text("<", style = MaterialTheme.typography.titleMedium)
         }
-        TextButton(onClick = onNext, enabled = hasNext, contentPadding = tight) {
+        TextButton(onClick = onNext, enabled = hasNext, contentPadding = tight, modifier = Modifier.height(26.dp)) {
             Text(">", style = MaterialTheme.typography.titleMedium)
         }
     }
@@ -110,6 +114,7 @@ fun PageRail(
 @Composable
 private fun RailAction(label: String, action: (() -> Unit)?) {
     TextButton(
+        modifier = Modifier.height(22.dp),
         onClick = { action?.invoke() },
         enabled = action != null,
         contentPadding = PaddingValues(0.dp),
