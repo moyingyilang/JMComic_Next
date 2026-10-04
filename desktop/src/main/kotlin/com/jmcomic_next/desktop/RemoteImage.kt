@@ -156,6 +156,10 @@ object RemoteImage {
         val h = src.height
         if (w <= 0 || h <= 0) return null
         val bands = ImageUnscramble.bandsFor(w, h, aid, page)
+        // 单独记"画 band"的耗时：外层日志的总时长含网络下载，
+        // 不拆开就无法判断新路径本身到底省了多少（本地实测该段 81 ms，
+        // 但真机上是多少、以及网络占多少，只有拆开才看得清）。
+        val tDraw0 = System.currentTimeMillis()
         val surf = Surface.makeRasterN32Premul(w, h)
         val canvas = surf.canvas
         for (b in bands) {
@@ -165,7 +169,9 @@ object RemoteImage {
                 Rect.makeLTRB(0f, b.dstY.toFloat(), w.toFloat(), (b.dstY + b.height).toFloat()),
             )
         }
-        return surf.makeImageSnapshot().toComposeImageBitmap()
+        val out = surf.makeImageSnapshot().toComposeImageBitmap()
+        Log.line("图片", "画 band 用了 " + (System.currentTimeMillis() - tDraw0) + " ms（" + w + "x" + h + "，band " + bands.size + " 个）")
+        return out
     }
 
     /** 下载并记录状态码、字节数、异常 —— 失败原因的绝大多数都在这里。 */
