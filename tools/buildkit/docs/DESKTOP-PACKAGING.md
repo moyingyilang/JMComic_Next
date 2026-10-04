@@ -69,3 +69,36 @@ ZIP 版对普通用户不友好（拿到手要自己找 `.bat`）。单体 exe �
   与 `skiko-windows-<arch>.jar`。
 
 未验证：作者环境无法运行 Windows 程序，**exe 未在真机实跑**，只验证了结构与架构。
+
+## 六、rpm 的跨架构构建（两个硬经验）
+
+在 aarch64 宿主上产 x86_64 的 rpm，以及反过来，会连撞两堵墙，两堵都要拆：
+
+**第一堵：架构检查。** 宿主 `rpmbuild` 会以 `No compatible architectures found for build` 拒绝跨架构
+（试过多种 `--define` 组合无效）。绕法是让 `rpmbuild` **自己就是目标架构**：装多架构的 `rpm:amd64`
+（`apt-get install -y rpm:amd64`），再用 qemu 跑它：
+
+```bash
+/usr/bin/qemu-x86_64-static /usr/bin/rpmbuild -bb \
+  --define "_topdir $TOP" --define "_buildrootdir $TOP/BUILDROOT" \
+  --define "__strip /bin/true" "$TOP/SPECS/jmnext.spec"
+```
+
+**第二堵（更隐蔽）：`%install` 末尾的 brp-strip。** rpm 在 `%install` 后会调用宿主的 `/usr/bin/strip`
+去 strip 包内二进制；用 aarch64 的 `strip` 处理 x86_64 的 `.so` 会报
+`Unable to recognise the format of the input file`，**整个 `%install` 直接失败**。
+修法是交叉构建时禁用 strip：`--define "__strip /bin/true"`。
+
+**方向反过来（宿主是 x86_64、要产 aarch64 包）**：装 `rpm:amd64` 会把系统里 arm64 的 `rpmbuild`
+替换掉，于是 aarch64 那条路径也坏了。解法是**私有解包**一份 arm64 的 rpm（连同它的库）：
+
+```bash
+apt-get download rpm:arm64 librpm9:arm64 librpmio9:arm64 librpmbuild9:arm64 librpmsign9:arm64
+for d in rpm_*.deb librpm*_arm64.deb; do dpkg-deb -x "$d" /opt/rpm-arm64; done
+LD_LIBRARY_PATH=/opt/rpm-arm64/usr/lib/aarch64-linux-gnu /opt/rpm-arm64/usr/bin/rpmbuild -bb ...
+```
+
+**顺带两条**：
+- rpm 产物名与内部版本要分别核对：`rpm -qp --qf "%{NAME} %{VERSION} %{ARCH}\n" file.rpm`
+  （脚本若只是 `cp` 出来，文件名会保持 `name-version-1.cpu.rpm`）；
+- `rpmbuild` 的输出**不要**用 `tail -3` 看：失败命令本身就在被截掉的那段。写进日志文件，失败时打印末尾 30 行。

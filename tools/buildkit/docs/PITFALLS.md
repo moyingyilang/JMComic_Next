@@ -86,3 +86,15 @@ NSIS 打出的 exe，用 `7z l` 看到的路径是**解压目标路径**，形�
 ```bash
 rpm -qp --qf "%{NAME} %{VERSION}\n" dist/Linux-aarch64-<版本>.rpm
 ```
+
+## 14. `set -e` 下的 `cmd && VAR=1` 会静默中止
+
+在 `set -euo pipefail` 的脚本里，`[ -n "$(find ...)" ] && RPM_OK=1` 在 `find` 无结果时返回非零，
+**整个脚本当场中止**，后面的诊断打印与收尾逻辑一行都不会执行。表现是"我加的日志打印怎么没生效"。
+改成 `if [ -n "$(...)" ]; then RPM_OK=1; fi`。
+
+## 15. 交叉构建 rpm 必须禁用 strip
+
+`%install` 之后 rpm 会用宿主的 `strip` 处理包内二进制。宿主与目标架构不同时（aarch64 的 strip 处理
+x86_64 的 `.so`）会报 `Unable to recognise the format of the input file`，并让 `%install` 失败。
+修法：`--define "__strip /bin/true"`。详见 `DESKTOP-PACKAGING.md` 第六节。
