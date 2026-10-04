@@ -72,6 +72,15 @@ private val repository: JmRepository by lazy {
 }
 
 fun main() {
+    // 渲染后端：用户环境（VNC）建不出 GL 上下文 —— 日志里反复出现
+    // "org.jetbrains.skiko.RenderException: Cannot create Linux GL context"，
+    // 表现是数据正常加载、画面全黑（用户报"看不到漫画"）。
+    // 因此默认用软件渲染（Skia CPU 光栅）保证能看见；要回到 GPU 渲染就设 JMCOMIC_RENDER=GL。
+    // 必须在创建第一个 Compose 窗口之前设置，所以放在 main 的最前面。
+    if (System.getenv("JMCOMIC_RENDER")?.equals("GL", ignoreCase = true) != true) {
+        System.setProperty("skiko.renderApi", "SOFTWARE")
+        System.err.println("[启动] 渲染后端：软件渲染（设 JMCOMIC_RENDER=GL 可改回 GPU）")
+    }
     // 启动就打出版本与构建时间：一眼分辨手上跑的是哪一版
     // （此前出现过"拿旧安装包测试、以为改动没编译"的误会，这一行就是为它加的）
     val builtAt = runCatching {
