@@ -59,6 +59,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
+import androidx.compose.material3.AlertDialog
 
 /**
  * 桌面端第一版界面：首页列表（2.0.0）。
@@ -307,6 +308,7 @@ private sealed interface Screen {
 @Composable
 private fun App() {
     var screen by remember { mutableStateOf<Screen>(Screen.Home) }
+    var showLogoutConfirm by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val authState by repository.auth.state.collectAsState()
     val navSelection = when (val s = screen) {
@@ -383,7 +385,7 @@ private fun App() {
                 )
                 TextButton(onClick = {
                     if (authState.loggedIn) {
-                        scope.launch { repository.logout(); System.err.println("[登录] 已退出") }
+                        showLogoutConfirm = true
                     } else {
                         screen = Screen.Login
                     }
@@ -392,6 +394,27 @@ private fun App() {
 
             Box(Modifier.weight(1f)) {
                 NoticeHost()   // 瞬时反馈覆盖层（不挡操作，底部居中）
+            // 退出登录是"会丢失登录态"的操作：先确认再执行（与"删除屏蔽规则"不同——那个可逆，不需要确认）
+            if (showLogoutConfirm) {
+                AlertDialog(
+                    onDismissRequest = { showLogoutConfirm = false },
+                    title = { Text("退出登录") },
+                    text = { Text("退出后需要重新登录才能使用收藏、追更等功能。") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            showLogoutConfirm = false
+                            scope.launch {
+                                repository.logout()
+                                System.err.println("[登录] 已退出")
+                                Notices.success("已退出登录")
+                            }
+                        }) { Text("退出") }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showLogoutConfirm = false }) { Text("取消") }
+                    },
+                )
+            }
                 AnimatedContent(
                     targetState = screen,
                     modifier = Modifier.fillMaxSize(),
