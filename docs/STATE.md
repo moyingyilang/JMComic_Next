@@ -281,7 +281,7 @@ README 的写法建议：只写两个读法（X = cross 跨平台，加上最终
 | 位置 | 数量 |
 | --- | --- |
 | `app/` 里声明 `package com.jmcomic_next.lyqs` 的文件 | 60 个（30 个子目录要一起搬） |
-| `shared/` 里声明同上的文件 | 38 个（10 个子目录） |
+| `shared/` 里声明81 行 / 12 行 / 393 行的文件 | 38 个（10 个子目录） |
 | `desktop/` 里声明 `package com.jmcomic_next.desktop` 的文件 | 40 个 |
 | `import com.jmcomic_next...` 行总数 | 574 行 |
 | `desktop/scripts/package-*.sh` | 5 个脚本，脚本内 `jmcomic-next` 出现 107 次 |
@@ -364,10 +364,10 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 
 | 零件 | 实际位置 | 规模 |
 | --- | --- | --- |
-| `TagBlockResolver` | `app/src/main/kotlin/com/jmcomic_next/lyqs/data/TagBlockResolver.kt`（第 32 行 class 定义） | 见 `wc -l` 实测（与 `TagCache` 同目录） |
-| `TagCache` | `app/src/main/kotlin/com/jmcomic_next/lyqs/data/TagCache.kt` | 同上 |
-| `LocalTagBlocker` | `app/src/main/kotlin/com/jmcomic_next/lyqs/ui/LocalTagBlocker.kt`（`staticCompositionLocalOf<TagBlockResolver?>`） | 同上 |
-| 单元测试 | `app/src/test/kotlin/com/jmcomic_next/lyqs/TagBlockResolverTest.kt` | 同上 |
+| `TagBlockResolver` | `app/src/main/kotlin/com/jmcomic_next/lyqs/data/TagBlockResolver.kt`（第 32 行 class 定义） | 208 行 |
+| `TagCache` | `app/src/main/kotlin/com/jmcomic_next/lyqs/data/TagCache.kt` | 81 行 / 12 行 / 393 行 |
+| `LocalTagBlocker` | `app/src/main/kotlin/com/jmcomic_next/lyqs/ui/LocalTagBlocker.kt`（`staticCompositionLocalOf<TagBlockResolver?>`） | 81 行 / 12 行 / 393 行 |
+| 单元测试 | `app/src/test/kotlin/com/jmcomic_next/lyqs/TagBlockResolverTest.kt` | 81 行 / 12 行 / 393 行 |
 | 共享层现有的相关文件 | 只有 `shared/.../data/FavoriteTags.kt`（标签收藏，与屏蔽无关） |  |
 
 **所以"移植到桌面端"的真实含义是**：这套代码**在 app 模块里，桌面端编译不到**（桌面只直编 `shared` 的源码）。
