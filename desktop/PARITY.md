@@ -1177,3 +1177,40 @@ bat 用 `-cp "jmcomic-next.jar;skiko-windows-x64.jar" com.jmcomic_next.desktop.M
 
 **下一步方向（待做，仍按先量后改）**：把提前量从 2 页加大（按 0.5 秒/页的翻页速度与约 1.1 秒的下载耗时，
 至少要能覆盖数页），并加"在途去重"（避免同一页被并发预取多次），必要时并发 2 个下载。
+## 2.0.0 改名 JMNeXt：已拍板的决定与执行要点（2026-10-04）
+
+**背景**：现名 `JMComic_Next` 与另一个项目重名；新名 **JMNeXt**（大写 X 表示 cross / 跨平台）。
+
+**用户已确认的三条**：
+1. **改名时机**：留到 **2.0.0** 那一步一起做 —— 1.9.x 期间名字不变；
+2. **Android applicationId 本次不动**：保留 `com.jmcomic_next.lyqs`（主变体）与
+   `com.jmcomic_next.lyqs.lite`（lite 变体），使已装用户能就地升级；
+   **2.0.0 之后另开一版**再换 applicationId（届时老用户需重装，收藏等账号数据在服务端不受影响）；
+3. **去掉包名里的 `lyqs` 段**（那是原作者缩写）：`com.jmcomic_next.lyqs.*` 改为 `com.jmnext.*`。
+
+**完整映射**：
+
+| 项 | 现在 | 2.0.0 改成 |
+| --- | --- | --- |
+| 仓库名 | moyingyilang/JMComic_Next | moyingyilang/JMNeXt（**只能用户本人在 GitHub 改**；旧链接自动重定向） |
+| 桌面包根（37 个文件） | com.jmcomic_next.desktop | com.jmnext.desktop |
+| 移植代码包根 | com.jmcomic_next.lyqs.* | com.jmnext.* |
+| Android namespace | com.jmcomic_next.lyqs | com.jmnext（namespace 可与 applicationId 不同） |
+| **Android applicationId** | com.jmcomic_next.lyqs / .lite | **本次保持不变** |
+| 窗口标题 | JMComic_Next | JMNeXt |
+| 安装路径 | /opt/jmcomic-next | /opt/jmnext |
+| 包名 / 启动脚本 / jar / 桌面项 | jmcomic-next… | jmnext… |
+| 产物文件名 | jmcomic-next-2.0.0-… | jmnext-2.0.0-… |
+
+**执行要点（2.0.0 时照此做，逐项核对，不要凭印象）**：
+1. `git mv` 包目录，再用 sed 改 `package` 声明与 `import`（全部 `*.kt`）；核对条数前后一致；
+2. Gradle：`namespace`、`mainClass`、jar 名、`application { }` 里的名称；
+3. 打包脚本：`--main-class`、jar 文件名、`/opt/…` 路径、桌面项文件名与 `Exec`、AppImage 名、
+   Windows 的 `.bat` 名与 `-cp` 内容、`package-windows-*.sh` 里的断言目标名；
+4. 非 Kotlin 文件：AndroidManifest、proguard 规则、xml 内的引用、`README`、`CHANGELOG`；
+5. 日志文件名若改为 `~/jmnext.log`，同步改 `.work/verify.sh`（否则读不到日志）；
+6. 全套构建后**逐项核对产物**：deb 内路径与桌面项 `Exec`、jar 内 `Main-Class`、
+   Windows ZIP 内 skiko jar 与 bat 的 `-cp`、AppImage 内 desktop 文件；
+7. 先发 2.0.0 的 pre-release 让群友验证（安装、桌面项、图标、启动、日志），
+   确认无误后由用户改仓库名并正式发 2.0.0；
+8. 改 applicationId 的那一版放在 2.0.0 之后单独做，并在发布说明里写清"需要重装"。
