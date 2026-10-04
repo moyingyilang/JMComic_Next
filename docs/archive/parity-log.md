@@ -612,7 +612,7 @@ band 的计算直接复用共享层的 `ImageUnscramble.bands(w, h, count)`，**
 
 ## 章节列表改造：精确定位（下一轮直接照此实施）
 
-`desktop/src/main/kotlin/com/jmcomic_next/desktop/DetailScreen.kt`：
+`desktop/src/main/kotlin/com/jmnext/desktop/DetailScreen.kt`：
 
 | 位置 | 现状 | 要改成 |
 | --- | --- | --- |

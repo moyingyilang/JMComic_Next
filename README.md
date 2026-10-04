@@ -251,7 +251,7 @@ scripts/package-windows-arm64-x.sh dist-win   # arm64 免装 Java ZIP
 
 - 屏蔽功能的设计参考了 [haka_comic](https://github.com/raoxwup/haka_comic)（GPL-3.0）：它按
   「标签命中 / 分类黑名单 / 标题含关键词」三条规则过滤列表。本项目是 Kotlin / Compose，
-  与它的 Flutter / Dart 实现**没有共用代码**（见 [shared/.../data/BlockRules.kt](shared/src/main/kotlin/com/jmcomic_next/lyqs/data/BlockRules.kt)）。
+  与它的 Flutter / Dart 实现**没有共用代码**（见 [shared/.../data/BlockRules.kt](shared/src/main/kotlin/com/jmnext/data/BlockRules.kt)）。
 - 界面设计语言参考 [moyingyilang.github.io](https://moyingyilang.github.io)。
 
 ## 许可

@@ -9,7 +9,7 @@
 # 用法：在容器内运行 scripts/package-windows-x64.sh [输出目录]
 set -euo pipefail
 OUT_DIR="${1:-dist-win64}"
-VERSION=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' src/main/kotlin/com/jmcomic_next/desktop/Version.kt | tail -1)
+VERSION=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' src/main/kotlin/com/jmnext/desktop/Version.kt | tail -1)
 W=$(mktemp -d); trap 'rm -rf "$W"' EXIT
 STAGE="$W/stage"; mkdir -p "$STAGE"
 

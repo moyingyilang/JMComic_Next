@@ -266,8 +266,8 @@ README 的写法建议：只写两个读法（X = cross 跨平台，加上最终
 `SerialNotify.kt` + `AppPrefs.kt` + 共享层接口，阅读量把预算吃掉，写不出东西来。**直接自己做**，做法：
 
 1. 先只做两处 grep 取证（**不要通读**）：
-   `grep -nE "suspend fun .*(track|serial|weeklyUpdate|weekList)" shared/src/main/kotlin/com/jmcomic_next/lyqs/data/JmRepository.kt`
-   与 `grep -nE "Serial|serial|notify|interval|hour" app/src/main/kotlin/com/jmcomic_next/lyqs/data/prefs/AppPrefs.kt`；
+   `grep -nE "suspend fun .*(track|serial|weeklyUpdate|weekList)" shared/src/main/kotlin/com/jmnext/data/JmRepository.kt`
+   与 `grep -nE "Serial|serial|notify|interval|hour" app/src/main/kotlin/com/jmnext/data/prefs/AppPrefs.kt`；
 2. 再只 grep `app/.../data/SerialNotify.kt` 的两点：取数用哪个接口、怎么判断"有更新"；
 3. 然后**立刻**写 `desktop/.../SerialReminder.kt`（托盘为主 + 窗口内回调 + `isSupported()` 降级 +
    未登录不轮询 + 失败只记日志 + 类注释写明"仅程序运行时有效"），再在 `Main.kt` 接线，最后编译。
@@ -343,7 +343,7 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 
 ### 二十之一、Android 侧旋钮已定位（补第二十节的"待定位"）
 
-**位置**：`app/src/main/kotlin/com/jmcomic_next/lyqs/ui/screens/reader/ReaderScreen.kt`：
+**位置**：`app/src/main/kotlin/com/jmnext/ui/screens/reader/ReaderScreen.kt`：
 - 第 1029 到 1031 行是预取窗口 `PREFETCH_BEFORE` / `PREFETCH_AFTER`，注释写明取自 `LiteFeatures`；
 - 第 1045 行的 `PrefetchPages(...)` 是预取实现，第 1054 到 1055 行用 `center ± PREFETCH_*` 算前后页范围；
 - 第 784 行的注释说明：**Compose 的 Pager 自带相邻页预加载**，所以 Android 的"往前取几页"就是这套窗口。
@@ -364,10 +364,10 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 
 | 零件 | 实际位置 | 规模 |
 | --- | --- | --- |
-| `TagBlockResolver` | `app/src/main/kotlin/com/jmcomic_next/lyqs/data/TagBlockResolver.kt`（第 32 行 class 定义） | 208 行 |
-| `TagCache` | `app/src/main/kotlin/com/jmcomic_next/lyqs/data/TagCache.kt` | 81 行 |
-| `LocalTagBlocker` | `app/src/main/kotlin/com/jmcomic_next/lyqs/ui/LocalTagBlocker.kt`（`staticCompositionLocalOf<TagBlockResolver?>`） | 12 行 |
-| 单元测试 | `app/src/test/kotlin/com/jmcomic_next/lyqs/TagBlockResolverTest.kt` | 393 行 |
+| `TagBlockResolver` | `app/src/main/kotlin/com/jmnext/data/TagBlockResolver.kt`（第 32 行 class 定义） | 208 行 |
+| `TagCache` | `app/src/main/kotlin/com/jmnext/data/TagCache.kt` | 81 行 |
+| `LocalTagBlocker` | `app/src/main/kotlin/com/jmnext/ui/LocalTagBlocker.kt`（`staticCompositionLocalOf<TagBlockResolver?>`） | 12 行 |
+| 单元测试 | `app/src/test/kotlin/com/jmnext/TagBlockResolverTest.kt` | 393 行 |
 | 共享层现有的相关文件 | 只有 `shared/.../data/FavoriteTags.kt`（标签收藏，与屏蔽无关） |  |
 
 **所以"移植到桌面端"的真实含义是**：这套代码**在 app 模块里，桌面端编译不到**（桌面只直编 `shared` 的源码）。

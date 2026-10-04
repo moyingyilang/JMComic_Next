@@ -49,11 +49,11 @@ class UpdateCheckTest {
     fun `release url prefers a full url and falls back to the repo`() {
         assertEquals("https://example.com/x", UpdateCheck.releaseUrl("https://example.com/x"))
         assertEquals(
-            "https://github.com/moyingyilang/JMComic_Next/releases/tag/v1.8.0",
+            "https://github.com/moyingyilang/JMNeXt/releases/tag/v1.8.0",
             UpdateCheck.releaseUrl("v1.8.0"),
         )
         assertEquals(
-            "https://github.com/moyingyilang/JMComic_Next/releases",
+            "https://github.com/moyingyilang/JMNeXt/releases",
             UpdateCheck.releaseUrl(null),
         )
     }

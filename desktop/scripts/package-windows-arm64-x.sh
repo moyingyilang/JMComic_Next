@@ -1,7 +1,7 @@
 #!/bin/bash
 # Windows ARM64 免装 Java 包（与 x64 同理：fat jar 缺 Skiko 原生库，必须补）
 set -euo pipefail
-OUT_DIR="${1:-dist-win}"; VERSION=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' src/main/kotlin/com/jmcomic_next/desktop/Version.kt | tail -1)
+OUT_DIR="${1:-dist-win}"; VERSION=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' src/main/kotlin/com/jmnext/desktop/Version.kt | tail -1)
 W=$(mktemp -d); trap 'rm -rf "$W"' EXIT; STAGE="$W/stage"; mkdir -p "$STAGE"
 echo "== 1/4 fatJar(arm64) + Skiko 原生库 =="
 /opt/gradle-9.8.0/bin/gradle --console=plain --no-daemon fatJar -Ptarget=windows-arm64 >/dev/null
