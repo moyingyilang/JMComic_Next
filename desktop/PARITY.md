@@ -867,3 +867,24 @@ deb 条目数 452 vs 正常的 234），内容是 `lib/app/app/libskiko-linux-ar
 - 切模式时应保留"读到第几页"（两种模式各自的位置语义不同，需要换算，不能直接复用索引）。
 
 **未做**：以上均未实施；本轮只做了源码调研与方案记录（不构建，遵守负载纪律）。
+
+## 横向翻页第 3 步：接线（并更正我之前一个多余的担心）
+
+**更正**：我此前写"两种模式的位置语义要换算，不能直接复用索引"。**其实不用换算** ——
+两种模式索引的是**同一个图片列表** `payload.images`：纵向的 `listState.firstVisibleItemIndex`
+与 pager 的 `currentPage` **都是图片下标**，语义相同。我把它想复杂了（和之前担心 ARGB/BGR
+颜色错乱一样，是"没有对着代码确认就先把风险写大"）。**结论：一个共享的页码状态即可。**
+
+**第 3 步的做法（下一轮执行，先记下来）**：
+1. 阅读页加一个共享状态 `var pageIndex by remember(chapterId) { mutableIntStateOf(0) }`；
+2. `Scroll` 模式：`LaunchedEffect + snapshotFlow { listState.firstVisibleItemIndex }` 写入 `pageIndex`
+   （现在已有类似的派生，改成写入这个状态即可）；
+3. `Page` 模式：把 `PagedReader(initialPage = pageIndex, onPageChange = { pageIndex = it })` 渲染出来；
+4. 侧栏的 `current` 用 `pageIndex`，`onSeek` 按模式分支：`Scroll` → `listState.scrollToItem(page)`，
+   `Page` → 需要 pagerState（把 pager 状态提升到阅读页，或用回调暴露 `scrollToPage`）；
+5. **键盘**：`Page` 模式下左右方向键/PageUp/PageDown 翻页（桌面特有）；
+6. 页级进度记录：两种模式都写同一个 `PageProgress`（现在 Scroll 模式已在写）。
+
+**风险点（真实存在的那个）**：`pagerState` 的所有权 —— 若 `PagedReader` 内部持有，侧栏的
+`onSeek` 就够不到它。第 4 点里"把状态提升到阅读页"是正解，但会让 `PagedReader` 变成
+受控组件（多一个参数），这一步要小心，别又改坏。
