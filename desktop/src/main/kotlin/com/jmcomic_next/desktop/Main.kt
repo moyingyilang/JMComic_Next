@@ -1,4 +1,5 @@
 package com.jmcomic_next.desktop
+import com.jmcomic_next.lyqs.data.remote.dto.NotificationItem
 
 import kotlinx.coroutines.CancellationException
 
@@ -117,29 +118,54 @@ private fun runApp() = application {
 private fun HomeScreen(onOpen: (ListItem) -> Unit) {
     var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
     var status by remember { mutableStateOf("正在引导…") }
+    var page by remember { mutableStateOf(1) }
+    var total by remember { mutableStateOf(0) }
+    var busy by remember { mutableStateOf(false) }
+    var updatedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val scope = rememberCoroutineScope()
+
+    /** 拉第 next 页：next == 1 时重新引导，并刷新列表与状态。 */
+    fun reload(next: Int) {
+        busy = true
+        scope.launch {
+            runCatching {
+                if (next == 1) repository.bootstrap()
+                repository.latest(next)
+            }
+                .onSuccess { result ->
+                    items = if (next == 1) result.items else (items + result.items).distinctBy { it.id }
+                    page = next
+                    total = result.total
+                    val hit = items.count { it.id in updatedIds }
+                    status = "首页 ${items.size}/${result.total} 条" +
+                        (if (result.hidden > 0) "（屏蔽规则挡掉 ${result.hidden} 条）" else "") +
+                        (if (hit > 0) "，其中 $hit 部在追更里有更新" else "")
+                    Log.line("首页", status)
+                }
+                .onFailure {
+                    if (it is CancellationException) return@onFailure
+                    status = "加载失败：${it.message}"
+                    Log.error("首页", status, it)
+                }
+            busy = false
+        }
+    }
 
     LaunchedEffect(Unit) {
-        // 无显示环境下唯一能看运行过程的通道就是标准输出：容器里没有窗口管理器，
-        // 截图只能证明"窗口在那儿"，证明不了"数据到了没有"。
-        runCatching {
-            // 引导（主机发现 + 图床主机）必须在任何登录/列表请求之前完成
-            repository.bootstrap()
-            status = "正在加载首页…"
-            val page = repository.latest(1)
-            items = page.items
-            page.items.take(3).forEach { System.err.println("[界面] 作品：${it.name} · ${it.author}") }
-            status = "首页 ${page.items.size} 条" + if (page.hidden > 0) "（屏蔽规则挡掉 ${page.hidden} 条）" else ""
-        }.onFailure {
-            // 协程取消不是加载失败：这里记一行"正面证据"。
-            // 为什么必须记：只写 return 的话，日志里"没有报错"既可能是修好了，也可能是根本没走到这条路径，
-            // 两者无法区分（本项目犯过这个错：把"没有日志"当成"事实为假"）。
-            if (it is CancellationException || it is kotlinx.coroutines.CancellationException) {
-                System.err.println("[界面] 协程取消，已忽略（不是加载失败）")
-                return@onFailure
+        // 「你追的连载里哪些更新了」：数据来自服务端通知（comic_follow 里未读的那批），
+        // 照 Android 的 HomeScreen：不要拿阅读时间去猜（既不准又多一次判断）。失败留空，不打扰列表。
+        if (repository.auth.isLoggedIn) {
+            runCatching {
+                repository.notifications(type = NotificationItem.TYPE_COMIC_FOLLOW)
+                    .list.filterNot { it.isRead }
+                    .flatMap { it.followedUpdates() }
+                    .mapNotNull { it.comicIdText }
+                    .toSet()
             }
-            status = "加载失败：${it.message}"
-            System.err.println("[界面] $status")
+                .onSuccess { updatedIds = it; Log.line("首页", "追更里有更新的作品 ${it.size} 部") }
+                .onFailure { Log.line("首页", "追更更新集合读取失败（留空继续）：${it.message}") }
         }
+        reload(1)
     }
 
     LaunchedEffect(status) { System.err.println("[界面] 状态：$status") }
