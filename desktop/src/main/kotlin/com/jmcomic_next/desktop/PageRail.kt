@@ -22,20 +22,24 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 /**
- * 竖排页码栏（桌面端，1.9.x）。控件仍是 Android `PageSeekRow` 那一套
- * （上一话 · 当前页 · 滑块 · 总页数 · 下一话），只是竖过来。
+ * 竖排侧栏（桌面端，1.9.x）。
  *
- * 用户 1.9.014 之后的反馈与本次改动（逐条对应）：
- *  1. "往里缩一点" —— 宽度 48dp 收窄到 **36dp**；
- *  2. "滑条拉长点" —— 滑块独占中间全部高度（两端只留页码文字与一个按钮的高度），
- *     最小长度从 160dp 提到 200dp；
- *  3. "上一话下一话用左右大于小于号，左边上一话，右边下一话" ——
- *     文字按钮换成 `<`（上）与 `>`（下）：竖过来之后"左"对应"上"，与用户描述一致；
- *  4. "最外层把功能按钮放上" —— `<` 贴最上方、`>` 贴最下方（竖栏的两端就是"最外层"），
- *     页码文字与滑块夹在中间。
+ * 布局按用户 1.9.015 之后的明确要求，自上而下：
+ *   1. **滑块**（最上，占侧栏高度一半以上 —— 用户要求"滑条不要做短"）；
+ *   2. **五个功能按钮**（取自 Android 阅读页底栏：横向/纵向 · 章节 · 评论 · 收藏 · 点赞）；
+ *   3. **上一话 / 下一话**（最下，两个挨在一起，**上面是上一话、下面是下一话**）。
  *
- * 竖过来的做法：BoxWithConstraints 量出中间可用高度，把它作为 Row 的宽度，
- * 再绕中心旋转 -90 度 —— Slider 的外观、拇指、主题色与手感全部继承自 material3。
+ * 五个功能里，桌面端**尚未实现**的先置灰（传 null），不假装能用：
+ *   - 横向/纵向：桌面端只有纵向滚动这一种模式，横翻等于再做一套翻页实现；
+ *   - 章节：桌面端的章节选择在详情页右栏，阅读页内还没有选择器；
+ *   - 评论 / 收藏：功能已有，但需要把回调从详情页接进阅读页（下一步）；
+ *   - 点赞：要先确认共享层是否有接口。
+ *
+ * 滑块用 weight(1f) 吃掉中间**剩余**的全部高度，其余部分刻意压扁（按钮内边距为 0、
+ * 文案两字），这样滑块自然占到一半以上 —— 之前显得短，是因为两端元素太占地方。
+ *
+ * 竖过来的做法没变：BoxWithConstraints 量出可用高度当作旋转前的宽度，再绕中心旋转 -90 度，
+ * 于是 Slider 的拇指、主题色与手感全部继承 material3。
  */
 @Composable
 fun PageRail(
@@ -46,50 +50,69 @@ fun PageRail(
     hasNext: Boolean,
     onPrev: () -> Unit,
     onNext: () -> Unit,
+    onToggleMode: (() -> Unit)? = null,
+    onOpenPicker: (() -> Unit)? = null,
+    onOpenComments: (() -> Unit)? = null,
+    onToggleFavorite: (() -> Unit)? = null,
+    onToggleLike: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val max = (total - 1).coerceAtLeast(0)
-    val tight = PaddingValues(0.dp)          // 窄栏里按钮内边距要收掉，否则把宽度撑开
+    val tight = PaddingValues(0.dp)
 
     Column(
-        modifier = modifier.width(36.dp).fillMaxHeight().padding(vertical = 4.dp),
+        modifier = modifier.width(40.dp).fillMaxHeight().padding(vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
     ) {
-        // 最外层（上）：上一话
-        TextButton(onClick = onPrev, enabled = hasPrev, contentPadding = tight) {
-            Text("<", style = MaterialTheme.typography.titleMedium)
-        }
-        Text(
-            text = "${current + 1}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        // 滑块：独占中间的剩余高度（"滑条拉长点"）
+        // ── 1. 滑块：占中间剩余高度的全部（即侧栏一半以上）──
         Box(
-            modifier = Modifier.fillMaxWidth().weight(1f).padding(vertical = 2.dp),
+            modifier = Modifier.fillMaxWidth().weight(1f),
             contentAlignment = Alignment.Center,
         ) {
             BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                val length = maxHeight.coerceAtLeast(200.dp)
                 Slider(
                     value = current.coerceIn(0, max).toFloat(),
                     onValueChange = { onSeek(it.roundToInt().coerceIn(0, max)) },
                     valueRange = 0f..max.toFloat().coerceAtLeast(1f),
                     modifier = Modifier
-                        .width(length)
+                        .width(maxHeight.coerceAtLeast(120.dp))
                         .graphicsLayer { rotationZ = -90f },
                 )
             }
         }
+
+        // 页码贴在滑块下方（不占额外竖向空间之外的位置，两字以内）
         Text(
-            text = "$total",
+            text = "${current + 1}/$total",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        // 最外层（下）：下一话
+
+        // ── 2. 五个功能按钮（Android 底栏那五个；传 null 的置灰）──
+        RailAction("纵向", onToggleMode)
+        RailAction("章节", onOpenPicker)
+        RailAction("评论", onOpenComments)
+        RailAction("收藏", onToggleFavorite)
+        RailAction("点赞", onToggleLike)
+
+        // ── 3. 上一话 / 下一话：挨在一起，上为上一话、下为下一话 ──
+        TextButton(onClick = onPrev, enabled = hasPrev, contentPadding = tight) {
+            Text("<", style = MaterialTheme.typography.titleMedium)
+        }
         TextButton(onClick = onNext, enabled = hasNext, contentPadding = tight) {
             Text(">", style = MaterialTheme.typography.titleMedium)
         }
+    }
+}
+
+/** 侧栏里的功能按钮：传 null 表示桌面端还没实现，置灰并保持位置。 */
+@Composable
+private fun RailAction(label: String, action: (() -> Unit)?) {
+    TextButton(
+        onClick = { action?.invoke() },
+        enabled = action != null,
+        contentPadding = PaddingValues(0.dp),
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
