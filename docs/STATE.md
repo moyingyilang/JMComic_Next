@@ -356,3 +356,29 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 
 另注：`PREFETCH_*` 取自 `LiteFeatures`（lite 变体的功能开关），Android 有 full 与 lite 两个变体，
 接线时要**两个变体都看一遍**，不要只按其中一个的取值下结论。
+
+## 二十一、标签级屏蔽整条链路：实测位置与移植判断（更正我先前的写法）
+
+**更正**：我先前在 `docs/PARITY-AUDIT.md` 里写这套东西在 `shared/.../data/`，**这是错的**。
+实测位置（`grep -rn "class TagBlockResolver"`）：
+
+| 零件 | 实际位置 | 规模 |
+| --- | --- | --- |
+| `TagBlockResolver` | `app/src/main/kotlin/com/jmcomic_next/lyqs/data/TagBlockResolver.kt`（第 32 行 class 定义） | 见 `wc -l` 实测（与 `TagCache` 同目录） |
+| `TagCache` | `app/src/main/kotlin/com/jmcomic_next/lyqs/data/TagCache.kt` | 同上 |
+| `LocalTagBlocker` | `app/src/main/kotlin/com/jmcomic_next/lyqs/ui/LocalTagBlocker.kt`（`staticCompositionLocalOf<TagBlockResolver?>`） | 同上 |
+| 单元测试 | `app/src/test/kotlin/com/jmcomic_next/lyqs/TagBlockResolverTest.kt` | 同上 |
+| 共享层现有的相关文件 | 只有 `shared/.../data/FavoriteTags.kt`（标签收藏，与屏蔽无关） |  |
+
+**所以"移植到桌面端"的真实含义是**：这套代码**在 app 模块里，桌面端编译不到**（桌面只直编 `shared` 的源码）。
+因此必须先做一个架构决定，二选一：
+
+1. **把 `TagBlockResolver` 与 `TagCache` 移进 `shared`**（连带它们的单测一起移，测试也要能编过），
+   然后两端共用；桌面端再补 `LocalTagBlocker` 的等价物（桌面没有 CompositionLocal 的必要，直接传参即可）。
+   代价：移动涉及包路径与 import 改动、要确认它们**不依赖任何 Android API**（这是能否移动的前提，先查）。
+2. **只在桌面端重写一份**。代价：同一套判定逻辑两端各一份，**会漂**（与第十五节记的 `Daily` 重复问题同类），
+   不推荐。
+
+**顺序建议**：先做第一步的"可行性判断"——`grep -nE "android\.|Context|CompositionLocal" TagBlockResolver.kt TagCache.kt`
+看它们是否纯 Kotlin（`LocalTagBlocker.kt` 本身是 UI 层，必然是 Android 的，但这不妨碍前两个文件是纯逻辑）。
+**这件事做完再谈「允许一次」按钮**：没有标签级判定，那个按钮点下去不会有任何变化。

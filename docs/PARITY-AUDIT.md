@@ -123,7 +123,7 @@
 本会话早期有三个针对 **Android 端**的任务（会话代理记录里可见）：
 `List tag blocking via background fetch`、`Implement list tag blocking`、`Search tag-block notice and allow-once`。
 也就是说：**标签级屏蔽与搜索页的「允许一次」在 Android 端已经实现过**，相关代码在
-`shared/.../data/TagBlockResolver`（配合 `data/TagCache.kt`）与 `app/.../ui/LocalTagBlocker.kt`。
+**更正（实测）**： 与  实际在 **`app/src/main/kotlin/com/jmcomic_next/lyqs/data/`**，**不在 shared**；`app/.../ui/LocalTagBlocker.kt` 用 CompositionLocal 把它交给界面。
 
 而**桌面端完全没有这套**：共享层的 `BlockRules.hides(item)` 只按标题/作者/分类过滤，
 标签不在其中（注释写明"接口不给"）；标签级判定需要逐条拉取作品标签再筛，桌面端没有这条链路。
