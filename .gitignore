@@ -29,3 +29,4 @@ desktop/dist/
 desktop/build/
 shared/build/
 desktop/dist-x64/
+desktop/dist-win/
