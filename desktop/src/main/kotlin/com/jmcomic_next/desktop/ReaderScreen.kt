@@ -166,6 +166,14 @@ fun ReaderScreen(
             initialPage = currentPage.coerceIn(0, (p.images.size - 1).coerceAtLeast(0)),
         ) { p.images.size }
 
+        // 横向模式也要记页：上面那条 flow 用的是 listState，横向下它不动。
+        // 只在 Page 模式写入，避免两种模式互相覆盖对方的位置。
+        androidx.compose.runtime.LaunchedEffect(pagerState, chapterId, mode) {
+            androidx.compose.runtime.snapshotFlow { pagerState.currentPage }
+                .distinctUntilChanged()
+                .collect { if (mode == ReaderMode.Page) pageProgress.record(comicId, chapterId, it) }
+        }
+
         // ── 预加载下一话 ──
         // 只预取"下一话的图片列表"（一次 read 请求），**不整话下载图片** ——
         // 整话预下载会把内存与流量放大几十倍，这里刻意不做；代价就是翻到下一话时

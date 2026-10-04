@@ -72,6 +72,13 @@ private val repository: JmRepository by lazy {
 }
 
 fun main() {
+    // 启动就打出版本与构建时间：一眼分辨手上跑的是哪一版
+    // （此前出现过"拿旧安装包测试、以为改动没编译"的误会，这一行就是为它加的）
+    val builtAt = runCatching {
+        val loc = object {}.javaClass.protectionDomain.codeSource.location
+        java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(java.util.Date(File(loc.toURI()).lastModified()))
+    }.getOrNull() ?: "未知"
+    Log.line("启动", "JMComic_Next 桌面端 版本 $DESKTOP_VERSION，构建时间 $builtAt")
     // 把 stdout/stderr 同时写进 ~/jmcomic-next.log，便于远程读日志定位问题
     Log.init()
     // 组合期抛出的异常默认只进 AWT 的日志，容器里看不到；这里显式打到 stderr
