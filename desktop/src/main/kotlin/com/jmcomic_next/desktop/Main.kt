@@ -1,4 +1,5 @@
 package com.jmcomic_next.desktop
+import androidx.compose.material3.Button
 import com.jmcomic_next.lyqs.data.remote.dto.NotificationItem
 
 import kotlinx.coroutines.CancellationException
@@ -176,6 +177,20 @@ private fun HomeScreen(onOpen: (ListItem) -> Unit) {
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Button(enabled = !busy, onClick = { reload(1) }) {
+                Text(if (busy) "加载中…" else "刷新")
+            }
+            Button(enabled = !busy && items.size < total, onClick = { reload(page + 1) }) {
+                Text("加载更多")
+            }
+            Text("已加载 ${items.size} / $total", style = MaterialTheme.typography.labelSmall)
+        }
+
         LazyVerticalGrid(
             columns = GridCells.Adaptive(168.dp),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
@@ -188,13 +203,13 @@ private fun HomeScreen(onOpen: (ListItem) -> Unit) {
                 PromoteHeader(repository = repository, onOpenComic = onOpen)
             }
 
-            items(items, key = { it.id }) { item -> ComicCard(item, onOpen = { onOpen(item) }) }
+            items(items, key = { it.id }) { item -> ComicCard(item, updated = item.id in updatedIds, onOpen = { onOpen(item) }) }
         }
     }
 }
 
 @Composable
-private fun ComicCard(item: ListItem, onOpen: () -> Unit) {
+private fun ComicCard(item: ListItem, updated: Boolean = false, onOpen: () -> Unit) {
     val coverUrl = remember(item.id) { runCatching { repository.coverUrl(item) }.getOrNull() }
     val bitmap = rememberRemoteImage(coverUrl)
 
@@ -216,6 +231,15 @@ private fun ComicCard(item: ListItem, onOpen: () -> Unit) {
                     contentScale = ContentScale.Crop,
                 )
             }
+        }
+        // 「追更里有更新」角标：数据来自服务端追更通知（见 HomeScreen 的 updatedIds）
+        if (updated) {
+            Text(
+                "更新",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
         Text(
             text = item.name ?: "(无标题)",
