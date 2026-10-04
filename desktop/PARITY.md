@@ -1062,3 +1062,21 @@ Compose 窗口之前），默认软件渲染保证能看见；要回 GPU 渲染�
 - 构建脚本 `build_guarded.sh` 已带守卫：先清 page cache、温度到 **105C**（用户要求）才等；
 - **通知**：构建成功并提交后调用 `.work/notify.sh "标题" "正文"`（必须在 Termux 里调，chroot 内没有 am 广播）；
 - 每次修好后**暂停目标**并通知用户（用户 2026-10-04 要求）。
+
+## Windows x64 免装 Java 包的坑（2026-10-04 群友实测确认）
+
+**现象**：双击 bat 一闪就没；`javaw` 把报错藏了，改用 `java.exe` + `pause` 后才看到报错。
+
+**真因**：`gradle fatJar` 打出的 jar **不含 Skiko 的原生库**（`skiko-windows-x64.dll`）。
+报错是 `java.lang.ExceptionInInitializerError`，栈顶
+`androidx.compose.ui.scene.skia.SurfaceSkiaLayerComponent.<init>`。
+
+**修法**：把 `skiko-awt-runtime-windows-x64-0.150.1.jar`（含 `skiko-windows-x64.dll`）一起放进包里，
+bat 用 `-cp "jmcomic-next.jar;skiko-windows-x64.jar" com.jmcomic_next.desktop.MainKt` 启动。
+补上后群友确认**能跑起来**。
+
+**我的核对失误（记一笔）**：我曾用 `grep -icE "skiko.*windows"` 得到 18 个匹配就判定"原生库在"——
+那 18 个全是**类名**（如 `AlertDialog_skikoKt.class`）。**核对了"有没有匹配"，没核对"匹配的是不是我要的东西"。**
+正确判据是"jar 里有没有 `.dll`"。已在 `scripts/package-windows-x64.sh` 里写成硬性验收。
+
+**仍未做**：Windows **ARM** 的 ZIP 很可能有同样问题（从没在真机跑过）；Linux 的 x86_64 包也值得同样核查。
