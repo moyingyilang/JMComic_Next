@@ -22,17 +22,17 @@ Android 端移植而来，两端共用同一个 `shared` 数据层。这是一�
 
 | 平台 | 架构 | 格式 | 附件名 | 状态 |
 | --- | --- | --- | --- | --- |
-| Linux | aarch64 | 便携 tar.gz | `jmnext-2.0.0-linux-aarch64-portable.tar.gz` | 可用 |
-| Linux | aarch64 | deb | `jmnext_2.0.0_arm64.deb` | 可用 |
-| Linux | aarch64 | rpm | `jmnext-2.0.0-1.aarch64.rpm` | 可用 |
-| Linux | aarch64 | AppImage | `jmnext-2.0.0-aarch64.AppImage` | 可用 |
-| Linux | x86_64 | 便携 tar.gz | `jmnext-2.0.0-linux-x86_64-portable.tar.gz` | 未在真机跑过 |
-| Linux | x86_64 | deb | `jmnext_2.0.0_amd64.deb` | 同左 |
-| Linux | x86_64 | AppImage | `jmnext-2.0.0-x86_64.AppImage` | 同左 |
+| Linux | aarch64 | 便携 tar.gz | `Linux-aarch64-2.0.0.tar.gz` | 可用 |
+| Linux | aarch64 | deb | `Linux-aarch64-2.0.0.deb` | 可用 |
+| Linux | aarch64 | rpm | `Linux-aarch64-2.0.0.rpm` | 可用 |
+| Linux | aarch64 | AppImage | `Linux-aarch64-2.0.0.AppImage` | 可用 |
+| Linux | x86_64 | 便携 tar.gz | `Linux-x86_64-2.0.0.tar.gz` | 未在真机跑过 |
+| Linux | x86_64 | deb | `Linux-x86_64-2.0.0.deb` | 同左 |
+| Linux | x86_64 | AppImage | `Linux-x86_64-2.0.0.AppImage` | 同左 |
 | Linux | x86_64 | rpm | 无 | **出不来**，见[已知限制](#已知限制) |
-| Windows | x64 | 免装 Java 的 ZIP | `jmnext-2.0.0-windows-x64.zip` | 可用（用户真机确认） |
-| Windows | arm64 | 免装 Java 的 ZIP | `jmnext-2.0.0-windows-arm64.zip` | 真机未验证 |
-| Android | arm64 / armv7 | APK（`full` / `lite`） | [Releases](https://github.com/moyingyilang/JMNeXt/releases/latest)：`JMNeXt-2.0.0.apk`（full）与 `JMNeXt-2.0.0-lite.apk`（lite） | 已发布至 2.0.0；**applicationId 已改为 `com.jmnext`，老版本不能覆盖安装、需重装**（旧包数据不会自动迁移） |
+| Windows | x64 | 免装 Java 的 ZIP | `Windows-x64-2.0.0.zip` | 可用（用户真机确认） |
+| Windows | arm64 | 免装 Java 的 ZIP | `Windows-arm64-2.0.0.zip` | 真机未验证 |
+| Android | arm64 / armv7 | APK（`full` / `lite`） | [Releases](https://github.com/moyingyilang/JMNeXt/releases/latest)：`Android-full-2.0.0.apk`（full）与 `Android-lite-2.0.0.apk`（lite） | 已发布至 2.0.0；**applicationId 已改为 `com.jmnext`，老版本不能覆盖安装、需重装**（旧包数据不会自动迁移） |
 
 两个 Windows ZIP 都自带 Temurin JRE 21 与对应架构的 Skiko 原生库，解压后双击 `jmcomic-next.bat`，
 不需要另装 Java；包里另有 `diag.bat`，启动不了时收集系统信息与运行日志。Android 的 `full` 与 `lite`

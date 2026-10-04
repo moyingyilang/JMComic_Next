@@ -10,6 +10,8 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+V=${VERSION:-$(grep -oE '[0-9]+.[0-9]+.[0-9]+' src/main/kotlin/com/jmnext/desktop/Version.kt | tail -1)}
+[ -n "$V" ] || { echo '拿不到版本号（Version.kt）'; exit 1; }
 OUT=${1:-dist}
 GRADLE=${GRADLE:-/opt/gradle-9.8.0/bin/gradle}
 APP=build/compose/binaries/main/app/jmnext
@@ -53,7 +55,7 @@ echo "  应用 jar 1 个、启动类正确、标记检查通过"
 
 echo "== 3/6 便携包 =="
 rm -rf "$OUT" && mkdir -p "$OUT"
-tar czf "$OUT/jmnext-2.0.0-linux-aarch64-portable.tar.gz" -C "$APP" .
+tar czf "$OUT/Linux-aarch64-$V.tar.gz" -C "$APP" .
 
 echo "== 4/6 deb =="
 STAGE=$(mktemp -d)/jmnext
@@ -76,7 +78,7 @@ Priority: optional
 Description: JMNeXt desktop client
  A third-party JMComic client built with Kotlin and Compose Desktop.
 CTL
-dpkg-deb --build --root-owner-group "$STAGE" "$OUT/jmnext_2.0.0_arm64.deb" >/dev/null
+dpkg-deb --build --root-owner-group "$STAGE" "$OUT/Linux-aarch64-$V.deb" >/dev/null
 
 echo "== 5/6 rpm =="
 TOP=$(mktemp -d)
@@ -130,8 +132,8 @@ if [ -f /root/runtime-aarch64 ]; then
     > "$APPDIR/jmnext.desktop"
   SQ=$(mktemp -u).squashfs
   mksquashfs "$APPDIR" "$SQ" -root-owned -noappend -comp gzip -quiet
-  cat /root/runtime-aarch64 "$SQ" > "$OUT/jmnext-2.0.0-aarch64.AppImage"
-  chmod 755 "$OUT/jmnext-2.0.0-aarch64.AppImage"
+  cat /root/runtime-aarch64 "$SQ" > "$OUT/Linux-aarch64-$V.AppImage"
+  chmod 755 "$OUT/Linux-aarch64-$V.AppImage"
   rm -f "$SQ"
 else
   echo "  跳过：缺少 AppImage runtime（/root/runtime-aarch64）"

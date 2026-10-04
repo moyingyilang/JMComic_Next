@@ -20,8 +20,8 @@ echo "== 3/4 启动脚本 =="
 printf '@echo off\r\nset JMCOMIC_RENDER=GL\r\ncd /d "%%~dp0"\r\nruntime\\bin\\java.exe -cp "jmnext.jar;skiko-windows-arm64.jar" com.jmnext.desktop.MainKt\r\npause\r\n' > "$STAGE/jmnext.bat"
 echo "== 4/4 打包 + 验收 =="
 mkdir -p "$OUT_DIR"
-ABS="$(cd "$OUT_DIR" && pwd)/jmnext-$VERSION-windows-arm64.zip"
-Z="$OUT_DIR/jmnext-$VERSION-windows-arm64.zip"; rm -f "$Z"; (cd "$STAGE" && zip -qr "$ABS" .)
+ABS="$(cd "$OUT_DIR" && pwd)/Windows-arm64-$VERSION.zip"
+Z="$OUT_DIR/Windows-arm64-$VERSION.zip"; rm -f "$Z"; (cd "$STAGE" && zip -qr "$ABS" .)
 unzip -l "$Z" > "$W/list.txt" 2>/dev/null
 for m in runtime/bin/java.exe skiko-windows-arm64.jar jmnext.jar jmnext.bat; do grep -q "$m" "$W/list.txt" || { echo "  验收失败：缺 $m"; exit 1; }; done
 echo "  通过：$(stat -c %s "$Z") 字节"

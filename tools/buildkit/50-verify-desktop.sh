@@ -25,26 +25,26 @@ chk_zip_member() { # zip、成员正则、说明
 chk_tar_member() { local t="$1" re="$2" what="$3"; tar tzf "$t" 2>/dev/null | grep -qE "$re" || { echo "     包内缺 $what"; bad=1; }; }
 
 # Linux aarch64
-chk_file "$DIST_AARCH64/jmnext-$VER-linux-aarch64-portable.tar.gz" 20000000 "aarch64 便携 tar.gz"
-chk_tar_member "$DIST_AARCH64/jmnext-$VER-linux-aarch64-portable.tar.gz" 'libskiko.*\.so' "libskiko*.so"
-chk_file "$DIST_AARCH64/jmnext_${VER}_arm64.deb" 20000000 "aarch64 deb"
-chk_file "$DIST_AARCH64/jmnext-$VER-1.aarch64.rpm" 20000000 "aarch64 rpm"
-chk_file "$DIST_AARCH64/jmnext-$VER-aarch64.AppImage" 20000000 "aarch64 AppImage"
+chk_file "$DIST_AARCH64/Linux-aarch64-$VER.tar.gz" 20000000 "aarch64 便携 tar.gz"
+chk_tar_member "$DIST_AARCH64/Linux-aarch64-$VER.tar.gz" 'libskiko.*\.so' "libskiko*.so"
+chk_file "$DIST_AARCH64/Linux-aarch64-$VER.deb" 20000000 "aarch64 deb"
+chk_file "$DIST_AARCH64/Linux-aarch64-$VER.rpm" 20000000 "aarch64 rpm"
+chk_file "$DIST_AARCH64/Linux-aarch64-$VER.AppImage" 20000000 "aarch64 AppImage"
 # Linux x86_64（交叉包）
-chk_file "$DIST_X64/jmnext-$VER-linux-x86_64-portable.tar.gz" 20000000 "x86_64 便携 tar.gz"
-chk_tar_member "$DIST_X64/jmnext-$VER-linux-x86_64-portable.tar.gz" 'libskiko.*\.so' "libskiko*.so"
-chk_file "$DIST_X64/jmnext_${VER}_amd64.deb" 20000000 "x86_64 deb"
-chk_file "$DIST_X64/jmnext-$VER-x86_64.AppImage" 20000000 "x86_64 AppImage"
+chk_file "$DIST_X64/Linux-x86_64-$VER.tar.gz" 20000000 "x86_64 便携 tar.gz"
+chk_tar_member "$DIST_X64/Linux-x86_64-$VER.tar.gz" 'libskiko.*\.so' "libskiko*.so"
+chk_file "$DIST_X64/Linux-x86_64-$VER.deb" 20000000 "x86_64 deb"
+chk_file "$DIST_X64/Linux-x86_64-$VER.AppImage" 20000000 "x86_64 AppImage"
 # Windows
-chk_file "$DIST_WIN64/jmnext-$VER-windows-x64.zip" 20000000 "Windows x64 zip"
-chk_zip_member "$DIST_WIN64/jmnext-$VER-windows-x64.zip" 'skiko-windows.*\.jar' "skiko-windows*.jar（缺它会启动即崩）"
-chk_zip_member "$DIST_WIN64/jmnext-$VER-windows-x64.zip" 'runtime/bin/java' "免装 JRE"
-chk_file "$DIST_WINARM/jmnext-$VER-windows-arm64.zip" 20000000 "Windows arm64 zip"
-chk_zip_member "$DIST_WINARM/jmnext-$VER-windows-arm64.zip" 'skiko-windows.*\.jar' "skiko-windows*.jar"
-chk_zip_member "$DIST_WINARM/jmnext-$VER-windows-arm64.zip" 'runtime/bin/java' "免装 JRE"
+chk_file "$DIST_WIN64/Windows-x64-$VER.zip" 20000000 "Windows x64 zip"
+chk_zip_member "$DIST_WIN64/Windows-x64-$VER.zip" 'skiko-windows.*\.jar' "skiko-windows*.jar（缺它会启动即崩）"
+chk_zip_member "$DIST_WIN64/Windows-x64-$VER.zip" 'runtime/bin/java' "免装 JRE"
+chk_file "$DIST_WINARM/Windows-arm64-$VER.zip" 20000000 "Windows arm64 zip"
+chk_zip_member "$DIST_WINARM/Windows-arm64-$VER.zip" 'skiko-windows.*\.jar' "skiko-windows*.jar"
+chk_zip_member "$DIST_WINARM/Windows-arm64-$VER.zip" 'runtime/bin/java' "免装 JRE"
 
 echo "=== deb 内图标条目（需容器内的 dpkg-deb）==="
-for d in "$DIST_AARCH64/jmnext_${VER}_arm64.deb" "$DIST_X64/jmnext_${VER}_amd64.deb"; do
+for d in "$DIST_AARCH64/Linux-aarch64-$VER.deb" "$DIST_X64/Linux-x86_64-$VER.deb"; do
   [ -f "$d" ] || continue
   n=$(su -c "chroot '$CHROOT_ROOT' /usr/bin/env -i PATH=/usr/bin:/bin dpkg-deb -c '$d'" 2>/dev/null | grep -c "jmnext.png")
   echo "  $(basename "$d") 图标条目: $n"
