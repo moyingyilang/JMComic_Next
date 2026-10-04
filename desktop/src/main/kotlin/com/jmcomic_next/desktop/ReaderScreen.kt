@@ -254,6 +254,15 @@ fun ReaderScreen(
             onNext = { nextId?.let(onSwitchChapter) },
             onOpenComments = { onOpenComments(comicId) },
             onToggleMode = {
+                // 切换模式前先把位置同步到对方：否则横向翻到第 80 页、切回纵向会回到旧位置
+                // （两种模式索引同一张图片列表，语义相同，只是载体不同，所以同步的是同一个下标）
+                scope.launch {
+                    if (mode == ReaderMode.Page) {
+                        listState.scrollToItem(pagerState.currentPage.coerceIn(0, (p.images.size - 1).coerceAtLeast(0)))
+                    } else {
+                        pagerState.scrollToPage(currentPage.coerceIn(0, (p.images.size - 1).coerceAtLeast(0)))
+                    }
+                }
                 // 与 Android 同一个枚举、同一个语义；桌面端额外把选择存下来
                 mode = if (mode == ReaderMode.Scroll) ReaderMode.Page else ReaderMode.Scroll
                 modePrefs.putString("mode", if (mode == ReaderMode.Page) "page" else "scroll")
