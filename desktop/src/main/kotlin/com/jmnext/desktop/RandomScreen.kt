@@ -71,6 +71,10 @@ fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
     var layout by remember { mutableStateOf(prefs.getString(PREF_RANDOM_LAYOUT, LAYOUT_GRID) ?: LAYOUT_GRID) }
 
     var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
+    // 标签级屏蔽：命中集合 + 过滤 + 把列表交给屏蔽器补标签（放在 items 声明之后）
+    val hiddenIds = rememberHiddenTagIds()
+    val (blockedByTag, visibleItems) = splitBlockedByTag(items, hiddenIds)
+    LaunchedEffect(items.map { it.id }) { items.forEach { TagBlocker.request(it.id) } }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("正在取一批随机作品…") }
     var ranked by remember { mutableStateOf(false) }
@@ -153,12 +157,13 @@ fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
 
         // 版式切换（缺口：此前只有网格）。选择写进 prefs，下次进来还是上次那一档。
         if (layout == LAYOUT_LIST) {
+        BlockedByTagBanner(blockedByTag)
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(items, key = { it.id }) { item ->
+                items(visibleItems, key = { it.id }) { item ->
                     Row(
                         modifier = Modifier.fillMaxWidth().clickable { onOpenComic(item) },
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -196,7 +201,7 @@ fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxWidth().weight(1f),
             ) {
-                items(items, key = { it.id }) { item -> ComicCover(repository, item) { onOpenComic(item) } }
+                items(visibleItems, key = { it.id }) { item -> ComicCover(repository, item) { onOpenComic(item) } }
             }
         }
     }
