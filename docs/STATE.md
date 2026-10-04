@@ -801,3 +801,24 @@ buildarch_compat: aarch64: x86_64
 2. 查 `mergeFullReleaseResources` 与 `processFullReleaseResources` 的输入输出是否为空，以及 AGP 有无警告被丢弃（构建输出不要接 `tail`）；
 3. 回忆时间线：2.1.1 的 APK 是 00:39 建的（正常），此后环境有过变化（安装 `rpm:amd64`、`nsis` 等）——
    需验证是否影响 Android 资源链。
+
+### 事故根因与修复（已确认）
+
+**根因**：我在 `d33e66d`（加编译速度实测注释那次）**误删了 `android.enableResourceOptimizations=false`**。
+该设置默认开启，而开启时 AGP 的资源优化会产出**无法解析**的包 —— 项目里本来就有注释写明这一点
+（"打开资源优化能把 APK 砍掉 32%，但产出的包在新版 Android 上无法解析（nativeOpenXml 失败）……因此保持关闭。见 CHANGELOG 1.7.0"）。
+删除后症状完全吻合：包内无 `AndroidManifest.xml` 与 `resources.arsc`、`aapt2` 报 `could not identify format`。
+
+**定位方式（二分）**：`8749298`（2.1.1）正常 → `3678b9a`（只改 md）正常 → `d545541`（交互机制）坏
+→ 中间 10 个提交里只有 `d33e66d` 动了构建配置 → 差异对比正好少这一行。
+
+**修复后**：`app-full-release.apk` 3,287,231 字节、`app-lite-release.apk` 3,268,931 字节，
+两者 `aapt2` 均可解析、包内均含 manifest 与 arsc、包名与版本正确。
+
+### 三层问题与对应的落地动作
+
+| 层 | 问题 | 落地 |
+| --- | --- | --- |
+| 代码 | 批量文本编辑删掉配置行，**编译与构建都不报错** | 配置类文件改动后必须 `diff` 逐行核对，不只看"语法通过" |
+| 流程 | 打包时用 `tail -2` 看 Android 构建，没看到结果就发布 | 关键步骤不看 `tail`，看失败段落或完整输出 |
+| 验收 | "文件存在 + 大小非零"是**只会通过**的判据 | 新增 `verify-apk.sh`：断言 aapt2 有 `package:` 行、包内含 manifest 与 arsc、包名与版本匹配；发布只认它的退出码 |
