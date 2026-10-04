@@ -86,7 +86,7 @@ fun PageRail(
                 .padding(vertical = 6.dp)
                 .onSizeChanged {
                     trackH = it.height
-                    Log.line("阅读", "侧栏滑轨高 " + it.height + "px / " + with(density) { it.height.toDp() } + "dp")
+                    Log.line("阅读", "侧栏滑轨高 " + it.height + "px / " + with(density) { it.height.toDp() })
                 },
             contentAlignment = Alignment.Center,
         ) {
