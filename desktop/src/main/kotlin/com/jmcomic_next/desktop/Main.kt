@@ -72,6 +72,9 @@ private val repository: JmRepository by lazy {
 }
 
 fun main() {
+    // 必须最先调用：否则在此之前打印的启动信息（版本与构建时间、渲染后端）只进终端、不进日志。
+    // 此前"日志里看不到启动行"就是这个原因 —— 不是跑的是旧包。
+    Log.init()
     // 渲染后端：用户环境（VNC）建不出 GL 上下文 —— 日志里反复出现
     // "org.jetbrains.skiko.RenderException: Cannot create Linux GL context"，
     // 表现是数据正常加载、画面全黑（用户报"看不到漫画"）。
@@ -89,7 +92,6 @@ fun main() {
     }.getOrNull() ?: "未知"
     Log.line("启动", "JMComic_Next 桌面端 版本 $DESKTOP_VERSION，构建时间 $builtAt")
     // 把 stdout/stderr 同时写进 ~/jmcomic-next.log，便于远程读日志定位问题
-    Log.init()
     // 组合期抛出的异常默认只进 AWT 的日志，容器里看不到；这里显式打到 stderr
     Thread.setDefaultUncaughtExceptionHandler { t, e ->
         System.err.println("[崩溃] 线程 ${t.name}：")
