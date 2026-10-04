@@ -4,7 +4,7 @@ set -euo pipefail
 OUT_DIR="${1:-dist-win}"; VERSION=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' src/main/kotlin/com/jmnext/desktop/Version.kt | tail -1)
 W=$(mktemp -d); trap 'rm -rf "$W"' EXIT; STAGE="$W/stage"; mkdir -p "$STAGE"
 echo "== 1/4 fatJar(arm64) + Skiko 原生库 =="
-/opt/gradle-9.8.0/bin/gradle --console=plain --no-daemon fatJar -Ptarget=windows-arm64 >/dev/null
+/opt/gradle-9.8.0/bin/gradle --console=plain fatJar -Ptarget=windows-arm64 >/dev/null
 cp build/libs/jmnext-windows-arm64.jar "$STAGE/jmnext.jar"
 curl -sL --max-time 300 -o "$W/skiko.jar" "https://repo1.maven.org/maven2/org/jetbrains/skiko/skiko-awt-runtime-windows-arm64/0.150.1/skiko-awt-runtime-windows-arm64-0.150.1.jar"
 unzip -l "$W/skiko.jar" | grep -q "skiko-windows-arm64.dll" || { echo "  缺 skiko-windows-arm64.dll，拒绝出包"; exit 1; }

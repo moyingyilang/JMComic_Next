@@ -14,7 +14,7 @@ W=$(mktemp -d); trap 'rm -rf "$W"' EXIT
 STAGE="$W/stage"; mkdir -p "$STAGE"
 
 echo "== 1/5 胖 jar（windows-x64）=="
-/opt/gradle-9.8.0/bin/gradle --console=plain --no-daemon fatJar -Ptarget=windows-x64 >/dev/null
+/opt/gradle-9.8.0/bin/gradle --console=plain fatJar -Ptarget=windows-x64 >/dev/null
 JAR="build/libs/jmnext-windows-x64.jar"
 [ -f "$JAR" ] || { echo "  找不到 $JAR"; exit 1; }
 cp "$JAR" "$STAGE/jmnext.jar"

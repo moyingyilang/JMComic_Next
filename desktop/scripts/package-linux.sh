@@ -25,7 +25,7 @@ MARK_NEW="打开作品"          # 新代码里应当存在
 MARK_OLD=""                  # 旧代码里的、必须不存在的（留空表示跳过）
 
 echo "== 1/6 构建 =="
-"$GRADLE" --console=plain --no-daemon createDistributable | tail -2
+"$GRADLE" --console=plain createDistributable | tail -2
 
 echo "== 2/6 产物自检 =="
 # a) 应用 jar 只能有一个：带内容哈希的文件名在改代码后会多出一个旧 jar，
