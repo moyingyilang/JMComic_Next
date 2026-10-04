@@ -130,3 +130,22 @@
 
 **所以：在桌面端只加一个「允许一次」按钮是没有意义的** —— 没有东西被标签挡住，按钮点了也不会有变化。
 要做就得连整条链路一起做（拉标签的缓存 + 判定 + 一次性放行），这是一件独立的事，不是"补一个按钮"。
+
+## 第 6、7 项的实情（避免把工作量估错）
+
+**第 6 项 下载**：共享层只有 `albumDownload(aid): DownloadPayload`（`JmRepository.kt:595`），
+Android 端也只在 `DetailScreen.kt:1054-1058` 用了它 —— 也就是说 **Android 端并没有"下载管理器"
+（没有队列、没有离线存储、没有下载页）**，只是把下载信息/入口显示出来。
+所以桌面端这一步的实际工作是"接上同样的信息与入口"，**比"做一套下载系统"小得多**；
+若用户想要真正的离线下载，那是一件新功能（两端都要做），不是"移植缺口"。
+
+**第 7 项 连载更新提醒**：Android 端 `data/SerialNotify.kt`（6040 字节）用
+**AlarmManager + BroadcastReceiver + NotificationCompat** 实现，Manifest 里有
+`POST_NOTIFICATIONS` 权限与 `.data.SerialNotifyReceiver`。它的代码注释里写明了一个取舍：
+"**为什么是 AlarmManager 而不是 WorkManager** —— 项目里原本没有 WorkManager，
+不为这一个功能引入新依赖"，这与本项目"不引入大依赖"的取向一致。
+
+桌面端要做同等功能时要注意两点：
+1. Compose Desktop 没有 Android 那套通知，可用 **AWT `SystemTray`**（零新依赖）或应用内横幅；
+2. **桌面端只能在程序运行时提醒**（除非做成后台服务/定时任务，那是另一件事）——
+   Android 可以靠 AlarmManager 在后台唤醒，桌面端不行。这个差异必须对用户讲清楚，不能假装等价。
