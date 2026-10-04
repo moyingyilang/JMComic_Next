@@ -133,23 +133,23 @@ photo, expinfo, name, replies: List<CommentItem>)`，另有便捷属性 `authorN
 
 ## 布局类问题的实测经验（1.9.x，含一条重要的反面证据）
 
-**真病因**：顶层状态行写成 `Row(Modifier.fillMaxSize())` ✗ —— 它占满整个高度，
+**真病因**：顶层状态行写成 `Row(Modifier.fillMaxSize())` —— 它占满整个高度，
 下面的列表拿不到空间，于是"数据到了、计数对、一个封面都不画"。
 用户验证过的修复：把那三页（历史/追更/随机）整文件重写，布局约定写进注释。
 
-**反面证据（很重要）**：我一度以为"`Column` 里的列表必须用 `weight(1f)`" ✗，
-但全库扫描发现**很多页面用的是 `fillMaxSize`，其中收藏页是用户亲口验证通过的** ✓。
+**反面证据（很重要）**：我一度以为"`Column` 里的列表必须用 `weight(1f)`"，
+但全库扫描发现**很多页面用的是 `fillMaxSize`，其中收藏页是用户亲口验证通过的**。
 所以：
 
 > `Column` 里的列表用 `fillMaxSize` **并不一定出问题**——两种写法都能正常工作。
 
-结论：**不要按推论做批量改动** ✗。我在容器里看不到界面，批量改可能把本来好的页面改坏，
-而且只能等用户发现。正确做法是：**按用户报告的"哪一页坏了"去查那一页** ✓，
+结论：**不要按推论做批量改动**。我在容器里看不到界面，批量改可能把本来好的页面改坏，
+而且只能等用户发现。正确做法是：**按用户报告的"哪一页坏了"去查那一页**，
 扫描脚本只作辅助定位，不做全库替换。
 
 ## 一条流程病根：无条件覆盖包
 
-我此前的构建命令是 `gradle ... | grep BUILD; cp -a ...` —— **无条件复制** ✗，
+我此前的构建命令是 `gradle ... | grep BUILD; cp -a ...` —— **无条件复制**，
 于是编译失败时 `/root/jmnext-new` 仍是旧镜像，我却让用户去测，白跑几趟。
 用户的批评原话：「你编译了吗让我跑来了」。
 
@@ -511,7 +511,7 @@ val fixed = surf.makeImageSnapshot()      // 直接 toComposeImageBitmap()
 
 **API 已核实**：`Surface.makeRasterN32Premul(w,h)`（在 Companion 上）、
 `Surface.getCanvas()`、`Canvas.drawImageRect(Image, Rect, Rect)`、`Surface.makeImageSnapshot()`。
-band 的计算直接复用共享层的 `ImageUnscramble.bands(w, h, count)`，**公式一字不改** ✓。
+band 的计算直接复用共享层的 `ImageUnscramble.bands(w, h, count)`，**公式一字不改**。
 
 **一个必须修正的验证方法（本轮踩到）**：我最初拿"合成原图"逐像素严格比对，结论是"重排不符" ——
 但中间经过了**有损的 WebP**，逐像素严格相等本来就不成立。正确做法是
@@ -785,7 +785,7 @@ aarch64 四类 + x86_64 三类 + Windows ZIP 都已产出并核对过字节数�
 
 **桌面端移植要点**（按"样式跟 Android 同步"）：
 1. `AlertDialog` + 同样的标题、分页与当前话高亮，**含上面那个滚动状态的坑**；
-2. confirmButton 里 Android 用图标 ✗ —— 桌面端未引入 material-icons，改用文字「上一页 / 下一页」+「第 x/y 页」，
+2. confirmButton 里 Android 用图标 —— 桌面端未引入 material-icons，改用文字「上一页 / 下一页」+「第 x/y 页」，
    并在注释里标明这处差异（与此前 PageRail 的处理一致）；
 3. 接线：侧栏的「章节」按钮（现为置灰）→ 打开该对话框。
 

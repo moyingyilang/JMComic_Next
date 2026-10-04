@@ -103,7 +103,7 @@
 
 | 项 | 内容 | 已摸清的接口/依据 |
 | --- | --- | --- |
-| 4a | 首页分区「更多」页 + 连载更新表（类型 + 星期筛选） | 共享层 `promoteList(id, page)` ✓、`weekIssues()` / `weekList(issueId, type, page)` / `weeklyUpdate(...)` ✓；Android 页面在 `ui/screens/more/MoreListScreen.kt`，路由 `more/{id}?title=…`（`JmNavHost.kt:148-152`）；桌面导航在 `Main.kt` 的 `Screen.Page(route)` + `when` 分支 |
+| 4a | 首页分区「更多」页 + 连载更新表（类型 + 星期筛选） | 共享层 `promoteList(id, page)`、`weekIssues()` / `weekList(issueId, type, page)` / `weeklyUpdate(...)`；Android 页面在 `ui/screens/more/MoreListScreen.kt`，路由 `more/{id}?title=…`（`JmNavHost.kt:148-152`）；桌面导航在 `Main.kt` 的 `Screen.Page(route)` + `when` 分支 |
 | 5 | 中等缺口 8 项：随机/签到浮钮、签到日历与历史、详情标签可点可屏蔽、移入收藏夹、创作者作品内容（`creatorWorkContent`）、随机页版式切换、分类分组标签、阅读默认形态进设置页 | 审计表里有逐条 `文件:行号` 证据 |
 | 6 | 下载（`albumDownload`） | Android `DetailScreen.kt:1054-1058`、`JmRepository.kt:595` |
 | 7 | 连载更新提醒（系统通知） | Android `data/SerialNotify.kt`、`AppPrefs.kt:77`、Manifest 权限/receiver |
