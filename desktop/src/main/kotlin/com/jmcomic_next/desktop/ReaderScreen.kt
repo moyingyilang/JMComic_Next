@@ -148,9 +148,7 @@ fun ReaderScreen(
     }
 
     Box(
-        Modifier.fillMaxSize().onSizeChanged {
-            Log.line("阅读", "根 Column 尺寸 " + it.width + "x" + it.height + " 像素")
-        },
+        Modifier.fillMaxSize(),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -176,7 +174,6 @@ fun ReaderScreen(
         val p = payload ?: return@Box
 
 
-        Log.line("阅读", "渲染内容：模式=" + mode + "，待显示图片 " + p.images.size + " 张")
 
         // 横向翻页用的 pager 状态。放在这里（payload 可用之后）是因为页数取自 p.images.size；
         // 用全限定名调用，避免再动 import。（第 3 步接线时由 PagedReader 使用。）
@@ -274,10 +271,7 @@ fun ReaderScreen(
                             true
                         }
                     }
-                }
-                .onSizeChanged {
-                Log.line("阅读", "内容区尺寸 " + it.width + "x" + it.height + " 像素（若高度为 0 就是排版把内容压没了）")
-            },
+                },
         ) {
         // 两种模式共用侧栏：只替换内容区（LazyColumn ↔ PagedReader），PageRail 留在外面
         if (mode == ReaderMode.Page) {
