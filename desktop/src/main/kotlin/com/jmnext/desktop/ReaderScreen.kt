@@ -92,6 +92,7 @@ fun ReaderScreen(
     var mode by remember { mutableStateOf(ReaderModePref.mode) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var status by remember(chapterId) { mutableStateOf("正在加载章节…") }
+    var loading by remember(chapterId) { mutableStateOf(true) }
     var retryToken by remember(chapterId) { mutableStateOf(0) }
 
     val index = remember(chapterId, chapterIds) { chapterIds.indexOf(chapterId) }
@@ -104,12 +105,14 @@ fun ReaderScreen(
             .onSuccess {
                 payload = it
                 status = "${it.images.size} 页"
+                    loading = false
                 runCatching { progress.record(comicId, chapterId) }
                 System.err.println("[阅读] 已加载 $status（章节 ${index + 1}/${chapterIds.size}）")
             }
             .onFailure {
                 if (it is CancellationException) return@onFailure
                 status = "加载失败：${it.message}（点“重试”）"
+                    loading = false
                 System.err.println("[阅读] $status")
             }
     }
@@ -155,7 +158,12 @@ fun ReaderScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TextButton(onClick = onBack) { Text("返回") }
-            Text(status, style = MaterialTheme.typography.titleMedium)
+            // 加载中与失败分开：失败显示可复制的错误文案（含"重试"提示），加载中才转圈
+            if (loading) {
+                LoadingHint("正在加载章节…")
+            } else {
+                Text(status, style = MaterialTheme.typography.titleMedium)
+            }
             if (chapterIds.isNotEmpty() && index >= 0) {
                 Text(
                     "第 ${index + 1} / ${chapterIds.size} 话",
