@@ -123,7 +123,6 @@ if "$RPMBUILD_AARCH64" -bb --define "_topdir $TOP" --define "_target_cpu aarch64
 else
   echo "  rpm 失败：详情见上面 rpmbuild 的输出（已记档，不影响其它产物）"
 fi
-find "$TOP/RPMS" -name '*.rpm' -exec cp {} "$OUT/" \;
 
 echo "== 6/6 AppImage =="
 if [ -f /root/runtime-aarch64 ]; then
