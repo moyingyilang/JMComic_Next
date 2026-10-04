@@ -110,8 +110,9 @@ RPM_OK=0
 RPM_OK=0
 if [ -x /usr/bin/qemu-x86_64-static ]; then
   # 本机 rpmbuild 是 aarch64，跨架构会被拒；qemu 跑 x86_64 的 rpmbuild，并显式指定 buildroot（否则 %install 失败）
-  /usr/bin/qemu-x86_64-static /usr/bin/rpmbuild -bb --define "_topdir $TOP" --define "_buildrootdir $TOP/BUILDROOT" "$TOP/SPECS/jmnext.spec" 2>&1 | tail -3
-  [ -n "$(find "$TOP/RPMS" -name "*.rpm" 2>/dev/null)" ] && RPM_OK=1
+  /usr/bin/qemu-x86_64-static /usr/bin/rpmbuild -bb --define "_topdir $TOP" --define "_buildrootdir $TOP/BUILDROOT" "$TOP/SPECS/jmnext.spec" 2>&1 | tail -3 || true
+  if [ -n "$(find "$TOP/RPMS" -name "*.rpm" 2>/dev/null)" ]; then RPM_OK=1; fi
+  [ "$RPM_OK" = 1 ] || { echo "  rpmbuild 完整输出（末尾 30 行）:"; tail -30 "$TOP/rpm.log" | sed "s/^/    /"; }
   [ "$RPM_OK" = 1 ] || { echo "  rpmbuild 完整输出的末尾 25 行（含失败的那条命令）:"; tail -25 "$TOP/rpm.log" | sed 's/^/    /'; }
 fi
 if [ "$RPM_OK" = 1 ]; then
