@@ -914,3 +914,25 @@ deb 条目数 452 vs 正常的 234），内容是 `lib/app/app/libskiko-linux-ar
 
 **纪律**：插完先 `head -1` 看文件头、再 `grep -c` 数括号是否配对，然后才构建；构建成功才提交。
 本步是结构性改动，一次只做一处，做完立刻构建。
+
+## 第 3 步 2/3 与 3/3：四个编辑的确切位置（行号为 b66dd1f 之后的状态，改动前先重新 grep 核对）
+
+结构（实测）：`193 }`（预加载块结束）→ `194 Row(...)` → `195 LazyColumn(` … → `220 }`（LazyColumn 结束）
+→ `224 PageRail(`。
+
+| 序 | 位置 | 动作 |
+| --- | --- | --- |
+| A | 在 **194 行后**插入 | `if (mode == ReaderMode.Page) { PagedReader(repository, p, state = pagerState, onPageChange = {}, modifier = Modifier.fillMaxWidth().weight(1f)) } else {` |
+| B | 在 **220 行后**插入 | `        }`（闭合 else 与 if） |
+| C | 单行替换 | 侧栏调用里的 `current = currentPage` → `current = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage` |
+| D | 小改 `onSeek` | 原 `scope.launch { listState.scrollToItem(page) }` → 按模式分支：Page 模式 `pagerState.scrollToPage(page)`，否则维持 `scrollToItem` |
+
+**不需要新增页码状态**：两种模式索引同一张图片列表，所以只需在渲染页码处按模式二选一（C）。
+（这修正了我此前"要一个共享 pageIndex 状态"的设想 —— 不需要，条件表达式就够。）
+
+**Page 模式的页级进度暂不记录**（现有记录挂在 `listState` 上）：这是**已知缺口**，
+先记档，等横翻本身可用后再补 —— 不假装它已支持。
+
+**操作纪律**：改前先 `grep -n` 重新核对上述四个行号（我这几轮的锚点漂移过多次）；
+A、B 用 `sed "${N}r 片段"`；C、D 用单行替换（先 `grep -c` 确认唯一）；
+改完 `head -1` 看文件头、再构建；成功才提交。
