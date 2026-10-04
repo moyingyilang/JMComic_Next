@@ -3,41 +3,38 @@ package com.jmcomic_next.desktop
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import com.jmcomic_next.lyqs.data.JmRepository
 import com.jmcomic_next.lyqs.data.remote.dto.ReadPayload
 
 /**
  * 横向逐页阅读（桌面端，1.9.x）。**按 Android 的 `PagedReader` 移植**：
- * 用 `HorizontalPager`，每页一张图、适配整屏（`ContentScale.Fit`），左右翻页。
+ * 用 `HorizontalPager`，每页一张图、适配整屏，左右翻页。
+ *
+ * **为什么把 `PagerState` 放在外面（受控组件）**：侧栏滑轨要能跳页 —— `onSeek` 需要拿到
+ * `pagerState.scrollToPage(...)`。若状态藏在组件内部，外面就够不到它。所以状态由调用方
+ * 用 `rememberPagerState` 创建并传进来，本组件只负责渲染与报告当前页。
  *
  * 与 Android 的差异（如实标注，都是桌面特有）：
- * - 键盘翻页（左右方向键、PageUp/PageDown）—— Android 只有手势，桌面必须给键盘；
- *   这里先用 pager 自带的拖拽与滚轮，键盘留到下一步一并做（避免一次改太多）；
- * - 图片复用阅读页已有的 `PageItem`（内部可见），因此加载中/失败/重试的表现与纵向模式**完全一致**，
- *   不会出现"两种模式行为不一样"。
- *
- * 与侧栏的联动由调用方负责：本组件只把当前页通过 [onPageChange] 报出去。
+ * - 键盘翻页（方向键、PageUp/PageDown）在调用方做 —— Android 只有手势；
+ * - 图片复用阅读页已有的 `PageItem`，所以加载中/失败/重试的表现与纵向模式**完全一致**。
  */
 @Composable
 fun PagedReader(
     repository: JmRepository,
     payload: ReadPayload,
-    initialPage: Int,
+    state: PagerState,
     onPageChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val images = payload.images
-    val lastIndex = (images.size - 1).coerceAtLeast(0)
-    val state = rememberPagerState(initialPage = initialPage.coerceIn(0, lastIndex)) { images.size }
 
-    // 当前页变化时通知外层（侧栏滑轨与进度记录要用）
+    // 当前页变化时通知外层（侧栏滑轨与页级进度都要用）
     LaunchedEffect(state) {
         snapshotFlow { state.currentPage }.collect { onPageChange(it) }
     }
