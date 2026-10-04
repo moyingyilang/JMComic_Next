@@ -117,3 +117,16 @@
 - 构建失败时用 `grep -E "^e: "` 看 Kotlin 错误（**不要加 `tail`** —— 报错在输出前部，帮助文本在尾部）；
 - 改文件：整行替换或行间插入，**不要在单行内插换行**（曾把 `.clickable { … }` 切断）；改前先断言目标行内容，改后按内容 grep 计数核对；
 - `/tmp` 在 Termux 侧**不可写**，临时文件放 `.work/`。
+
+## 一条容易误判的事实：标签级屏蔽是 Android 端已经做过的
+
+本会话早期有三个针对 **Android 端**的任务（会话代理记录里可见）：
+`List tag blocking via background fetch`、`Implement list tag blocking`、`Search tag-block notice and allow-once`。
+也就是说：**标签级屏蔽与搜索页的「允许一次」在 Android 端已经实现过**，相关代码在
+`shared/.../data/TagBlockResolver`（配合 `data/TagCache.kt`）与 `app/.../ui/LocalTagBlocker.kt`。
+
+而**桌面端完全没有这套**：共享层的 `BlockRules.hides(item)` 只按标题/作者/分类过滤，
+标签不在其中（注释写明"接口不给"）；标签级判定需要逐条拉取作品标签再筛，桌面端没有这条链路。
+
+**所以：在桌面端只加一个「允许一次」按钮是没有意义的** —— 没有东西被标签挡住，按钮点了也不会有变化。
+要做就得连整条链路一起做（拉标签的缓存 + 判定 + 一次性放行），这是一件独立的事，不是"补一个按钮"。
