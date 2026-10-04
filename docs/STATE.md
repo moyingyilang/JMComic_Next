@@ -429,3 +429,29 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 
 **剩余（未做）**：首页、分类页、随机页、创作者页、「更多」页等列表尚未接（每页只需三步：提交 id、按 `TagBlocker.hidden` 过滤、给被挡的批次加提示与「允许一次」）。
 **证据边界**：只有编译证据；过滤的真实效果、标签接口在真账号下的返回、托盘与界面观感均未验证。
+
+### 二十之二、算法接线的进度与"反馈那一半"的明确任务
+
+**已完成（桌面端，参数侧）**：提交 `d408fc2` —— `ReaderScreen.kt:200` 的硬编码深度 6 改为
+`SelfTuner.prefetchDepth`（来自共享层 `SelfTune.params().asInt(Tunables.prefetchDepth)`），
+并把本窗口实际深度写进日志；`SelfTuner.kt` 负责落盘学习状态、默认开启、日志走 `Log.line("自学习", …)`。
+
+**未完成（反馈侧）**：还没把 `PageSample` 喂回 `SelfTune.onPage(...)`，也没接 `onCancellation()`。
+**没有反馈，算法只会用默认值，不会学** —— 不许把"参数被读取"说成"算法生效"。
+
+**下一步要补的三件事（已取证，照着做即可）**：
+
+1. **`dwellMs`**：阅读页目前没有停留统计。要在 `currentPage` 变化时结算上一页的停留时间
+   （记一个进入时间戳，切页时 `now - entered`）。
+2. **`hitCache`**：进入某页时查 `RemoteImage.cached(img.image) != null` 即可（这个现成）。
+3. **`bytes` 与 `latencyMs`**：
+   - `RemoteImage.kt` 的 `load(url): ImageBitmap?` 内部有 `download(url)` 返回的字节数组
+     （`load` 里能用 `bytes.size`），但**没有对外返回** → 需要加一个带尺寸的变体（例如返回
+     `Pair<ImageBitmap?, Long>`）或让 `RemoteImage` 记一个"本次下载字节数"的计数器；
+   - `latencyMs`（翻到该页到图片可见）需要新增测量：进入页面时记时间戳，图片可用（或解码完成）时结算。
+
+**为什么这一步不硬接**：四个字段里有两个现在拿不到真值。用 0 或猜的值填进 `PageSample`，
+算法会拿错信号去学 —— **比不学更糟**。宁可停在这里，把任务写清。
+
+**Android 端接线尚未开始**：它的预取窗口取自 `LiteFeatures.prefetchBefore/After`（full 与 lite 两个变体取值不同，
+两处都要看），并发上限同样不存在。接线时按同一套：参数从 `SelfTune.params()` 取、样本按上面三件事喂回。
