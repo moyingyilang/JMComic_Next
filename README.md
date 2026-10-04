@@ -18,7 +18,7 @@ Android 端移植而来，两端共用同一个 `shared` 数据层。这是一�
 ## 下载
 
 发布页：[github.com/moyingyilang/JMNeXt/releases](https://github.com/moyingyilang/JMNeXt/releases)。
-桌面端当前版本 **2.0.2**（正式版），与 Android 端共用同一份数据层与自学习算法；下载见上方表格，历史预构建版本保留在 Releases 列表里。
+桌面端当前版本 **2.1.0**（正式版），与 Android 端共用同一份数据层与自学习算法；下载见上方表格，历史预构建版本保留在 Releases 列表里。
 每个版本的附件都按上表命名：桌面端 9 个（Linux aarch64/x86_64、Windows x64/arm64）加 Android 2 个 APK（full / lite）。
 
 | 平台 | 架构 | 格式 | 附件名 | 状态 |
