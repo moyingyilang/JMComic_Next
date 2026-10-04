@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.jmcomic_next.lyqs.data.JmRepository
+import com.jmcomic_next.lyqs.data.prefs.BlockKind
 import com.jmcomic_next.lyqs.data.prefs.ReadProgressStore
 import com.jmcomic_next.lyqs.data.remote.dto.AlbumDetail
 import com.jmcomic_next.lyqs.data.remote.dto.ListItem
@@ -65,6 +66,8 @@ fun DetailScreen(
     progress: ReadProgressStore,
     onOpenComments: (String) -> Unit,
     onOpenComic: (ListItem) -> Unit,
+    // 点标签的出口：给了就路由到搜索页（Main.kt 尚未传），没给就在本页就地搜索
+    onOpenTag: ((String) -> Unit)? = null,
 ) {
     var detail by remember(comicId) { mutableStateOf<AlbumDetail?>(null) }
     var status by remember(comicId) { mutableStateOf("正在加载作品…") }
@@ -77,6 +80,14 @@ fun DetailScreen(
     var trackBusy by remember { mutableStateOf(false) }
     var favMessage by remember(comicId) { mutableStateOf<String?>(null) }
     var favBusy by remember { mutableStateOf(false) }
+    // 标签交互（中等缺口）：点标签搜索、屏蔽标签、标星标签
+    var tagBusy by remember { mutableStateOf(false) }
+    var tagMessage by remember(comicId) { mutableStateOf<String?>(null) }
+    var tagQuery by remember(comicId) { mutableStateOf<String?>(null) }
+    var tagItems by remember(comicId) { mutableStateOf<List<ListItem>>(emptyList()) }
+    var tagResultStatus by remember(comicId) { mutableStateOf("") }
+    // 网站上的标星标签（从接口读回来，本地不留一份"以为"的状态）
+    var starredTags by remember(comicId) { mutableStateOf<Set<String>>(emptySet()) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(comicId) {
@@ -102,6 +113,96 @@ fun DetailScreen(
         val t = runCatching { repository.isTracked(comicId) }.getOrDefault(false)
         tracked = t
         Log.line("详情", "追更初始态：" + t)
+    }
+
+    /** 重读网站标星标签。增删之后也重读，让服务端状态如实反映（与 TagsScreen 同一做法，不本地翻转）。 */
+    fun reloadStarredTags() {
+        if (!repository.auth.isLoggedIn) return
+        scope.launch {
+            runCatching { repository.favoriteTags() }
+                .onSuccess { list -> starredTags = list.map { t -> t.tag }.filter { it.isNotBlank() }.toSet() }
+                .onFailure {
+                    if (it is CancellationException) return@onFailure
+                    Log.line("详情", "标星标签读取失败（留空继续）：" + it.message)
+                }
+        }
+    }
+
+    LaunchedEffect(comicId) { reloadStarredTags() }
+
+    /**
+     * 点标签 = 按标签搜索。
+     *
+     * 调用方给了 [onOpenTag] 就交给它路由（与 TagsScreen 的 onSearch 同路）；
+     * 没给（Main.kt 当前没传）就在本页左栏就地铺开结果 —— 不做"点了没反应"的假按钮。
+     */
+    fun openTag(tag: String) {
+        if (onOpenTag != null) {
+            Log.line("详情", "按标签搜索（交给外层路由）：" + tag)
+            onOpenTag(tag)
+            return
+        }
+        tagQuery = tag
+        tagItems = emptyList()
+        tagBusy = true
+        tagResultStatus = "正在按标签「$tag」搜索…"
+        scope.launch {
+            runCatching { repository.search(query = tag) }
+                .onSuccess { result ->
+                    tagItems = result.page.items
+                    tagResultStatus = "标签「$tag」：共 ${result.page.total} 条，本页 ${result.page.items.size} 条" +
+                        if (result.page.hidden > 0) "（本页屏蔽 ${result.page.hidden} 条）" else ""
+                    Log.line("详情", tagResultStatus)
+                }
+                .onFailure {
+                    if (it is CancellationException) return@onFailure
+                    tagItems = emptyList()
+                    tagResultStatus = "按标签搜索失败：" + it.message
+                    Log.error("详情", "按标签搜索失败 tag=" + tag, it)
+                }
+            tagBusy = false
+        }
+    }
+
+    /** 屏蔽此标签：直接写本地屏蔽名单（与「屏蔽设置」是同一份存储，列表过滤在数据层）。 */
+    fun blockTag(tag: String) {
+        val store = repository.blockStore
+        if (store == null) {
+            tagMessage = "屏蔽存储未初始化，无法屏蔽标签"
+            return
+        }
+        if (store.isBlocked(BlockKind.Tag, tag)) {
+            tagMessage = "「$tag」已经在屏蔽名单里"
+            return
+        }
+        store.addTag(tag)
+        tagMessage = "已屏蔽标签：$tag（可在「屏蔽设置」里取消）"
+        Log.line("详情", tagMessage.orEmpty())
+    }
+
+    /** 标星 / 取消标星：updateFavoriteTags("add" | "remove")，与 Android 端同一接口。 */
+    fun starTag(tag: String) {
+        if (!repository.auth.isLoggedIn) {
+            tagMessage = "请先登录再标星标签"
+            return
+        }
+        val add = !starredTags.contains(tag)
+        tagBusy = true
+        tagMessage = null
+        scope.launch {
+            runCatching { repository.updateFavoriteTags(if (add) "add" else "remove", listOf(tag)) }
+                .onSuccess {
+                    tagMessage = (if (add) "已标星：" else "已取消标星：") + tag
+                    Log.line("详情", tagMessage.orEmpty())
+                    reloadStarredTags()
+                }
+                .onFailure {
+                    if (it is CancellationException) return@onFailure
+                    tagMessage = "标星操作失败：" + it.message
+                    Log.error("详情", "标星操作失败 tag=" + tag, it)
+                }
+            tagBusy = false
+        }
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -232,7 +333,79 @@ fun DetailScreen(
 
                 InfoLine("标题", d.name.orEmpty())
                 InfoLine("作者", d.author.joinToString(" / "))
-                if (d.tags.isNotEmpty()) InfoLine("标签", d.tags.joinToString(" "))
+                // 标签：点标签按标签搜索、可屏蔽、可标星（审计缺口：此前只当纯文本显示）。
+                // Android 是「点=搜索、长按=屏蔽」；桌面端没有长按，改成每个标签跟两个明确按钮，
+                // 不藏隐藏手势（藏了没人发现，等于没做）。
+                if (d.tags.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "标签（点标签按标签搜索，右侧可屏蔽或标星）",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        d.tags.forEach { tag ->
+                            // 已屏蔽的标签显示状态而不是再给一个"屏蔽"按钮（按了也不会有新变化）
+                            val blocked = repository.blockStore?.isBlocked(BlockKind.Tag, tag) == true
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Text(
+                                    text = "#$tag",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { openTag(tag) }
+                                        .padding(vertical = 6.dp),
+                                )
+                                if (blocked) {
+                                    Text(
+                                        "已屏蔽",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                } else {
+                                    TextButton(enabled = !tagBusy, onClick = { blockTag(tag) }) {
+                                        Text("屏蔽", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                                TextButton(enabled = !tagBusy, onClick = { starTag(tag) }) {
+                                    Text(
+                                        if (starredTags.contains(tag)) "取消标星" else "标星",
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                }
+                            }
+                        }
+                        tagMessage?.let {
+                            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        }
+                        // 就地铺开的标签搜索结果：点结果直接打开那一部的详情
+                        tagQuery?.let { q ->
+                            Text(
+                                tagResultStatus.ifBlank { "标签「$q」" },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                            tagItems.forEach { item ->
+                                Text(
+                                    text = item.name ?: item.id,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onOpenComic(item) }
+                                        .padding(vertical = 4.dp),
+                                )
+                            }
+                            TextButton(onClick = { tagQuery = null; tagItems = emptyList(); tagResultStatus = "" }) {
+                                Text("关闭标签搜索结果", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
                 InfoLine("页数", d.totalPhotos.toString())
                 if (!d.description.isNullOrBlank()) {
                     // 简介也是 HTML（Android 的详情页同样走 plainText）。

@@ -3,6 +3,7 @@ package com.jmcomic_next.desktop
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,9 +14,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -38,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import com.jmcomic_next.lyqs.data.JmRepository
 import com.jmcomic_next.lyqs.data.remote.dto.CreatorAuthor
 import com.jmcomic_next.lyqs.data.remote.dto.CreatorWork
+import com.jmcomic_next.lyqs.data.remote.dto.CreatorWorkContent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -65,6 +69,9 @@ fun CreatorScreen(repository: JmRepository) {
     var status by remember { mutableStateOf("正在取画师列表…") }
     var selectedAuthor by remember { mutableStateOf<CreatorAuthor?>(null) }
     var workInfo by remember { mutableStateOf<Pair<String, List<CreatorWork>>?>(null) }
+    // 作品内容（creatorWorkContent）与它的加载标记；缺口：此前只取 creatorWorkInfo
+    var workContent by remember { mutableStateOf<CreatorWorkContent?>(null) }
+    var contentLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     fun load(next: Int) {
@@ -97,6 +104,36 @@ fun CreatorScreen(repository: JmRepository) {
                     Log.error("作品库", "加载失败 mode=$mode", it)
                 }
             busy = false
+        }
+    }
+
+    /**
+     * 打开一个作品：信息 + 内容一起取。
+     *
+     * 内容那一半**单独 runCatching**：作品库里有些条目只有信息、没有图片（实测 `total_page: 0`、
+     * `images: []`），那不该让整页变成错误。信息失败才算真失败。
+     */
+    fun openWork(id: String, title: String?) {
+        status = "正在取作品内容（信息 + 图片，可能要一会儿）…"
+        contentLoading = true
+        scope.launch {
+            val infoR = runCatching { repository.creatorWorkInfo(id) }
+            if (infoR.exceptionOrNull() is CancellationException) { contentLoading = false; return@launch }
+            val contentR = runCatching { repository.creatorWorkContent(id) }
+            if (contentR.exceptionOrNull() is CancellationException) { contentLoading = false; return@launch }
+
+            val info = infoR.getOrNull()
+            val content = contentR.getOrNull()
+            workInfo = (info?.title ?: title ?: id) to info?.relatedWorks.orEmpty()
+            workContent = content
+            contentLoading = false
+            status = when {
+                info == null -> "取作品信息失败：" + (infoR.exceptionOrNull()?.message ?: "原因未知")
+                content == null -> "作品内容没取到：" + (contentR.exceptionOrNull()?.message ?: "原因未知") + "（信息已显示）"
+                content.images.isEmpty() && content.content.isNullOrBlank() -> "已取到作品信息；这个作品没有可看的内容"
+                else -> "作品内容已取到：${content.images.size} 张图"
+            }
+            Log.line("作品库", status)
         }
     }
 
@@ -146,8 +183,114 @@ fun CreatorScreen(repository: JmRepository) {
                 if (related.isNotEmpty()) {
                     Text("相关作品 ${related.size} 部（见下方）", style = MaterialTheme.typography.labelSmall)
                 }
-                TextButton(onClick = { workInfo = null }) { Text("关闭") }
+                TextButton(onClick = { workInfo = null; workContent = null }) { Text("关闭") }
             }
+        }
+
+        // 作品内容（缺口：此前只调 creatorWorkInfo，页面上看不到任何内容）。
+        // 照 Android 的 CreatorWorkScreen：信息与内容一起取，**内容那一半失败不算整页失败**
+        // （实测有的作品回 total_page 0 / images 空，那要显示成"没有可看的内容"而不是报错）。
+        if (workInfo != null) {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (contentLoading) {
+                    item { Text("正在取作品内容…", style = MaterialTheme.typography.labelSmall) }
+                }
+                val wc = workContent
+                if (wc != null) {
+                    item {
+                        Text(
+                            "共 ${wc.totalPage} 页 / ${wc.images.size} 张图" +
+                                (wc.addDate?.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    items(wc.images.size) { index ->
+                        val raw = wc.images[index].image
+                        val url = remember(raw) { runCatching { repository.creatorContentUrl(raw) }.getOrNull() }
+                        val bmp = rememberRemoteImage(url)
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            if (bmp != null) {
+                                val ratio = if (bmp.height > 0) bmp.width.toFloat() / bmp.height.toFloat() else 3f / 4f
+                                Image(
+                                    bitmap = bmp,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.FillWidth,
+                                    modifier = Modifier.width(560.dp).aspectRatio(ratio),
+                                )
+                            } else {
+                                Text(
+                                    "图片未取到：$raw",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    wc.content?.takeIf { it.isNotBlank() }?.let { text ->
+                        item { Text(text, style = MaterialTheme.typography.bodyMedium) }
+                    }
+                    if (wc.images.isEmpty() && wc.content.isNullOrBlank()) {
+                        item {
+                            Text(
+                                "这个作品没有可看的内容（作品库里有条目只有信息、没有图片）",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                if (!contentLoading && wc == null) {
+                    item {
+                        Text(
+                            "作品内容没取到（可能这个作品没有内容，或接口失败；顶部状态栏里有原因）",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                // 相关作品：点一张直接换到那一部（照 Android，相关作品在同一页里可以继续点下去）
+                val related = workInfo?.second.orEmpty()
+                if (related.isNotEmpty()) {
+                    item {
+                        Text(
+                            "相关作品 ${related.size} 部",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            related.forEach { r ->
+                                Column(Modifier.width(140.dp).clickable { openWork(r.id, r.title) }) {
+                                    val rbmp = rememberRemoteImage(r.image)
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().aspectRatio(3f / 4f)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                    ) {
+                                        if (rbmp != null) {
+                                            Image(rbmp, contentDescription = r.title, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                        }
+                                    }
+                                    Text(r.title ?: r.id, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                                }
+                            }
+                        }
+                    }
+                }
+                item {
+                    TextButton(onClick = { workInfo = null; workContent = null }) { Text("返回作品列表") }
+                }
+            }
+            return@Column
         }
 
         LazyVerticalGrid(
@@ -200,21 +343,7 @@ fun CreatorScreen(repository: JmRepository) {
             } else {
                 items(works, key = { it.id }) { w ->
                     Column(
-                        modifier = Modifier.clickable {
-                            status = "正在取作品信息…"
-                            scope.launch {
-                                runCatching { repository.creatorWorkInfo(w.id) }
-                                    .onSuccess { info ->
-                                        workInfo = (info.title ?: w.title ?: w.id) to info.relatedWorks
-                                        if (info.relatedWorks.isNotEmpty()) works = info.relatedWorks
-                                        status = "作品信息已取到（相关 ${info.relatedWorks.size} 部）"
-                                    }
-                                    .onFailure {
-                                        if (it is CancellationException) return@onFailure
-                                        status = "取作品信息失败：${it.message}"
-                                    }
-                            }
-                        },
+                        modifier = Modifier.clickable { openWork(w.id, w.title) },
                     ) {
                         val bmp = rememberRemoteImage(w.image)
                         Box(

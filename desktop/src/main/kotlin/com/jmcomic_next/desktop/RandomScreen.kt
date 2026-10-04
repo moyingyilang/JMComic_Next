@@ -1,15 +1,24 @@
 package com.jmcomic_next.desktop
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +32,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.jmcomic_next.lyqs.data.FavoriteTags
 import com.jmcomic_next.lyqs.data.JmRepository
@@ -55,6 +66,9 @@ import kotlinx.coroutines.launch
 fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
     val scope = rememberCoroutineScope()
     val tagStore = remember { FavoriteTags(PreferencesKeyValueStore("jm_favorite_tags")) }
+    // 版式（网格 / 列表）：选择要记住，与 Android 的 AppPrefs.randomLayout 对应
+    val prefs = remember { PreferencesKeyValueStore("jm_prefs") }
+    var layout by remember { mutableStateOf(prefs.getString(PREF_RANDOM_LAYOUT, LAYOUT_GRID) ?: LAYOUT_GRID) }
 
     var items by remember { mutableStateOf<List<ListItem>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
@@ -117,6 +131,14 @@ fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             Text("随机本子", style = MaterialTheme.typography.titleLarge)
             Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(enabled = !busy, onClick = { roll() }) { Text(if (busy) "取中…" else "换一批") }
+            // 版式切换：按钮文字写"切过去会变成什么"（照 Android 的按钮语义）
+            TextButton(
+                onClick = {
+                    layout = if (layout == LAYOUT_GRID) LAYOUT_LIST else LAYOUT_GRID
+                    prefs.putString(PREF_RANDOM_LAYOUT, layout)
+                    Log.line("随机", "版式切换为：$layout")
+                },
+            ) { Text(if (layout == LAYOUT_GRID) "切换成列表" else "切换成网格", style = MaterialTheme.typography.labelSmall) }
             TextButton(
                 enabled = !busy,
                 onClick = { ranked = !ranked; roll() },
@@ -129,14 +151,60 @@ fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
         )
 
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(168.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxWidth().weight(1f),
-        ) {
-            items(items, key = { it.id }) { item -> ComicCover(repository, item) { onOpenComic(item) } }
+        // 版式切换（缺口：此前只有网格）。选择写进 prefs，下次进来还是上次那一档。
+        if (layout == LAYOUT_LIST) {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items(items, key = { it.id }) { item ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable { onOpenComic(item) },
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        val coverUrl = remember(item.id) { runCatching { repository.coverUrl(item) }.getOrNull() }
+                        val bmp = rememberRemoteImage(coverUrl)
+                        Box(
+                            modifier = Modifier.width(84.dp).aspectRatio(3f / 4f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                        ) {
+                            if (bmp != null) {
+                                Image(bmp, contentDescription = item.name, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            }
+                        }
+                        Column(Modifier.weight(1f)) {
+                            Text(item.name ?: item.id, style = MaterialTheme.typography.bodyMedium, maxLines = 2)
+                            Text(
+                                listOfNotNull(item.author, item.category?.title, item.categorySub?.title)
+                                    .filter { it.isNotBlank() }
+                                    .joinToString(" · "),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(168.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth().weight(1f),
+            ) {
+                items(items, key = { it.id }) { item -> ComicCover(repository, item) { onOpenComic(item) } }
+            }
         }
     }
 }
+
+/** 随机页版式（与 Android 的 AppPrefs.randomLayout 同义：存在 prefs 里的一档字符串）。 */
+private const val LAYOUT_GRID = "grid"
+private const val LAYOUT_LIST = "list"
+
+/** prefs 键名照抄 Android 的 KEY_RANDOM_LAYOUT = "random_layout"（存储节点各自独立）。 */
+private const val PREF_RANDOM_LAYOUT = "random_layout"
