@@ -3,7 +3,9 @@ package com.jmnext.desktop
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 
@@ -54,3 +56,24 @@ fun Modifier.jmSharedElement(key: String?): Modifier {
  *      DetailScreen.kt：给封面 Box 加 .jmSharedElement(jmCoverKey(d.id))。
  * 这两处必须同一个 key；漏一处只是没有过渡，不会崩。
  */
+
+/**
+ * 一次性提供两个作用域的宿主：内部建 `SharedTransitionLayout`，并把页面动画作用域一并提供下去。
+ *
+ * 为什么做成一个 composable 而不是在页面里嵌两层 `CompositionLocalProvider`：包装点只插**一对**花括号，
+ * 少插或多插都会直接语法报错（立刻可见），而不像"漏提供作用域"那样编译通过却静默失效。
+ *
+ * 用法：`SharedPageHost(this@AnimatedContent) { when (val s = target) { ... } }`
+ */
+@Composable
+fun SharedPageHost(
+    animatedScope: AnimatedVisibilityScope,
+    content: @Composable () -> Unit,
+) {
+    SharedTransitionLayout {
+        CompositionLocalProvider(
+            LocalSharedScope provides this,
+            LocalPageVisibility provides animatedScope,
+        ) { content() }
+    }
+}

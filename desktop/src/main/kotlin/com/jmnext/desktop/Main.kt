@@ -401,6 +401,7 @@ private fun App() {
                     },
                     label = "route",
                 ) { target ->
+                SharedPageHost(this@AnimatedContent) {
                 when (val s = target) {
                     is Screen.Home -> HomeScreen(
                         onOpen = openComic,
@@ -490,6 +491,7 @@ private fun App() {
                         val title = NAV_ITEMS.firstOrNull { it.first == s.route }?.second ?: s.route
                         PageShell(title = title, planned = PAGE_PLANS[s.route] ?: "（待补）")
                     }
+                }
                 }
                 }
             }

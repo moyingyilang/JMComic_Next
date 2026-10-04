@@ -297,6 +297,7 @@ fun DetailScreen(
                         .fillMaxWidth()
                         .aspectRatio(3f / 4f)
                         .clip(RoundedCornerShape(10.dp))
+                        .jmSharedElement(jmCoverKey(d.id))
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                 ) {
                     if (bitmap != null) {
