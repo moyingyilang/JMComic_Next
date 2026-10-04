@@ -382,3 +382,21 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 **顺序建议**：先做第一步的"可行性判断"——`grep -nE "android\.|Context|CompositionLocal" TagBlockResolver.kt TagCache.kt`
 看它们是否纯 Kotlin（`LocalTagBlocker.kt` 本身是 UI 层，必然是 Android 的，但这不妨碍前两个文件是纯逻辑）。
 **这件事做完再谈「允许一次」按钮**：没有标签级判定，那个按钮点下去不会有任何变化。
+
+### 二十一之一、本轮我踩的工具坑（写下来省下一个人一轮）
+
+**场景**：要替换文档里含反引号与竖线的一整行。
+
+| 我做的 | 结果 |
+| --- | --- |
+| `sed -i "${L}s|.*|**更正**：\`TagBlockResolver.kt\` 实际在…|"` （双引号里写反引号） | **shell 把反引号当命令替换执行了**：报 `TagBlockResolver.kt: command not found`，替换进去的内容里两个类名**消失**，文档反而更糟 |
+| `sed -i 's|同上|81 行 / 12 行 / 393 行|g'` | **全局替换误伤无关行**：把另一处"声明同上的文件"改成了"声明81 行 / 12 行 / 393 行的文件" |
+| `sed -i "${L}s|.*|… \`shared/\` 里声明…|"` | 替换串里的 `|` 与反引号把 sed 表达式弄坏：`sed: -e expression #1, char 12: unknown option to 's'`，本次未改动（好在没改） |
+
+**可靠做法（已验证）**：把替换内容写进**带引号的 heredoc** 文件（`<<'MD'`，反引号与竖线都不会被 shell 碰），
+再用 **awk 整行替换**：
+`awk -v n="$L" -v f=$W/line.md 'NR==n{while((getline l < f)>0) print l; next} {print}' 目标 > 新文件 && cp 新文件 目标`。
+多处替换同理，用 `NR==a||NR==b` 配合按行号升序的替换文件即可。
+
+**核对纪律（这次起了作用）**：每步都"先打印目标行核对、再改、改完逐行打印核对"，所以三次失误**都只停在文档层**，
+没有一次碰到代码；但代价是这一轮为修文档用了四次提交。**下次直接用 heredoc + awk，不要用双引号写 sed 替换串。**
