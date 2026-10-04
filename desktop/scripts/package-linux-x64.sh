@@ -52,7 +52,7 @@ file "$STAGE/lib/runtime/bin/java" | grep -q "x86-64" || { echo "  失败：运�
 echo "  运行时 x86-64、Skiko x86_64、Arm 原生库已清"
 
 echo "== 3/5 便携包 =="
-tar czf "$OUT/jmnext-1.9.453-linux-x86_64-portable.tar.gz" -C "$STAGE" .
+tar czf "$OUT/jmnext-2.0.0-linux-x86_64-portable.tar.gz" -C "$STAGE" .
 
 echo "== 4/5 deb(amd64) 与 rpm(x86_64) =="
 D=$(mktemp -d)/jmnext
@@ -63,7 +63,7 @@ chmod 755 "$D/usr/bin/jmnext"
 cp "$OUT/jmnext.png" "$D/usr/share/icons/hicolor/256x256/apps/jmnext.png" 2>/dev/null || true
 cat > "$D/DEBIAN/control" <<'CTL'
 Package: jmnext
-Version: 1.9.453
+Version: 2.0.0
 Architecture: amd64
 Maintainer: moyingyilang
 Depends: libc6
@@ -72,14 +72,14 @@ Priority: optional
 Description: JMNeXt desktop client (x86_64)
  A third-party JMComic client built with Kotlin and Compose Desktop.
 CTL
-dpkg-deb --build --root-owner-group "$D" "$OUT/jmnext_1.9.453_amd64.deb" >/dev/null
+dpkg-deb --build --root-owner-group "$D" "$OUT/jmnext_2.0.0_amd64.deb" >/dev/null
 
 TOP=$(mktemp -d)
 mkdir -p "$TOP"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 cp -a "$STAGE" "$TOP/SOURCES/jmnext-app"
 cat > "$TOP/SPECS/jmnext.spec" <<'SPEC'
 Name:           jmnext
-Version:        1.9.453
+Version:        2.0.0
 Release:        1
 Summary:        JMNeXt desktop client (x86_64)
 License:        AGPL-3.0-only
@@ -131,8 +131,8 @@ if [ -f /root/runtime-x86_64 ]; then
   printf '[Desktop Entry]\nType=Application\nName=JMNeXt\nExec=jmnext\nIcon=jmnext\nTerminal=false\nCategories=Utility;Graphics;\n' > "$AD/jmnext.desktop"
   SQ=$(mktemp -u).squashfs
   mksquashfs "$AD" "$SQ" -root-owned -noappend -comp gzip -quiet
-  cat /root/runtime-x86_64 "$SQ" > "$OUT/jmnext-1.9.453-x86_64.AppImage"
-  chmod 755 "$OUT/jmnext-1.9.453-x86_64.AppImage"
+  cat /root/runtime-x86_64 "$SQ" > "$OUT/jmnext-2.0.0-x86_64.AppImage"
+  chmod 755 "$OUT/jmnext-2.0.0-x86_64.AppImage"
   rm -f "$SQ"
 else
   echo "  跳过：缺少 x86_64 的 AppImage runtime"

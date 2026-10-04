@@ -53,7 +53,7 @@ echo "  应用 jar 1 个、启动类正确、标记检查通过"
 
 echo "== 3/6 便携包 =="
 rm -rf "$OUT" && mkdir -p "$OUT"
-tar czf "$OUT/jmnext-1.9.453-linux-aarch64-portable.tar.gz" -C "$APP" .
+tar czf "$OUT/jmnext-2.0.0-linux-aarch64-portable.tar.gz" -C "$APP" .
 
 echo "== 4/6 deb =="
 STAGE=$(mktemp -d)/jmnext
@@ -67,7 +67,7 @@ printf '[Desktop Entry]\nType=Application\nName=JMNeXt\nExec=/opt/jmnext/bin/jmn
   > "$STAGE/usr/share/applications/jmnext.desktop"
 cat > "$STAGE/DEBIAN/control" <<'CTL'
 Package: jmnext
-Version: 1.9.453
+Version: 2.0.0
 Architecture: arm64
 Maintainer: moyingyilang
 Depends: libc6
@@ -76,7 +76,7 @@ Priority: optional
 Description: JMNeXt desktop client
  A third-party JMComic client built with Kotlin and Compose Desktop.
 CTL
-dpkg-deb --build --root-owner-group "$STAGE" "$OUT/jmnext_1.9.453_arm64.deb" >/dev/null
+dpkg-deb --build --root-owner-group "$STAGE" "$OUT/jmnext_2.0.0_arm64.deb" >/dev/null
 
 echo "== 5/6 rpm =="
 TOP=$(mktemp -d)
@@ -85,7 +85,7 @@ cp -a "$APP" "$TOP/SOURCES/jmnext-app"
 cp "$ICON" "$TOP/SOURCES/jmnext.png"
 cat > "$TOP/SPECS/jmnext.spec" <<'SPEC'
 Name:           jmnext
-Version:        1.9.453
+Version:        2.0.0
 Release:        1
 Summary:        JMNeXt desktop client
 License:        AGPL-3.0-only
@@ -130,8 +130,8 @@ if [ -f /root/runtime-aarch64 ]; then
     > "$APPDIR/jmnext.desktop"
   SQ=$(mktemp -u).squashfs
   mksquashfs "$APPDIR" "$SQ" -root-owned -noappend -comp gzip -quiet
-  cat /root/runtime-aarch64 "$SQ" > "$OUT/jmnext-1.9.453-aarch64.AppImage"
-  chmod 755 "$OUT/jmnext-1.9.453-aarch64.AppImage"
+  cat /root/runtime-aarch64 "$SQ" > "$OUT/jmnext-2.0.0-aarch64.AppImage"
+  chmod 755 "$OUT/jmnext-2.0.0-aarch64.AppImage"
   rm -f "$SQ"
 else
   echo "  跳过：缺少 AppImage runtime（/root/runtime-aarch64）"

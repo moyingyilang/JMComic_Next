@@ -1,4 +1,4 @@
-# JMComic_Next
+# JMNeXt
 
 用 Kotlin 与 Compose 写成的 JMComic 客户端。**Android 是主项目**，桌面端（Linux / Windows）由
 Android 端移植而来，两端共用同一个 `shared` 数据层。这是一个**只读的阅读客户端**：能浏览、搜索、
@@ -16,22 +16,22 @@ Android 端移植而来，两端共用同一个 `shared` 数据层。这是一�
 
 ## 下载
 
-发布页：[github.com/moyingyilang/JMComic_Next/releases](https://github.com/moyingyilang/JMComic_Next/releases)。
-桌面端当前版本 **1.9.453**，属于跨平台预构建线（GitHub 上标为 **pre-release**，见[路线图](#路线图)），
+发布页：[github.com/moyingyilang/JMNeXt/releases](https://github.com/moyingyilang/JMNeXt/releases)。
+桌面端当前版本 **2.0.0**，属于跨平台预构建线（GitHub 上标为 **pre-release**，见[路线图](#路线图)），
 每个版本固定 9 个附件，命名与下表一致。
 
 | 平台 | 架构 | 格式 | 附件名 | 状态 |
 | --- | --- | --- | --- | --- |
-| Linux | aarch64 | 便携 tar.gz | `jmcomic-next-1.9.453-linux-aarch64-portable.tar.gz` | 可用 |
-| Linux | aarch64 | deb | `jmcomic-next_1.9.453_arm64.deb` | 可用 |
-| Linux | aarch64 | rpm | `jmcomic-next-1.9.453-1.aarch64.rpm` | 可用 |
-| Linux | aarch64 | AppImage | `jmcomic-next-1.9.453-aarch64.AppImage` | 可用 |
-| Linux | x86_64 | 便携 tar.gz | `jmcomic-next-1.9.453-linux-x86_64-portable.tar.gz` | 未在真机跑过 |
-| Linux | x86_64 | deb | `jmcomic-next_1.9.453_amd64.deb` | 同左 |
-| Linux | x86_64 | AppImage | `jmcomic-next-1.9.453-x86_64.AppImage` | 同左 |
+| Linux | aarch64 | 便携 tar.gz | `jmcomic-next-2.0.0-linux-aarch64-portable.tar.gz` | 可用 |
+| Linux | aarch64 | deb | `jmcomic-next_2.0.0_arm64.deb` | 可用 |
+| Linux | aarch64 | rpm | `jmcomic-next-2.0.0-1.aarch64.rpm` | 可用 |
+| Linux | aarch64 | AppImage | `jmcomic-next-2.0.0-aarch64.AppImage` | 可用 |
+| Linux | x86_64 | 便携 tar.gz | `jmcomic-next-2.0.0-linux-x86_64-portable.tar.gz` | 未在真机跑过 |
+| Linux | x86_64 | deb | `jmcomic-next_2.0.0_amd64.deb` | 同左 |
+| Linux | x86_64 | AppImage | `jmcomic-next-2.0.0-x86_64.AppImage` | 同左 |
 | Linux | x86_64 | rpm | 无 | **出不来**，见[已知限制](#已知限制) |
-| Windows | x64 | 免装 Java 的 ZIP | `jmcomic-next-1.9.453-windows-x64.zip` | 可用（用户真机确认） |
-| Windows | arm64 | 免装 Java 的 ZIP | `jmcomic-next-1.9.453-windows-arm64.zip` | 真机未验证 |
+| Windows | x64 | 免装 Java 的 ZIP | `jmcomic-next-2.0.0-windows-x64.zip` | 可用（用户真机确认） |
+| Windows | arm64 | 免装 Java 的 ZIP | `jmcomic-next-2.0.0-windows-arm64.zip` | 真机未验证 |
 | Android | arm64 / armv7 | APK（`full` / `lite`） | 见 Releases 页 | 已发布至 1.8.2 |
 
 两个 Windows ZIP 都自带 Temurin JRE 21 与对应架构的 Skiko 原生库，解压后双击 `jmcomic-next.bat`，
@@ -46,15 +46,15 @@ macOS 与 iOS 不再发布。
 Linux 便携包（解压后运行 `./bin/jmcomic-next`）：
 
 ```bash
-tar xzf jmcomic-next-1.9.453-linux-aarch64-portable.tar.gz && ./bin/jmcomic-next
+tar xzf jmcomic-next-2.0.0-linux-aarch64-portable.tar.gz && ./bin/jmcomic-next
 ```
 
 deb（x86_64 换成 `_amd64.deb`）、rpm、AppImage：
 
 ```bash
-sudo dpkg -i jmcomic-next_1.9.453_arm64.deb && jmcomic-next
-sudo rpm -i jmcomic-next-1.9.453-1.aarch64.rpm && jmcomic-next
-chmod +x jmcomic-next-1.9.453-aarch64.AppImage && ./jmcomic-next-1.9.453-aarch64.AppImage
+sudo dpkg -i jmcomic-next_2.0.0_arm64.deb && jmcomic-next
+sudo rpm -i jmcomic-next-2.0.0-1.aarch64.rpm && jmcomic-next
+chmod +x jmcomic-next-2.0.0-aarch64.AppImage && ./jmcomic-next-2.0.0-aarch64.AppImage
 ```
 
 系统缺 `libfuse.so.2` 时，AppImage 可以不挂载直接跑：加 `--appimage-extract-and-run`。运行时需要
@@ -106,7 +106,7 @@ chmod +x jmcomic-next-1.9.453-aarch64.AppImage && ./jmcomic-next-1.9.453-aarch64
 | 项 | 现在到哪一步 |
 | --- | --- |
 | 界面观感与图标观感 | 开发环境渲染不了 Compose，只能由人过目 |
-| **1.9.453 这批 10 个改动** | **只过编译，界面一次没跑过** |
+| **2.0.0 这批 10 个改动** | **只过编译，界面一次没跑过** |
 | 所有写操作（点赞、标记已读、标签增删、注册、找回密码等） | 只到「接口返回什么就显示什么」，**账号内是否生效未确认** |
 | 预取 v2 与取消误报修复 | 是否降低翻页等待、是否不再出现 `The coroutine scope left the composition`，均未验证 |
 | issue #2 的两条修复 | 待报告者复测 |

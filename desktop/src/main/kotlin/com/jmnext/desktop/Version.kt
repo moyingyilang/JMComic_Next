@@ -1,7 +1,7 @@
 package com.jmnext.desktop
 
 /**
- * 桌面端版本号（1.9.453，跨架构支持测试版）。
+ * 桌面端版本号（2.0.0，跨架构支持测试版）。
  *
  * 为什么不用 BuildConfig 那种自动生成：桌面端是独立的 Gradle 构建，
  * 没有 AGP 的 BuildConfig。这里先读 jar 清单里的 Implementation-Version，
@@ -14,4 +14,4 @@ val DESKTOP_VERSION: String = runCatching {
     Class.forName("com.jmnext.desktop.VersionKt")
         .`package`?.implementationVersion
         ?.takeIf { it.isNotBlank() }
-}.getOrNull() ?: "1.9.453"
+}.getOrNull() ?: "2.0.0"
