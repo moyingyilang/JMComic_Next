@@ -22,5 +22,6 @@ echo "== 4/4 打包 + 验收 =="
 mkdir -p "$OUT_DIR"
 ABS="$(cd "$OUT_DIR" && pwd)/jmcomic-next-$VERSION-windows-arm64.zip"
 Z="$OUT_DIR/jmcomic-next-$VERSION-windows-arm64.zip"; rm -f "$Z"; (cd "$STAGE" && zip -qr "$ABS" .)
-for m in runtime/bin/java.exe skiko-windows-arm64.jar jmcomic-next.jar jmcomic-next.bat; do unzip -l "$Z" | grep -q "$m" || { echo "  验收失败：缺 $m"; exit 1; }; done
+unzip -l "$Z" > "$W/list.txt" 2>/dev/null
+for m in runtime/bin/java.exe skiko-windows-arm64.jar jmcomic-next.jar jmcomic-next.bat; do grep -q "$m" "$W/list.txt" || { echo "  验收失败：缺 $m"; exit 1; }; done
 echo "  通过：$(stat -c %s "$Z") 字节"
