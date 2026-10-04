@@ -185,26 +185,32 @@ fun ReaderScreen(
         // 第一步只把焦点基础设施就位；按键处理在下一步加到内容区那一行上。
         val focusRequester = remember { FocusRequester() }
         LaunchedEffect(Unit) { focusRequester.requestFocus() }
-        // 预取当前页之后的 2 页图片（下载+解码都提前做完，翻页时直接命中缓存）。
-        // 依据：配对实测 381 个样本显示反切片总耗时中位数 1284ms，其中**下载 1078ms（约 84%）**，
-        // 而解码+画band 合计仅 86ms —— 所以真正有效的优化是把"按需下载"挪到后台，而不是改解码。
-        // 只取 2 页：再多会挤占带宽与内存（图片缓存按字节封顶 256MB）。
-        // **为什么用 scope.launch 而不是直接在 LaunchedEffect 里跑**：LaunchedEffect 的键含 currentPage，
-        // 每翻一页它就会被取消并重启，正在进行的预取会被中途取消 —— 快速翻页时预取几乎永远跑不完，
-        // 等于白做。scope 只在离开阅读页时取消，不随翻页取消，所以预取能跑完；
-        // 由于命中缓存的会跳过，重复触发也不会把同一页反复下载。
+        // 预取当前页之后的若干页图片（下载+解码都提前做完，翻页时直接命中缓存）。
+        // 依据（真机实测，2026-10-04）：
+        //  - 反切片总耗时里下载占绝大部分：配对 381 样本 → 总 1284ms、下载 1078ms、解码+画band 86ms；
+        //  - 用户用键盘快速翻页时约 0.4~0.5 秒/页，而单页下载中位数约 1.1 秒 —— 原来只提前 2 页赶不上，
+        //    实测分界后 25 次反切片仍有 14 次走了网络，故提前量加大到 6 页；
+        //  - 实测还发现同一页被并发预取多次（第 6 页 3 次）→ 用 inFlight 集合做在途去重。
+        // 只做串行预取：按 N+1、N+2…… 的顺序取，最近的页优先备好；并发会让更靠后的页先到，反而没用。
+        // 失败不影响阅读：两条加载路径自带兜底与日志，这里只记一行结果便于验证。
+        val prefetchInFlight = remember { java.util.Collections.synchronizedSet(mutableSetOf<String>()) }
         LaunchedEffect(chapterId, currentPage, mode) {
             val start = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage
             scope.launch {
-                val to = minOf(start + 2, p.images.size - 1)
+                val to = minOf(start + 6, p.images.size - 1)
                 var i = start + 1
                 while (i <= to) {
                     val img = p.images[i]
-                    if (RemoteImage.cached(img.image) == null) {
-                        val t0 = System.currentTimeMillis()
-                        val need = runCatching { repository.needsUnscramble(img.image, p.id, p.scrambleId) }.getOrDefault(false)
-                        val got = if (need) RemoteImage.loadScrambled(img.image, p.id, img.fileNameStem) else RemoteImage.load(img.image)
-                        Log.line("阅读", "预取第 " + (i + 1) + " 页" + (if (got == null) "失败" else "成功") + "（用时 " + (System.currentTimeMillis() - t0) + " ms）")
+                    // 在途去重：只有 add 成功的那个协程负责下载，避免同一页被并发预取多次
+                    if (RemoteImage.cached(img.image) == null && prefetchInFlight.add(img.image)) {
+                        try {
+                            val t0 = System.currentTimeMillis()
+                            val need = runCatching { repository.needsUnscramble(img.image, p.id, p.scrambleId) }.getOrDefault(false)
+                            val got = if (need) RemoteImage.loadScrambled(img.image, p.id, img.fileNameStem) else RemoteImage.load(img.image)
+                            Log.line("阅读", "预取第 " + (i + 1) + " 页" + (if (got == null) "失败" else "成功") + "（用时 " + (System.currentTimeMillis() - t0) + " ms）")
+                        } finally {
+                            prefetchInFlight.remove(img.image)
+                        }
                     }
                     i++
                 }
