@@ -575,3 +575,39 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 
 **遗留决定二（已修）**：`origin` 这个 remote 的 push URL 曾被指向旧仓库名，已改为新仓库；
 注意本仓库推送实际走的是名为 `main` 的 remote（`git push main main`），别被 `origin` 误导。
+
+## 二十三、2.1.0（动效改造）与遗留
+
+**已发布 v2.1.0**（大功能 +010），14 个附件线上与本地逐项一致；桌面端 x64 与 aarch64 同一次构建、同一提交。
+
+### 做了什么
+
+| 项 | Android | 桌面端 |
+| --- | --- | --- |
+| 图片淡入 | 全局 `ImageLoader.crossfade(true)` | `ComicCover` 走 `Motion.IMAGE_MS` |
+| 列表项动效 | 既有（`animateItem` 4 处） | 9 处 `Modifier.animateItem()` |
+| 交互反馈 | 既有（Material3 涟漪） | 新增 `Modifier.jmClickable()`（悬停放大 + 按下回缩） |
+| 页面转场 | 既有（`JmNavHost` + `motion.*`） | 新增 `AnimatedContent`（淡入 + 横向轻移） |
+| 动效 token | 既有（`ui/theme/ThemeStyle.kt` 的 `MotionSpec`，按风格各带一套） | 新增 `Motion.kt` |
+| 共享元素 | 既有真实现 | **接入件已就位、未接线**（2.1.0 里是近似效果） |
+
+### 测试证据（本轮实测）
+
+`:shared:test` 56 用例、`:app:testFullDebugUnitTest` 136 用例，**失败 0、错误 0**。
+
+### 遗留一：桌面端共享元素未接线
+
+`desktop/.../SharedElement.kt` 已就位（两个 CompositionLocal + `Modifier.jmSharedElement(key)`，
+结构照 Android 同名文件，未接线时走空操作分支故行为零变化）。接线两处写在文件末尾注释与
+`docs/MOTION.md` 第五节：`Main.kt` 包 `SharedTransitionLayout` 并提供两个作用域；`ComicCover.kt`
+与 `DetailScreen.kt` 各加一次 `jmSharedElement(jmCoverKey(...))`，key 必须一致。
+
+**两次尝试失败的原因（务必避免重犯）**：都是"按行号单行插入" —— 一次行号偏移导致作用域没提供、
+**编译通过但功能静默失效**（因为缺作用域时是安静地退化为空操作），一次把右括号插到别处直接语法错误。
+正确做法：把 `Main.kt` 相关段落**完整读出后整体替换**，并显式 grep 断言两处作用域都在。
+
+### 遗留二：动效手感无真机证据
+
+所有动效只验到"编译通过、调用链正确、单测通过"。**快慢、幅度、是否跟手没有任何真机/真桌面观察记录**，
+需要使用者确认。另有一类编译器查不到的坑：`AnimatedContent` 块内若误用外层状态而非动画提供的 `target`，
+动画会"空转"（新旧两帧渲染同一页面）——本轮已在桌面端踩到并修正。
