@@ -489,3 +489,28 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 **纪律重申**：`bytes` 若一时拿不到真值，**宁可先不上反馈**，也不要用 0 填 —— 用假值喂 `PageSample`
 会让算法拿错信号学，比不学更糟（与第二十之二节同一条）。所以 Android 反馈侧的完成标准是：
 四个字段全为真值、编译通过；缺一个就不算接完。
+
+### 二十之五、Android 反馈侧取证结论：三个字段能拿真值，bytes 拿不到
+
+用**字节码**核实（`javap`，不是猜 API）：
+
+| 事实 | 证据 |
+| --- | --- |
+| `AsyncImagePainter.State.Success` 带 `result: SuccessResult` | `getResult()` 存在 |
+| `SuccessResult.getDataSource(): coil3.decode.DataSource` | 存在；枚举取值为 `MEMORY_CACHE / MEMORY / DISK / NETWORK` |
+| 因此 `hitCache` 可判 | `dataSource == DataSource.MEMORY_CACHE` 即"命中预取/历史缓存" |
+| `coil3.fetch.FetchResult` 是**空标记接口** | `javap` 只有 `public interface coil3.fetch.FetchResult {}`，无任何成员 |
+| `EventListener` 的方法签名里**没有字节数** | 只有 `fetchStart/fetchEnd/onSuccess` 等，`fetchEnd` 只给 `FetchResult`（而它是空接口） |
+
+**结论**：
+- `latencyMs`（进页 → `State.Success`）、`dwellMs`（页面切换时结算）、`hitCache`（`dataSource`）**三个字段能拿真值**；
+- `bytes` **拿不到** —— 想拿真值只有两条路：包一层自定义 `Fetcher`（侵入较大），或让共享层支持"字节未知"这个状态。
+
+**三条路与代价（下一步要选一条，不选就不接）**：
+1. **给共享层加"bytes 未知"语义**（例如 `PageSample.bytes: Long? = null` 或 `bytes = 0 表示未知`，
+   并让适应度在未知时**不把字节计入**）—— 改动小但要改算法侧并补单测，且要保证"未知"不会被当成"0 字节"混进评分；
+2. **自定义 Coil Fetcher 统计字节** —— 最接近真实，但侵入请求链路，风险最高；
+3. **Android 不接反馈，只用默认深度** —— 最保守：Android 侧算法不学（等于没生效），但绝不会有假数据。
+
+我的倾向是 1（能真学、也不撒谎），但**必须连单测一起补**：证明"bytes 未知"的样本不会让算法学到错误方向。
+在选定之前，Android 反馈侧**不上线**——按第二十之四节的纪律：缺真值就宁可不接。
