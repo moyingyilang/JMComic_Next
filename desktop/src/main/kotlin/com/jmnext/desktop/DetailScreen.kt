@@ -76,6 +76,7 @@ fun DetailScreen(
 ) {
     var detail by remember(comicId) { mutableStateOf<AlbumDetail?>(null) }
     var status by remember(comicId) { mutableStateOf("正在加载作品…") }
+    var loading by remember(comicId) { mutableStateOf(true) }
     var favorite by remember(comicId) { mutableStateOf(false) }
     // 追更状态：初始态由下面单独的 LaunchedEffect 从接口取（详情接口不下发这个字段）。
     var tracked by remember(comicId) { mutableStateOf(false) }
@@ -105,11 +106,13 @@ fun DetailScreen(
                 detail = it
                 favorite = it.isFavorite
                 status = "${it.name.orEmpty()} · ${it.series.size} 话 · 相关 ${it.relatedList.size} 部"
+                loading = false
                 System.err.println("[详情] 数据到达：${it.name} 作者${it.author.size}人 标签${it.tags.size}个 章节${it.series.size}话 相关${it.relatedList.size}部")
             }
             .onFailure {
                 if (it is CancellationException) return@onFailure
                 status = "加载失败：${it.message}"
+                loading = false
                 it.printStackTrace()
             }
     }
@@ -276,7 +279,12 @@ fun DetailScreen(
         ) {
             TextButton(onClick = onBack) { Text("返回") }
             // 状态/错误文案可选：用户常要把它贴给别人看（详情页加载失败、接口报错都走这里）
-            SelectionContainer { Text(status, style = MaterialTheme.typography.titleMedium) }
+                // 加载中与失败分开表达：失败时不该转圈（此前两者共用同一个 status）
+                if (loading) {
+                    LoadingHint("正在加载作品…")
+                } else {
+                    SelectionContainer { Text(status, style = MaterialTheme.typography.titleMedium) }
+                }
         }
 
         val d = detail ?: return@Column
