@@ -81,7 +81,7 @@ mkdir -p "$TOP"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 cp -a "$STAGE" "$TOP/SOURCES/jmnext-app"
 cat > "$TOP/SPECS/jmnext.spec" <<'SPEC'
 Name:           jmnext
-Version:        2.0.0
+Version:        @V@
 Release:        1
 Summary:        JMNeXt desktop client (x86_64)
 License:        AGPL-3.0-only
@@ -101,22 +101,21 @@ chmod 755 %{buildroot}/usr/bin/jmnext
 /opt/jmnext
 /usr/bin/jmnext
 SPEC
+sed -i "s/@V@/$V/" "$TOP/SPECS/jmnext.spec"
 # rpm：本机 rpmbuild（aarch64）会以 "No compatible architectures found for build"
 # 拒绝跨架构构建（试过八种 define 组合均无效）。绕法是**让 rpmbuild 自己就是 x86_64**：
 # 装 rpm:amd64（多架构），再用 qemu 运行它 —— 它看到的宿主就是 x86_64，
 # 于是这条构建路径与在真机上完全一致，而不是伪造架构标记。
 RPM_OK=0
-if rpmbuild -bb --define "_topdir $TOP" --define "_target_cpu x86_64" "$TOP/SPECS/jmnext.spec" 2>/dev/null; then
-  RPM_OK=1
-elif [ -x /usr/bin/qemu-x86_64-static ] && [ -x /usr/bin/rpmbuild ]; then
-  echo "  本机 rpmbuild 拒绝跨架构，改用 qemu 运行 x86_64 的 rpmbuild"
-  if /usr/bin/qemu-x86_64-static /usr/bin/rpmbuild -bb --define "_topdir $TOP" \
-       "$TOP/SPECS/jmnext.spec" 2>&1 | tail -2; then
-    RPM_OK=1
-  fi
+RPM_OK=0
+if [ -x /usr/bin/qemu-x86_64-static ]; then
+  # 本机 rpmbuild 是 aarch64，跨架构会被拒；qemu 跑 x86_64 的 rpmbuild，并显式指定 buildroot（否则 %install 失败）
+  /usr/bin/qemu-x86_64-static /usr/bin/rpmbuild -bb --define "_topdir $TOP" --define "_buildrootdir $TOP/BUILDROOT" "$TOP/SPECS/jmnext.spec" 2>&1 | tail -3
+  [ -n "$(find "$TOP/RPMS" -name "*.rpm" 2>/dev/null)" ] && RPM_OK=1
+  [ "$RPM_OK" = 1 ] || { echo "  rpmbuild 完整输出的末尾 25 行（含失败的那条命令）:"; tail -25 "$TOP/rpm.log" | sed 's/^/    /'; }
 fi
 if [ "$RPM_OK" = 1 ]; then
-  find "$TOP/RPMS" -name "*.rpm" -exec cp {} "$OUT/" \;
+  find "$TOP/RPMS" -name "*.rpm" -exec cp {} "$OUT/Linux-x86_64-$V.rpm" \;
   echo "  rpm 成功"
 else
   echo "  rpm 失败：需在 x86_64 环境构建（已记档，不影响其它三类产物）"
