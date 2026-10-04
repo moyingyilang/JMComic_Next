@@ -85,6 +85,8 @@ import com.jmnext.ui.screens.settings.BlockSettingsScreen
 import com.jmnext.ui.screens.tags.TagFavoritesScreen
 import com.jmnext.ui.theme.JmTheme
 import com.jmnext.ui.theme.MotionSpec
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 
 /**
  * 底部主导航。
@@ -429,7 +431,15 @@ fun JmNavHost(
     // 共享元素（"触发前位置 → 触发后位置"）必须活在同一个 SharedTransitionLayout 里
     SharedTransitionLayout {
     CompositionLocalProvider(LocalSharedTransitionScope provides this) {
+    // 瞬时反馈：把 Notices 的当前条推给 Snackbar 显示（同一 id 重复触发会重新弹一次）
+    val noticeHostState = remember { SnackbarHostState() }
+    val noticeItem by Notices.state.collectAsState()
+    LaunchedEffect(noticeItem?.id) {
+        val n = noticeItem ?: return@LaunchedEffect
+        noticeHostState.showSnackbar(n.text)
+    }
     Scaffold(
+        snackbarHost = { SnackbarHost(noticeHostState) },
         containerColor = Color.Transparent,
         contentColor = JmTheme.colors.text,
         bottomBar = {
