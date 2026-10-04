@@ -130,8 +130,13 @@ private fun HomeScreen(onOpen: (ListItem) -> Unit) {
             page.items.take(3).forEach { System.err.println("[界面] 作品：${it.name} · ${it.author}") }
             status = "首页 ${page.items.size} 条" + if (page.hidden > 0) "（屏蔽规则挡掉 ${page.hidden} 条）" else ""
         }.onFailure {
-            if (it is CancellationException) return@onFailure
-            if (it is kotlinx.coroutines.CancellationException) return@onFailure
+            // 协程取消不是加载失败：这里记一行"正面证据"。
+            // 为什么必须记：只写 return 的话，日志里"没有报错"既可能是修好了，也可能是根本没走到这条路径，
+            // 两者无法区分（本项目犯过这个错：把"没有日志"当成"事实为假"）。
+            if (it is CancellationException || it is kotlinx.coroutines.CancellationException) {
+                System.err.println("[界面] 协程取消，已忽略（不是加载失败）")
+                return@onFailure
+            }
             status = "加载失败：${it.message}"
             System.err.println("[界面] $status")
         }
