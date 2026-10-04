@@ -455,3 +455,15 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 
 **Android 端接线尚未开始**：它的预取窗口取自 `LiteFeatures.prefetchBefore/After`（full 与 lite 两个变体取值不同，
 两处都要看），并发上限同样不存在。接线时按同一套：参数从 `SelfTune.params()` 取、样本按上面三件事喂回。
+
+### 二十之三、桌面端算法接线：已完成（参数 + 反馈）
+
+| 部分 | 内容 | 提交 |
+| --- | --- | --- |
+| 参数侧 | 阅读页预取深度不再是硬编码 6，改为 `SelfTuner.prefetchDepth`（共享层 `SelfTune.params()`），并把实际深度写进日志 | `d408fc2` |
+| 字节数出口 | `RemoteImage.loadSized(url): Loaded(bitmap, bytes)` 与 `downloadedSize(url)`（按 URL 记，命中缓存为 0）；原 `load` 委托它，调用点不变 | `24e0749` |
+| 反馈侧 | 阅读页进页记时、离页结算，把 `PageSample(latencyMs, bytes, hitCache, failed, dwellMs)` 喂回 `SelfTuner.onPage`；图片未备好即被取消时调 `onCancellation()` | 见本节提交 |
+| 主动不接 | `prefetchConcurrency` 两端都没有对应物（桌面串行预取、Android 无并发上限），不为"用满四个旋钮"造假落点 | —— |
+
+**仍未做**：Android 端接线（`LiteFeatures.prefetchBefore/After` 是它的旋钮，full 与 lite 取值不同）。
+**证据边界**：全部只有编译证据；算法是否真的改善体验必须靠真机数据，本环境做不了 GUI 运行时验证。
