@@ -1,4 +1,12 @@
 package com.jmcomic_next.desktop
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.layout.onSizeChanged
 
@@ -175,6 +183,11 @@ fun ReaderScreen(
         val pagerState = androidx.compose.foundation.pager.rememberPagerState(
             initialPage = currentPage.coerceIn(0, (p.images.size - 1).coerceAtLeast(0)),
         ) { p.images.size }
+
+        // 键盘翻页用的焦点请求：桌面特有（Android 端只有手势）。
+        // 第一步只把焦点基础设施就位；按键处理在下一步加到内容区那一行上。
+        val focusRequester = remember { FocusRequester() }
+        LaunchedEffect(Unit) { focusRequester.requestFocus() }
         // 预取当前页之后的 2 页图片（下载+解码都提前做完，翻页时直接命中缓存）。
         // 依据：配对实测 381 个样本显示反切片总耗时中位数 1284ms，其中**下载 1078ms（约 84%）**，
         // 而解码+画band 合计仅 86ms —— 所以真正有效的优化是把"按需下载"挪到后台，而不是改解码。
