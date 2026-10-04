@@ -44,7 +44,7 @@ fun ComicCover(repository: JmRepository, item: ListItem, modifier: Modifier = Mo
         label = "coverAlpha",
     )
 
-    Column(modifier = modifier.clickable { onOpen() }) {
+    Column(modifier = modifier.jmClickable { onOpen() }) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
