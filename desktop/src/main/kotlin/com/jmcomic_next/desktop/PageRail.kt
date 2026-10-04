@@ -111,7 +111,7 @@ fun PageRail(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .offset { IntOffset(0, (((trackH - 18) * frac).toInt()).coerceAtLeast(0)) }
+                    .offset { IntOffset(0, (((trackH - with(density) { 18.dp.roundToPx() }) * frac).toInt()).coerceAtLeast(0)) }
                     .size(18.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary),
