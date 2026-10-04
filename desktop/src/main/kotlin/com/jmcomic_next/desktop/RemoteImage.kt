@@ -77,20 +77,37 @@ object RemoteImage {
 
     fun cached(url: String): ImageBitmap? = cache[url]
 
-    /** 普通加载（不需反切片）。 */
-    suspend fun load(url: String): ImageBitmap? {
-        cache[url]?.let { return it }
+    /** 每个 URL 上次真正下载的字节数（命中缓存则没有记录，天然为 0）。供自学习采样查询。 */
+    private val sizes = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
+    fun downloadedSize(url: String): Long = sizes[url] ?: 0L
+
+    /** 一次加载的结果：图 + **本次真正下载的字节数**（命中缓存时为 0）。 */
+    data class Loaded(val bitmap: ImageBitmap?, val bytes: Long)
+
+    /**
+     * 带字节数的普通加载。阅读页用它喂自学习的样本（[com.jmcomic_next.lyqs.selftune.PageSample] 要 bytes）。
+     *
+     * 为什么单独一个方法而不是加个可变字段：预取与显示会**并发**调它，共享一个 "last" 值会取到别人的数字，
+     * 那种采样比不采样更糟。
+     */
+    suspend fun loadSized(url: String): Loaded {
+        cache[url]?.let { return Loaded(it, 0L) }
         val t0 = System.currentTimeMillis()
-        val bytes = download(url, "普通") ?: return null
+        val bytes = download(url, "普通") ?: return Loaded(null, 0L)
         val bitmap = runCatching { Image.makeFromEncoded(bytes).toComposeImageBitmap() }.getOrNull()
         if (bitmap == null) {
             Log.error("图片", "Skiko 解码失败 url=$url bytes=${bytes.size}")
-            return null
+            return Loaded(null, bytes.size.toLong())
         }
+        sizes[url] = bytes.size.toLong()
         Log.line("图片", "普通加载成功 ${bitmap.width}x${bitmap.height} ${bytes.size}B ${System.currentTimeMillis() - t0}ms")
         cache[url] = bitmap
-        return bitmap
+        return Loaded(bitmap, bytes.size.toLong())
     }
+
+    /** 普通加载（不需反切片）。原有调用点不变。 */
+    suspend fun load(url: String): ImageBitmap? = loadSized(url).bitmap
 
     /** 需要反切片时的加载路径：ImageIO 解码 → 像素还原 → 回填。 */
     suspend fun loadScrambled(url: String, aid: Int, page: String): ImageBitmap? {
