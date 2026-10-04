@@ -1,4 +1,5 @@
 package com.jmcomic_next.lyqs.ui.screens.reader
+import com.jmcomic_next.lyqs.data.SelfTuner
 
 import com.jmcomic_next.lyqs.data.prefs.SharedPrefsKeyValueStore
 import com.jmcomic_next.lyqs.LiteFeatures
@@ -1027,8 +1028,18 @@ private fun PageFallback(text: String?, placeholderRatio: Float?, onClick: (() -
 }
 
 /** 预取窗口：见 [LiteFeatures.prefetchBefore] / [LiteFeatures.prefetchAfter]（lite 下更保守）。 */
-private val PREFETCH_BEFORE get() = LiteFeatures.prefetchBefore
-private val PREFETCH_AFTER get() = LiteFeatures.prefetchAfter
+/**
+ * 预取窗口：基准值仍来自 [LiteFeatures]（lite 更保守、full 为 2/8），
+ * 再由自学习调参器按比例缩放 —— **默认深度 6 时缩放系数为 1，窗口与今天完全一致**，
+ * 只有算法在用户设备上学出别的深度时才会变。这样"接线"不会顺手改掉既有手感。
+ */
+private fun scalePrefetch(base: Int): Int {
+    val depth = SelfTuner.prefetchDepth
+    return ((base * depth + 3) / 6).coerceIn(1, 12)
+}
+
+private val PREFETCH_BEFORE get() = scalePrefetch(LiteFeatures.prefetchBefore)
+private val PREFETCH_AFTER get() = scalePrefetch(LiteFeatures.prefetchAfter)
 
 /**
  * 把当前页前后的一段提前发出去。

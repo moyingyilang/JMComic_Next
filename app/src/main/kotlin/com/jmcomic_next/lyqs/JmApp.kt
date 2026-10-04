@@ -1,4 +1,5 @@
 package com.jmcomic_next.lyqs
+import com.jmcomic_next.lyqs.data.SelfTuner
 
 import com.jmcomic_next.lyqs.data.auth.AndroidKeystoreKeyProvider
 import com.jmcomic_next.lyqs.data.auth.SecureStore
@@ -89,6 +90,9 @@ class JmApp : Application(), SingletonImageLoader.Factory {
     }
 
     override fun onCreate() {
+        // 自学习调参器：算法核心在 shared，与桌面端共用同一份实现；学习状态落盘、跨重启延续。
+        // 未接上时阅读页取到的是默认深度（窗口与今天一致），接上后才开始学。
+        SelfTuner.init(this)
         super.onCreate()
         instance = this
     }
