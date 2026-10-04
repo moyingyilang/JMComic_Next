@@ -53,6 +53,12 @@ import com.jmnext.data.prefs.BlockStore
 import com.jmnext.data.prefs.ReadProgressStore
 import com.jmnext.data.remote.dto.ListItem
 import java.io.File
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 
 /**
  * 桌面端第一版界面：首页列表（2.0.0）。
@@ -385,7 +391,17 @@ private fun App() {
             }
 
             Box(Modifier.weight(1f)) {
-                when (val s = screen) {
+                AnimatedContent(
+                    targetState = screen,
+                    modifier = Modifier.fillMaxSize(),
+                    transitionSpec = {
+                        (fadeIn(tween(durationMillis = Motion.PAGE_MS, easing = Motion.Enter)) +
+                            slideInHorizontally(tween(durationMillis = Motion.PAGE_MS, easing = Motion.Enter)) { it / 14 })
+                            .togetherWith(fadeOut(tween(durationMillis = Motion.QUICK_MS, easing = Motion.Exit)))
+                    },
+                    label = "route",
+                ) { target ->
+                when (val s = target) {
                     is Screen.Home -> HomeScreen(
                         onOpen = openComic,
                         onOpenSection = { id, title ->
@@ -474,6 +490,7 @@ private fun App() {
                         val title = NAV_ITEMS.firstOrNull { it.first == s.route }?.second ?: s.route
                         PageShell(title = title, planned = PAGE_PLANS[s.route] ?: "（待补）")
                     }
+                }
                 }
             }
         }
