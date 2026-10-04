@@ -1,4 +1,5 @@
 package com.jmcomic_next.desktop
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.layout.onSizeChanged
 
 import androidx.compose.foundation.Image
@@ -144,7 +145,7 @@ fun ReaderScreen(
         },
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).zIndex(1f),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -208,8 +209,7 @@ fun ReaderScreen(
             }
         }
         Row(
-            Modifier.fillMaxSize().onSizeChanged {
-                Log.line("阅读", "内容区尺寸 " + it.width + "x" + it.height + " 像素（若高度为 0 就是排版把内容压没了）")
+            Modifier.fillMaxSize().padding(top = 52.dp, bottom = 76.dp).onSizeChanged {
             },
         ) {
         // 两种模式共用侧栏：只替换内容区（LazyColumn ↔ PagedReader），PageRail 留在外面
