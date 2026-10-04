@@ -313,3 +313,30 @@ README 的写法建议：只写两个读法（X = cross 跨平台，加上最终
 
 **改名后的展示语义**（第十三节）：`JMNeXt`，X = cross（跨平台）与 extended（扩展、加强）；
 包名、产物名、仓库名一律小写 `jmnext`。
+
+## 二十、第 8 步"算法接线"清单（第 1.9.443 那一步要用的）
+
+**已确认的接口（`shared/.../selftune/SelfTune.kt`）**：`class SelfTune(...)`（第 41 行，构造时要给它
+`enabled` 与一个 `SelfTuneStore` 实现）、`params(): ParamValues`（第 109 行，未启用时返回默认值）、
+`onPage(sample: PageSample): WindowOutcome?`（第 137 行，非 null 表示一个窗口结束）、
+`onCancellation()`（第 145 行）、`stats()`（第 112 行）、内部 `save()`（第 239 行）。
+类文档（第 38 到 39 行）写明了预期用法：**每页结束时**调 `onPage(PageSample(...))`，
+**窗口开始时**读 `params()` 并应用。
+
+**可调旋钮（`shared/.../selftune/Tunables.kt`）**：`prefetchDepth` 2 到 12（默认 6）、
+`prefetchConcurrency` 1 到 3（默认 1）、`cacheBudgetMB` 64 到 512（默认 256）、
+`retryBackoffMs` 200 到 3000（默认 800）。
+
+**桌面端的接线点（已定位）**：`desktop/.../ReaderScreen.kt` 的预取逻辑（第 193 到 212 行有在途去重集合
+`prefetchInFlight`，第 233 到 237 行在读到 60% 时预取下一章）。**待定位**：当前"往前取几页"与"并发几条"
+这两个量在代码里没有显式常量（很可能体现为循环边界或干脆没有上限）—— 接线时要先把它们**变成显式变量**
+再交给 `SelfTune.params()`，否则"算法在调参"这句话没有落点。
+另需给桌面端写一个 `SelfTuneStore` 实现（用 `PreferencesKeyValueStore`，参考 `TagsScreen.kt` 的用法），
+以及决定 `enabled` 从哪里来（建议放设置页，默认开或默认关要明确写出来）。
+
+**Android 端的接线点（待定位）**：在 `app/src/main/kotlin` 下按 `prefetch`、`PREFETCH`、`concurrency`、
+`concurrent` 全库搜一次（我按 `data/` 与 `ui/reader/` 两个目录搜过，没有命中，说明路径不对，不要照抄我的路径）。
+Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算法核心在 shared，两端共用同一份）。
+
+**纪律提醒**：接线的证据等级只能到"编译通过 + 日志显示参数被读取"。**"算法真的改善了体验"必须靠真机数据**，
+本环境做不了（第十二节），不要用"已经接上"来暗示效果，也不要用日志里出现过某参数就当成功。
