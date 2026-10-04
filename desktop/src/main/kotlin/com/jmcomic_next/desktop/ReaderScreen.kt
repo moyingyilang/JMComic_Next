@@ -160,6 +160,12 @@ fun ReaderScreen(
 
         val p = payload ?: return@Column
 
+        // 横向翻页用的 pager 状态。放在这里（payload 可用之后）是因为页数取自 p.images.size；
+        // 用全限定名调用，避免再动 import。（第 3 步接线时由 PagedReader 使用。）
+        val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+            initialPage = currentPage.coerceIn(0, (p.images.size - 1).coerceAtLeast(0)),
+        ) { p.images.size }
+
         // ── 预加载下一话 ──
         // 只预取"下一话的图片列表"（一次 read 请求），**不整话下载图片** ——
         // 整话预下载会把内存与流量放大几十倍，这里刻意不做；代价就是翻到下一话时
