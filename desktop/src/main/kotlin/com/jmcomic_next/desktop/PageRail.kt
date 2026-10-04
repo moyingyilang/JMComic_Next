@@ -1,48 +1,56 @@
 package com.jmcomic_next.desktop
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 /**
  * 竖排侧栏（桌面端，1.9.x）。
  *
- * 布局按用户 1.9.015 之后的明确要求，自上而下：
- *   1. **滑块**（最上，占侧栏高度一半以上 —— 用户要求"滑条不要做短"）；
- *   2. **五个功能按钮**（取自 Android 阅读页底栏：横向/纵向 · 章节 · 评论 · 收藏 · 点赞）；
- *   3. **上一话 / 下一话**（最下，两个挨在一起，**上面是上一话、下面是下一话**）。
+ * **滑轨是自己画的，不再用 material3 的 Slider 旋转**。
  *
- * 五个功能里，桌面端**尚未实现**的先置灰（传 null），不假装能用：
- *   - 横向/纵向：桌面端只有纵向滚动这一种模式，横翻等于再做一套翻页实现；
- *   - 章节：桌面端的章节选择在详情页右栏，阅读页内还没有选择器；
- *   - 评论 / 收藏：功能已有，但需要把回调从详情页接进阅读页（下一步）；
- *   - 点赞：要先确认共享层是否有接口。
+ * 为什么换：实测日志里给滑轨划的区域是 484px / 总高 662px（占 73%），
+ * 但旋转后的 Slider **并不撑满这块空间** —— 控件有自己的内在尺寸与内边距，
+ * 旋转只是把绘制转过去，尺寸仍受它自己约束，所以看上去一直短。
+ * 自己画一条轨道就没有这层不确定性：轨道高度 = 我给的高度。
  *
- * 滑块用 weight(1f) 吃掉中间**剩余**的全部高度，其余部分刻意压扁（按钮内边距为 0、
- * 文案两字），这样滑块自然占到一半以上 —— 之前显得短，是因为两端元素太占地方。
+ * 布局（自上而下，按用户逐条要求）：
+ *   1. 滑轨：`fillMaxHeight(0.7f)` —— 固定占侧栏 70% 高度，不参与"剩余空间"分配；
+ *   2. 页码一行；
+ *   3. 五个功能按钮（Android 阅读页底栏那五个；传 null 的置灰）；
+ *   4. 上一话 / 下一话：两个挨在一起，上面上一话、下面下一话。
  *
- * 竖过来的做法没变：BoxWithConstraints 量出可用高度当作旋转前的宽度，再绕中心旋转 -90 度，
- * 于是 Slider 的拇指、主题色与手感全部继承 material3。
+ * 交互：点击或上下拖动轨道任意位置即跳到对应页（换算按轨道实际像素高度，随窗口变化自动正确）。
  */
 @Composable
 fun PageRail(
@@ -61,49 +69,90 @@ fun PageRail(
     modifier: Modifier = Modifier,
 ) {
     val max = (total - 1).coerceAtLeast(0)
+    val frac = if (max <= 0) 0f else current.coerceIn(0, max).toFloat() / max
+    var trackH by remember { mutableStateOf(0) }
     val tight = PaddingValues(0.dp)
-    // px 与 dp 要按显示器缩放换算，插桩里两个都报，避免拿 px 直接和 dp 比
     val density = LocalDensity.current
 
     Column(
-        modifier = modifier.width(40.dp).fillMaxHeight().padding(vertical = 2.dp)
-            .onSizeChanged { val h = it.height; Log.line("阅读", "侧栏尺寸：总高 " + h + "px / " + with(density) { h.toDp() } + "dp") },
+        modifier = modifier.width(40.dp).fillMaxHeight().padding(vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // ── 1. 滑块：占中间剩余高度的全部（即侧栏一半以上）──
+        // ── 1. 滑轨：固定占 70%（不靠"剩余空间"，避免被按钮挤短）──
         Box(
-            modifier = Modifier.fillMaxWidth().weight(1f)
-                .onSizeChanged { val h = it.height; Log.line("阅读", "侧栏尺寸：滑块区高 " + h + "px / " + with(density) { h.toDp() } + "dp") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.7f)
+                .padding(vertical = 6.dp)
+                .onSizeChanged {
+                    trackH = it.height
+                    Log.line("阅读", "侧栏滑轨高 " + it.height + "px / " + with(density) { it.height.toDp() } + "dp")
+                },
             contentAlignment = Alignment.Center,
         ) {
-            BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Slider(
-                    value = current.coerceIn(0, max).toFloat(),
-                    onValueChange = { onSeek(it.roundToInt().coerceIn(0, max)) },
-                    valueRange = 0f..max.toFloat().coerceAtLeast(1f),
-                    modifier = Modifier
-                        .width(maxHeight.coerceAtLeast(120.dp))
-                        .graphicsLayer { rotationZ = 90f },
-                )
-            }
+            // 底轨
+            Box(
+                modifier = Modifier
+                    .width(6.dp)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(MaterialTheme.colorScheme.outlineVariant),
+            )
+            // 已读部分：从顶往下
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .width(6.dp)
+                    .fillMaxHeight(frac)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+            )
+            // 把手
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset { IntOffset(0, (((trackH - 18) * frac).toInt()).coerceAtLeast(0)) }
+                    .size(18.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+            )
+            // 手势层：点击或拖动都换算成页码（按轨道实际像素高度，窗口变化后依然正确）
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+                    .pointerInput(max, trackH) {
+                        detectTapGestures { o ->
+                            if (trackH > 0 && max > 0) {
+                                onSeek(((o.y / trackH) * max).roundToInt().coerceIn(0, max))
+                            }
+                        }
+                    }
+                    .pointerInput(max, trackH) {
+                        detectVerticalDragGestures { ch, _ ->
+                            if (trackH > 0 && max > 0) {
+                                onSeek(((ch.position.y / trackH) * max).roundToInt().coerceIn(0, max))
+                            }
+                        }
+                    },
+            )
         }
 
-        // ── 2. 五个功能按钮（Android 底栏那五个；传 null 的置灰）──
-        RailAction("纵向", onToggleMode)
-        RailAction("章节", onOpenPicker)
-        RailAction("评论", onOpenComments)
-        RailAction("收藏", onToggleFavorite)
-        RailAction("点赞", onToggleLike)
-
-        // 页码贴在滑块与按钮之外的位置：放到功能按钮下面，
-        // 这样滑块能从栏顶一直延伸到功能按钮上方（用户要求"滑条从顶到功能按钮顶"）。
+        // ── 2. 页码 ──
         Text(
             text = "${current + 1}/$total",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        // ── 3. 上一话 / 下一话：挨在一起，上为上一话、下为下一话 ──
+        // ── 3. 五个功能按钮 ──
+        RailAction("纵向", onToggleMode)
+        RailAction("章节", onOpenPicker)
+        RailAction("评论", onOpenComments)
+        RailAction("收藏", onToggleFavorite)
+        RailAction("点赞", onToggleLike)
+
+        // ── 4. 上一话（上）/ 下一话（下）──
         TextButton(onClick = onPrev, enabled = hasPrev, contentPadding = tight, modifier = Modifier.height(26.dp)) {
             Text("<", style = MaterialTheme.typography.titleMedium)
         }
@@ -117,10 +166,10 @@ fun PageRail(
 @Composable
 private fun RailAction(label: String, action: (() -> Unit)?) {
     TextButton(
-        modifier = Modifier.height(22.dp),
         onClick = { action?.invoke() },
         enabled = action != null,
         contentPadding = PaddingValues(0.dp),
+        modifier = Modifier.height(22.dp),
     ) {
         Text(label, style = MaterialTheme.typography.labelSmall)
     }
