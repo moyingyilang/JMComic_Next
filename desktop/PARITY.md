@@ -1080,3 +1080,14 @@ bat 用 `-cp "jmcomic-next.jar;skiko-windows-x64.jar" com.jmcomic_next.desktop.M
 正确判据是"jar 里有没有 `.dll`"。已在 `scripts/package-windows-x64.sh` 里写成硬性验收。
 
 **仍未做**：Windows **ARM** 的 ZIP 很可能有同样问题（从没在真机跑过）；Linux 的 x86_64 包也值得同样核查。
+
+## 用户决定的范围（2026-10-04，此后照此执行）
+
+1. **Windows ARM64 与 Linux x86_64 的包：放着即可**，不必再投入真机验证 —— "有 issue 再说"。
+   两者已在 v1.9.128 随其他产物一起发布；包内已核对含原生库（Windows ZIP 含 skiko jar、
+   Linux deb 含 `libskiko-linux-x64.so`），但**"文件在"不等于"能跑"**，此风险用户已接受。
+2. **iOS / macOS 不再发布** —— 用户自己的决定，不再尝试。
+
+因此后续重点收窄为：桌面端 Linux（aarch64 为主）+ Windows x64 的**功能与性能**，
+以及原目标里那件有实测依据的事：**反切片单张耗时中位数 2715ms / P90 3646ms（145 样本）的
+整块取像素改造**（不改公式、保留失败兜底，改后用同三项指标复量）。
