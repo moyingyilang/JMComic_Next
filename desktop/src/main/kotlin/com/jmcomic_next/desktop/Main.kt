@@ -102,6 +102,9 @@ fun main() {
 
 private fun runApp() = application {
     Window(
+        // 应用图标：取自 Android 端 mipmap-xxxhdpi 的启动图标（项目自己的资源），
+        // 由 scripts 打包脚本同样引用 src/main/resources/icon.png，保持两处一致。
+        icon = androidx.compose.ui.res.painterResource("icon.png"),
         onCloseRequest = ::exitApplication,
         title = "JMComic_Next",
         state = rememberWindowState(width = 1100.dp, height = 820.dp),

@@ -42,8 +42,8 @@ exec "$DIR/lib/runtime/bin/java" \
   com.jmcomic_next.desktop.MainKt "$@"
 LAUNCH
 chmod 755 "$STAGE/bin/jmcomic-next"
-cp /data/data/com.termux/files/home/jmc/.work/r9.png "$STAGE/jmcomic-next.png" 2>/dev/null || true
-cp /data/data/com.termux/files/home/jmc/.work/r9.png "$OUT/jmcomic-next.png" 2>/dev/null || true
+cp $(cd "$(dirname "$0")/.." && pwd)/src/main/resources/icon.png "$STAGE/jmcomic-next.png" 2>/dev/null || true
+cp $(cd "$(dirname "$0")/.." && pwd)/src/main/resources/icon.png "$OUT/jmcomic-next.png" 2>/dev/null || true
 
 echo "== 2/5 架构自检（不通过就拒绝出包）=="
 file "$STAGE/lib/runtime/bin/java" | grep -q "x86-64" || { echo "  失败：运行时不是 x86-64"; exit 1; }

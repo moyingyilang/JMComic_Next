@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.."
 OUT=${1:-dist}
 GRADLE=${GRADLE:-/opt/gradle-9.8.0/bin/gradle}
 APP=build/compose/binaries/main/app/jmcomic-next
-ICON=${ICON:-/data/data/com.termux/files/home/jmc/.work/r9.png}
+ICON=${ICON:-$(cd "$(dirname "$0")/.." && pwd)/src/main/resources/icon.png}
 
 # ── 自检用的标记串 ────────────────────────────────────────────────
 # 说明：这里必须用 grep 而不是 strings —— strings 默认只输出 ASCII，
