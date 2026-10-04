@@ -1,0 +1,7 @@
+GPL-2.0-or-later
+
+本目录下的脚本以 GNU 通用公共许可证第 2 版或（由你选择）其后任何版本发布。
+许可证全文见 https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt
+（若要把本工具独立成仓库，建议放入 LICENSE 全文，或在 GitHub 上用许可证选择器生成。）
+
+SPDX 标识符：GPL-2.0-or-later
