@@ -765,3 +765,29 @@ aarch64 四类 + x86_64 三类 + Windows ZIP 都已产出并核对过字节数�
 
 **由此推出的下一条工作准则**：动手前先看 Android 对应实现（`app/src/main/kotlin/.../ui/screens/...`），
 按它的结构、控件、文案、交互来；桌面端只做"平台适配"（键盘/鼠标、窗口尺寸），不重新设计。
+
+## 章节选择器移植方案（已读透 Android 实现，待用户选 A/B 后实施）
+
+**Android 原实现**（`app/.../ui/screens/reader/ChapterPickerDialog.kt`，142 行）：
+
+| 部分 | 内容 |
+| --- | --- |
+| 形态 | `AlertDialog`，标题「选择章节」 |
+| 列表 | 分页：每页 chunkSize 话，`series.drop(page*chunkSize).take(chunkSize)` |
+| 每行 | 话号 `sort` + 话名（空则"第 N 话"），点击 → `onPick(chapter.id)` |
+| 当前话 | 用强调色底标出（原注释："翻页后一眼能找到「我在哪」"） |
+| confirmButton | 图标按钮一行 + 文字：翻页（上一页/下一页）+ 第 x/y 页 |
+| dismissButton | 「关闭」 |
+| **它记的坑** | 滚动状态要 `remember(safePage) { ScrollState(0) }` **按页取**；否则翻页后新页停在底部，看起来像"这页内容缺了一半" |
+
+**桌面端移植要点**（按"样式跟 Android 同步"）：
+1. `AlertDialog` + 同样的标题、分页与当前话高亮，**含上面那个滚动状态的坑**；
+2. confirmButton 里 Android 用图标 ✗ —— 桌面端未引入 material-icons，改用文字「上一页 / 下一页」+「第 x/y 页」，
+   并在注释里标明这处差异（与此前 PageRail 的处理一致）；
+3. 接线：侧栏的「章节」按钮（现为置灰）→ 打开该对话框。
+
+**待用户定**：对话框要显示话名，而阅读页目前只有 `chapterIds`（无话名）。
+- A：打开时在阅读页请求一次 `repository.album(comicId)` —— 每次多一次请求，改动只在阅读页；
+- B（我建议）：由详情页把 `series` 随路由传进阅读页 —— 无额外请求，需给 `Screen.Reader` 加字段并改两处调用。
+
+**未做**：以上均未实施；本轮只做了调研与记录（不构建，遵守负载纪律）。
