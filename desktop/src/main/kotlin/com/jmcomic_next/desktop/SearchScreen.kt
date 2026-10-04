@@ -1,4 +1,5 @@
 package com.jmcomic_next.desktop
+import androidx.compose.runtime.LaunchedEffect
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -107,6 +108,24 @@ fun SearchScreen(
     var month by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
+    // 未搜索时的建议：热门标签 + 随机推荐（照 Android：这两个只影响"没搜索时"那一屏，失败就留空）
+    var hotTags by remember { mutableStateOf<List<String>>(emptyList()) }
+    var recommend by remember { mutableStateOf<List<ListItem>>(emptyList()) }
+    var suggestBusy by remember { mutableStateOf(false) }
+
+    fun reloadSuggest() {
+        suggestBusy = true
+        scope.launch {
+            runCatching { repository.hotTags() }
+                .onSuccess { hotTags = it }
+                .onFailure { Log.line("搜索", "热门标签读取失败（留空继续）：${it.message}") }
+            runCatching { repository.randomRecommend() }
+                .onSuccess { recommend = it }
+                .onFailure { Log.line("搜索", "随机推荐读取失败（留空继续）：${it.message}") }
+            suggestBusy = false
+        }
+    }
+
     fun runSearch(nextPage: Int) {
         if (query.isBlank()) return
         // 记历史只在真的发起搜索时做（翻页不重复记）
@@ -156,6 +175,8 @@ fun SearchScreen(
             busy = false
         }
     }
+
+    LaunchedEffect(Unit) { reloadSuggest() }
 
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -238,6 +259,36 @@ fun SearchScreen(
                     TextButton(enabled = !busy, onClick = { query = h; runSearch(1) }) { Text(h) }
                 }
                 TextButton(enabled = !busy, onClick = { history = historyStore.clear() }) { Text("清空") }
+            }
+        }
+
+        if (items.isEmpty()) {
+            if (hotTags.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text("热门标签：", style = MaterialTheme.typography.labelMedium)
+                    // 顺序由服务端给，不自行排序（照 Android）
+                    hotTags.take(12).forEach { tag ->
+                        TextButton(enabled = !busy, onClick = { query = tag; type = "tag"; runSearch(1) }) { Text(tag) }
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text("随机推荐：", style = MaterialTheme.typography.labelMedium)
+                recommend.take(6).forEach { item ->
+                    // 用标题按钮而不是封面：ComicCover 是给网格用的，塞进行内排版会变形
+                    TextButton(enabled = !busy, onClick = { onOpenComic(item) }) {
+                        Text(item.name.orEmpty().take(12))
+                    }
+                }
+                TextButton(enabled = !suggestBusy, onClick = { reloadSuggest() }) { Text("换一批") }
             }
         }
 
