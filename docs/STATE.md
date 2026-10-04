@@ -467,3 +467,25 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
 
 **仍未做**：Android 端接线（`LiteFeatures.prefetchBefore/After` 是它的旋钮，full 与 lite 取值不同）。
 **证据边界**：全部只有编译证据；算法是否真的改善体验必须靠真机数据，本环境做不了 GUI 运行时验证。
+
+### 二十之四、Android 端算法接线：参数侧已完成，反馈侧的落点已找到
+
+**已完成（参数侧，提交 `78cccb7`）**：`app/.../data/SelfTuner.kt`（算法核心用 shared 的 `SelfTune`，
+状态落 `SharedPrefsKeyValueStore("jm_selftune")`，未初始化时返回默认值）；`JmApp.onCreate` 调 `init(this)`；
+`ReaderScreen` 的 `PREFETCH_BEFORE/AFTER` 改为**按比例缩放**（`(base*depth+3)/6`，默认深度 6 时系数为 1、
+窗口与今天逐位相同）。`:app:compileFullDebugKotlin` 与 `:app:compileLiteDebugKotlin` 都通过。
+
+**反馈侧的落点已找到（未实现）**：Android 阅读页用 Coil 显示图片
+（`rememberAsyncImagePainter(request)`，`ReaderScreen.kt:946`），并且**已经有**状态判断
+`if (state is AsyncImagePainter.State.Success)`（`:958`）。所以：
+
+| 字段 | 取法 | 把握 |
+| --- | --- | --- |
+| `latencyMs` | 页面进入时记时间戳，`State.Success` 时结算 | 高（挂钩现成） |
+| `dwellMs` | 页面切换时结算上一页（与桌面端同一做法） | 高（只需时间戳） |
+| `hitCache` | Coil 的 success 结果里能拿到数据来源（内存缓存/网络），据此判断 | 中（需确认 coil3 的字段名） |
+| `bytes` | Coil 的 success 结果里**拿不到**下载字节数，需要挂 Coil 的 `EventListener` 或改用自定义请求 | 低（需先验证，别猜） |
+
+**纪律重申**：`bytes` 若一时拿不到真值，**宁可先不上反馈**，也不要用 0 填 —— 用假值喂 `PageSample`
+会让算法拿错信号学，比不学更糟（与第二十之二节同一条）。所以 Android 反馈侧的完成标准是：
+四个字段全为真值、编译通过；缺一个就不算接完。
