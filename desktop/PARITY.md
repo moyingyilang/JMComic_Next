@@ -840,3 +840,30 @@ deb 条目数 452 vs 正常的 234），内容是 `lib/app/app/libskiko-linux-ar
 3. 若异常，`--clobber` 覆盖附件即可，不必撤下（包能跑，只是臃肿）。
 
 **已知未修**：根因未查明；下次打包时按上面第 2 条做判定，若再出现就能拿到"出现时"的现场。
+
+## 横向翻页模式（1.9.027，大功能）：Android 实现与桌面移植方案
+
+**Android 现状（读源码得到，不是猜的）**：
+
+| 项 | 内容 |
+| --- | --- |
+| 模式枚举 | `com.jmcomic_next.lyqs.data.prefs.ReaderMode`，在**共享层**，值 `Scroll`（纵向连续滚动）与 `Page`（横向逐页、每页适配整屏）—— **桌面端可直接复用，不必自己造** |
+| 控件 | `androidx.compose.foundation.pager.HorizontalPager` + `rememberPagerState` |
+| 结构 | 两个可组合分别实现：`ScrollReader` 与 `PagedReader`，按 `mode` 切换；侧栏按钮 `onToggleMode` 在两者间切换 |
+| 持久化 | Android 存在 `AppPrefs` 里；桌面端可用自己的 `PreferencesKeyValueStore` 存同一枚举 |
+
+**桌面端移植方案（分三步，每步可编译）**：
+1. **加模式状态与持久化**：复用共享的 `ReaderMode`，用 `PreferencesKeyValueStore` 存；
+   先在阅读页顶部/侧栏显示当前模式（不改翻页行为）；
+2. **实现 `PagedReader`**：把现有 `LazyColumn` 的 `Scroll` 分支保持不变，
+   新增 `Page` 分支用 `HorizontalPager`（每页一张图、适配整屏、可左右滑动/键盘翻页）；
+3. **与侧栏联动**：`Page` 模式下侧栏滑轨显示 pager 的当前页，`onSeek` 改为
+   `pagerState.scrollToPage(...)`；`Scroll` 模式下维持现状（LazyColumn 的 firstVisibleItemIndex）。
+
+**风险与代价**：
+- 这是这批里最大的一项（等于再做一套翻页）；桌面端还要处理**键盘**（左右方向键、PageUp/Down）
+  和**鼠标滚轮**——Android 只需要手势，这部分是桌面特有的适配，属"平台适配"不是重新设计；
+- 缩放/适配整屏（`ContentScale.Fit`）在两种模式下的表现要一致，否则切模式会跳；
+- 切模式时应保留"读到第几页"（两种模式各自的位置语义不同，需要换算，不能直接复用索引）。
+
+**未做**：以上均未实施；本轮只做了源码调研与方案记录（不构建，遵守负载纪律）。
