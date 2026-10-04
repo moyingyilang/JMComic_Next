@@ -53,7 +53,7 @@ object UpdateCheck {
         return if (t.isEmpty()) "https://github.com/$repo/releases" else "https://github.com/$repo/releases/tag/$t"
     }
 
-    const val REPO = "moyingyilang/JMComic_Next"
+    const val REPO = "moyingyilang/JMNeXt"
 
     /** GitHub 的"最新发布"接口。 */
     const val LATEST_RELEASE_API = "https://api.github.com/repos/$REPO/releases/latest"

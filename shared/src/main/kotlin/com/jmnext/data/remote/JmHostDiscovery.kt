@@ -36,7 +36,7 @@ private data class HostPayload(
  * 主机发现。
  *
  * 官方客户端的域名是构建期注入的环境变量（`REACT_APP_HOST` 等），还原出的源码里看不到字面量，
- * 因此这里改用**运行时可用**的入口：旧版 `JMComic_Next` 的 `JMConfig` 中记录的
+ * 因此这里改用**运行时可用**的入口：旧版 `JMNeXt` 的 `JMConfig` 中记录的
  * `jm-discover.com/api/domain/list`。
  *
  * 响应体是密文，用固定种子 `md5(diosfjckwpqpdfjkvnqQjsik)` 做 AES-256-ECB 解密，
