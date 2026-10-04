@@ -13,9 +13,9 @@
 | V2 | 1.9.x 是跨架构与界面移植的预构建，CHANGELOG **必须写明无主项目（Android 端）更新** | 每版 CHANGELOG 均已写明 |
 | V3 | 2.0.0 只在全部测试与移植完成后发；后来补充：用户觉得可以了也可以发 | 未发；等全部条件与用户确认 |
 | V4 | 集成自学习算法属"大方向加入迁移"，**+300** → 先发一个 1.9.4xx 基线 | 进行中（算法接线完成后发 1.9.443，基线为已发布最新的 1.9.143） |
-| V5 | 2.0.0 要改名 JMNeXt（大写 X 表示 cross / 跨平台），因为与另一个项目重名 | 未做；已定在 1.9.443 之后 |
-| V6 | 改名要**深改、改彻底**；短名字更好写；去掉包名里的 `lyqs` 段 | 未做；方案已写入 `desktop/PARITY.md` |
-| V7 | Android applicationId **这次不动**（保老用户能升级），2.0.0 之后另开一版再换 | 已记录，未做 |
+| V5 | 2.0.0 要改名 JMNeXt（大写 X 表示 cross / 跨平台） | **已完成**：包名、namespace、applicationId、展示名、产物名、日志名全改；X 另有 extended（扩展、加强）之义，已写入 README 与 CHANGELOG |
+| V6 | 改名要**深改、改彻底**；短名字更好写；去掉包名里的 `lyqs` 段 | **已完成**：`com.jmcomic_next.lyqs.*` → `com.jmnext.*`、`com.jmcomic_next.desktop` → `com.jmnext.desktop`；清单见 `docs/STATE.md` 第十九节 |
+| V7 | Android applicationId **这次不动**（保老用户能升级），2.0.0 之后另开一版再换 | **已按用户后续决定改为"一并全改"**：applicationId → `com.jmnext` / `com.jmnext.lite`（理由：applicationId 相同即同一应用身份，与原项目撞名会互相覆盖）；代价是老版本不能覆盖安装、需重装，已写入 CHANGELOG |
 | V8 | 编译完到发布前一刻要叫用户，用户去改仓库名 | 未到；发布 2.0.0 前必须执行 |
 | V9 | 每个版本 9 个产物：Linux aarch64 四类（portable/deb/rpm/AppImage）、x86_64 三类（portable/deb/AppImage）、Windows x64 与 arm64 免装 Java ZIP | 每版均如此 |
 | V10 | 每个包必须有对应平台的 Skiko 原生库（Windows ZIP 内必须有 skiko-windows-*.jar，缺则拒绝出包） | 已固化为打包脚本内的硬断言，并在每版发布前核对 |

@@ -17,21 +17,21 @@ Android 端移植而来，两端共用同一个 `shared` 数据层。这是一�
 ## 下载
 
 发布页：[github.com/moyingyilang/JMNeXt/releases](https://github.com/moyingyilang/JMNeXt/releases)。
-桌面端当前版本 **2.0.0**，属于跨平台预构建线（GitHub 上标为 **pre-release**，见[路线图](#路线图)），
+桌面端当前版本 **2.0.0**（正式版），与 Android 端共用同一份数据层与自学习算法；下载见上方表格，历史预构建版本保留在 Releases 列表里。
 每个版本固定 9 个附件，命名与下表一致。
 
 | 平台 | 架构 | 格式 | 附件名 | 状态 |
 | --- | --- | --- | --- | --- |
-| Linux | aarch64 | 便携 tar.gz | `jmcomic-next-2.0.0-linux-aarch64-portable.tar.gz` | 可用 |
-| Linux | aarch64 | deb | `jmcomic-next_2.0.0_arm64.deb` | 可用 |
-| Linux | aarch64 | rpm | `jmcomic-next-2.0.0-1.aarch64.rpm` | 可用 |
-| Linux | aarch64 | AppImage | `jmcomic-next-2.0.0-aarch64.AppImage` | 可用 |
-| Linux | x86_64 | 便携 tar.gz | `jmcomic-next-2.0.0-linux-x86_64-portable.tar.gz` | 未在真机跑过 |
-| Linux | x86_64 | deb | `jmcomic-next_2.0.0_amd64.deb` | 同左 |
-| Linux | x86_64 | AppImage | `jmcomic-next-2.0.0-x86_64.AppImage` | 同左 |
+| Linux | aarch64 | 便携 tar.gz | `jmnext-2.0.0-linux-aarch64-portable.tar.gz` | 可用 |
+| Linux | aarch64 | deb | `jmnext_2.0.0_arm64.deb` | 可用 |
+| Linux | aarch64 | rpm | `jmnext-2.0.0-1.aarch64.rpm` | 可用 |
+| Linux | aarch64 | AppImage | `jmnext-2.0.0-aarch64.AppImage` | 可用 |
+| Linux | x86_64 | 便携 tar.gz | `jmnext-2.0.0-linux-x86_64-portable.tar.gz` | 未在真机跑过 |
+| Linux | x86_64 | deb | `jmnext_2.0.0_amd64.deb` | 同左 |
+| Linux | x86_64 | AppImage | `jmnext-2.0.0-x86_64.AppImage` | 同左 |
 | Linux | x86_64 | rpm | 无 | **出不来**，见[已知限制](#已知限制) |
-| Windows | x64 | 免装 Java 的 ZIP | `jmcomic-next-2.0.0-windows-x64.zip` | 可用（用户真机确认） |
-| Windows | arm64 | 免装 Java 的 ZIP | `jmcomic-next-2.0.0-windows-arm64.zip` | 真机未验证 |
+| Windows | x64 | 免装 Java 的 ZIP | `jmnext-2.0.0-windows-x64.zip` | 可用（用户真机确认） |
+| Windows | arm64 | 免装 Java 的 ZIP | `jmnext-2.0.0-windows-arm64.zip` | 真机未验证 |
 | Android | arm64 / armv7 | APK（`full` / `lite`） | 见 Releases 页 | 已发布至 1.8.2 |
 
 两个 Windows ZIP 都自带 Temurin JRE 21 与对应架构的 Skiko 原生库，解压后双击 `jmcomic-next.bat`，
@@ -46,15 +46,15 @@ macOS 与 iOS 不再发布。
 Linux 便携包（解压后运行 `./bin/jmcomic-next`）：
 
 ```bash
-tar xzf jmcomic-next-2.0.0-linux-aarch64-portable.tar.gz && ./bin/jmcomic-next
+tar xzf jmnext-2.0.0-linux-aarch64-portable.tar.gz && ./bin/jmcomic-next
 ```
 
 deb（x86_64 换成 `_amd64.deb`）、rpm、AppImage：
 
 ```bash
-sudo dpkg -i jmcomic-next_2.0.0_arm64.deb && jmcomic-next
-sudo rpm -i jmcomic-next-2.0.0-1.aarch64.rpm && jmcomic-next
-chmod +x jmcomic-next-2.0.0-aarch64.AppImage && ./jmcomic-next-2.0.0-aarch64.AppImage
+sudo dpkg -i jmnext_2.0.0_arm64.deb && jmcomic-next
+sudo rpm -i jmnext-2.0.0-1.aarch64.rpm && jmcomic-next
+chmod +x jmnext-2.0.0-aarch64.AppImage && ./jmnext-2.0.0-aarch64.AppImage
 ```
 
 系统缺 `libfuse.so.2` 时，AppImage 可以不挂载直接跑：加 `--appimage-extract-and-run`。运行时需要
