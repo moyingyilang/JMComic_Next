@@ -1,4 +1,5 @@
 package com.jmcomic_next.desktop
+import com.jmcomic_next.lyqs.selftune.PageSample
 import androidx.compose.foundation.focusable
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -194,6 +195,40 @@ fun ReaderScreen(
         // 只做串行预取：按 N+1、N+2…… 的顺序取，最近的页优先备好；并发会让更靠后的页先到，反而没用。
         // 失败不影响阅读：两条加载路径自带兜底与日志，这里只记一行结果便于验证。
         val prefetchInFlight = remember { java.util.Collections.synchronizedSet(mutableSetOf<String>()) }
+        // 自学习采样（反馈侧）：进页记时与是否命中预取，离页时结算成样本喂回调参器。
+        // 只采样"用户真正停留过的页"；预取动作本身不采样（它没有停留时长，喂进去只会污染信号）。
+        // 取消单独统计：图片还没备好就被取消，算"被打断"，不算失败。
+        LaunchedEffect(chapterId, currentPage, mode, p.id) {
+            val idx = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage
+            val img = p.images.getOrNull(idx) ?: return@LaunchedEffect
+            val entered = System.currentTimeMillis()
+            val hitCache = RemoteImage.cached(img.image) != null
+            var ready = hitCache
+            var latency = 0L
+            try {
+                // 等本页图片可用（命中预取时几乎立刻）；最多 15 秒，超时按失败样本记。
+                while (RemoteImage.cached(img.image) == null && System.currentTimeMillis() - entered < 15_000L) {
+                    kotlinx.coroutines.delay(50)
+                }
+                ready = RemoteImage.cached(img.image) != null
+                latency = System.currentTimeMillis() - entered
+                // 停留时长要等离开这一页才知道，所以挂起等到本页结束。
+                kotlinx.coroutines.awaitCancellation()
+            } finally {
+                val dwell = System.currentTimeMillis() - entered
+                if (!ready) SelfTuner.onCancellation()
+                SelfTuner.onPage(
+                    PageSample(
+                        latencyMs = if (hitCache) 0L else latency,
+                        bytes = RemoteImage.downloadedSize(img.image),
+                        hitCache = hitCache,
+                        failed = !ready,
+                        dwellMs = dwell,
+                    ),
+                )
+            }
+        }
+
         LaunchedEffect(chapterId, currentPage, mode) {
             val start = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage
             scope.launch {
