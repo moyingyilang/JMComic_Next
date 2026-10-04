@@ -61,6 +61,8 @@ fun ReaderScreen(
     chapterIds: List<String> = emptyList(),
     onBack: () -> Unit,
     onSwitchChapter: (String) -> Unit = {},
+    // 评论入口由 Main 传入（阅读页不持有路由）；收藏与点赞在栏内直接调 repository。
+    onOpenComments: (String) -> Unit = {},
 ) {
     var payload by remember(chapterId) { mutableStateOf<ReadPayload?>(null) }
     // 页级进度：桌面端专用（共享层那份是章节粒度，Android 按那个工作）
@@ -205,6 +207,27 @@ fun ReaderScreen(
             hasNext = nextId != null,
             onPrev = { prevId?.let(onSwitchChapter) },
             onNext = { nextId?.let(onSwitchChapter) },
+            onOpenComments = { onOpenComments(comicId) },
+            onToggleFavorite = {
+                scope.launch {
+                    runCatching { repository.toggleFavorite(comicId) }
+                        .onSuccess { Log.line("阅读", "收藏状态已切换（写操作，未验证）") }
+                        .onFailure {
+                            if (it is CancellationException) return@onFailure
+                            Log.error("阅读", "切换收藏失败", it)
+                        }
+                }
+            },
+            onToggleLike = {
+                scope.launch {
+                    runCatching { repository.like(comicId) }
+                        .onSuccess { Log.line("阅读", "已点赞（写操作，未验证）") }
+                        .onFailure {
+                            if (it is CancellationException) return@onFailure
+                            Log.error("阅读", "点赞失败", it)
+                        }
+                }
+            },
         )
         }
     }

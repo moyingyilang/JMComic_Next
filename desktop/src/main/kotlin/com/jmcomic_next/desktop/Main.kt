@@ -250,6 +250,7 @@ private fun App() {
                         repository = repository,
                         comicId = s.id,
                         onBack = { screen = Screen.Home },
+                        onOpenComments = { aid -> screen = Screen.Page("comments:" + aid) },
                         onOpenComic = openComic,
                         onOpenComments = { aid -> screen = Screen.Page("comments:" + aid) },
                         progress = readProgress,
