@@ -34,7 +34,7 @@ import androidx.compose.runtime.getValue
  * 封面比例 3:4 与 Android 端一致（服务端封面模板就是 3x4）。
  */
 @Composable
-fun ComicCover(repository: JmRepository, item: ListItem, onOpen: () -> Unit) {
+fun ComicCover(repository: JmRepository, item: ListItem, modifier: Modifier = Modifier, onOpen: () -> Unit) {
     val coverUrl = remember(item.id) { runCatching { repository.coverUrl(item) }.getOrNull() }
     val bitmap = rememberRemoteImage(coverUrl)
     // 图片淡入（数值取自 Motion）：从空/占位到实图不啪地出现
@@ -44,7 +44,7 @@ fun ComicCover(repository: JmRepository, item: ListItem, onOpen: () -> Unit) {
         label = "coverAlpha",
     )
 
-    Column(modifier = Modifier.clickable { onOpen() }) {
+    Column(modifier = modifier.clickable { onOpen() }) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()

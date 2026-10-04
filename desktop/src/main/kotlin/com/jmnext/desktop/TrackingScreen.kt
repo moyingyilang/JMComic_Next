@@ -130,7 +130,7 @@ fun TrackingList(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxWidth().weight(1f),
         ) {
-            items(items, key = { it.id }) { item -> ComicCover(repository, item) { onOpenComic(item) } }
+            items(items, key = { it.id }) { item -> ComicCover(repository, item, modifier = Modifier.animateItem()) { onOpenComic(item) } }
         }
     }
 }

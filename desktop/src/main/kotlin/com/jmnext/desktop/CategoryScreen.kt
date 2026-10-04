@@ -319,7 +319,7 @@ fun CategoryScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    items(visibleItems, key = { it.id }) { item -> ComicCover(repository, item) { onOpenComic(item) } }
+                    items(visibleItems, key = { it.id }) { item -> ComicCover(repository, item, modifier = Modifier.animateItem()) { onOpenComic(item) } }
                     // 分组标签（categories 响应的 blocks）铺满整行放在结果之后 —— 照 Android：
                     // 它是「换个方式浏览」的出口，不该抢结果上方的位置，也不该与结果争列宽。
                     if (blocks.isNotEmpty() && tagMode == null) {

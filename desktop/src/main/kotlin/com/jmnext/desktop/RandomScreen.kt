@@ -201,7 +201,7 @@ fun RandomScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxWidth().weight(1f),
             ) {
-                items(visibleItems, key = { it.id }) { item -> ComicCover(repository, item) { onOpenComic(item) } }
+                items(visibleItems, key = { it.id }) { item -> ComicCover(repository, item, modifier = Modifier.animateItem()) { onOpenComic(item) } }
             }
         }
     }

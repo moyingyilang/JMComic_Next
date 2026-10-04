@@ -132,7 +132,7 @@ fun WeekScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
-            items(items, key = { it.id }) { item -> ComicCover(repository, item) { onOpenComic(item) } }
+            items(items, key = { it.id }) { item -> ComicCover(repository, item, modifier = Modifier.animateItem()) { onOpenComic(item) } }
             if (items.isNotEmpty()) {
                 item {
                     Button(

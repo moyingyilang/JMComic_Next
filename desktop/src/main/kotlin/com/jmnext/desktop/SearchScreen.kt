@@ -327,7 +327,7 @@ fun SearchScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             items(visibleItems, key = { it.id }) { item ->
-                ComicCover(repository, item) { onOpenComic(item) }
+                ComicCover(repository, item, modifier = Modifier.animateItem()) { onOpenComic(item) }
             }
             if (items.isNotEmpty() && items.size < total) {
                 item {

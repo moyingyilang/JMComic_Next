@@ -130,7 +130,7 @@ fun MoreListScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             items(visibleItems, key = { it.id }) { item ->
-                ComicCover(repository, item) { onOpenComic(item) }
+                ComicCover(repository, item, modifier = Modifier.animateItem()) { onOpenComic(item) }
             }
         }
     }
@@ -275,7 +275,7 @@ fun WeeklyUpdateScreen(repository: JmRepository, onOpenComic: (ListItem) -> Unit
             modifier = Modifier.fillMaxSize(),
         ) {
             items(visibleItems, key = { it.id }) { item ->
-                ComicCover(repository, item) { onOpenComic(item) }
+                ComicCover(repository, item, modifier = Modifier.animateItem()) { onOpenComic(item) }
             }
         }
     }

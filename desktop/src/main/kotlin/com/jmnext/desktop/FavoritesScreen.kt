@@ -249,7 +249,7 @@ fun FavoriteScreen(
         ) {
             items(items, key = { it.id }) { item ->
                 Column {
-                    ComicCover(repository, item) { onOpenComic(item) }
+                    ComicCover(repository, item, modifier = Modifier.animateItem()) { onOpenComic(item) }
                     TextButton(
                         onClick = {
                             busy = true
