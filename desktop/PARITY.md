@@ -373,3 +373,38 @@ Log.line("反切片成功 ... ${now - t0}ms")      // 这行测的是**上面六
 并保证 `runCatching` 块内最后一个表达式仍是位图（否则那段代码的返回值会变味）。
 **下一步**：等用户跑一次，读出六段各占多少，再决定动哪一段并写清代价；
 若大头在"取像素/回填"，可改用 `BufferedImage` 的 `DataBuffer` int 数组省掉两次全量拷贝。
+
+## 本地基准：像素取/回填不是主因（同尺寸实测）
+
+等不到用户运行明细，就自己量 —— 写了一个不依赖界面的 Java 基准（容器内 JDK 直接跑），
+尺寸取用户日志里那张图的真实尺寸 2116x3037（642 万像素、约 24MB 的 int 数组）：
+
+| 阶段 | 实测 |
+| --- | --- |
+| `setRGB`（回填全部像素） | 45.3 ms |
+| `getRGB`（取出全部像素） | 54.4 ms |
+| `System.arraycopy` 25MB（反切片那种整块拷贝） | 8.9 ms |
+| 取 `DataBuffer` 引用 | 0.1 ms |
+
+**结论：像素取/回填合计约 110 ms，占那 2715 ms 的 4%** —— 所以"改用 DataBuffer 省两次拷贝"
+即使做对了也只省 100 ms 左右，**不是主要矛盾**。
+
+**由日志时间戳反推出的真实大头**（同一张图）：
+
+```
+18.237  Skiko 转码为 PNG 成功 11882004B（原 1444718B）     ← PNG 编码 + 中间产物 12MB
+19.184  反切片成功 2116x3037 1444718B 3282ms                ← 这中间 947 ms 是：
+                                                              ImageIO 解码 12MB PNG
+                                                              + getRGB + arraycopy + setRGB（约 110ms）
+                                                              + toComposeImageBitmap
+```
+
+也就是说，**真正该砍的是 WebP → PNG → ImageIO 这条往返**：Skiko 已经把 WebP 解成像素了，
+却又编码成 12MB 的 PNG，交给 ImageIO 再解一次，然后才轮到我们搬像素。
+
+**下一步（有数据支撑的做法）**：让 Skiko 解码后**直接读像素**（`Bitmap.readPixels`），
+在 IntArray 上做反切片，再用 `Image.makeRaster` 建位图 —— 一次性省掉
+PNG 编码（实测 206 ms 那一行就是它）、12MB 中间产物、ImageIO 二次解码、getRGB/setRGB 与
+BufferedImage→Compose 的转换。风险是像素格式（ARGB 与 premultiplied RGBA 的差别）可能导致
+颜色错乱，因此**必须保留现有的 ImageIO/PNG 兜底路径**，并先用一张图对比新旧两条路径的输出
+（逐像素比对或至少尺寸与通道顺序检查），再交给用户看颜色。
