@@ -51,6 +51,9 @@ class FitnessScorer(
         val bytesPerPage = (m.bytes() / pages / bytesScale).coerceIn(0.0, 10.0)
         val missRate = m.misses().toDouble() / pages
         val failRate = (m.failures() + m.cancellations()).toDouble() / pages
-        return w.latency * latency + w.bytes * bytesPerPage + w.miss * missRate + w.failure * failRate
+        // 字节全部未知时（例如 Android 用 Coil 拿不到字节数）把这一项的权重整个丢掉，
+        // 而不是把未知当成 0 —— 否则这一端会显得无限省流量从而支配评分。
+        val bytesWeight = if (m.bytesKnownCount() > 0) w.bytes else 0.0
+        return w.latency * latency + bytesWeight * bytesPerPage + w.miss * missRate + w.failure * failRate
     }
 }
