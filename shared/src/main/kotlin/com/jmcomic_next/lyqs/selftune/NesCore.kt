@@ -57,6 +57,22 @@ internal class NesCore(
     /** 当前学习率（每代按 etaDecay 衰减；默认不衰减）。 */
     private var etaNow: Double = eta
 
+    /**
+     * 从持久化状态恢复（进程重启后继续学习）。
+     * 只接受形状与取值都合法的输入，否则抛异常由调用方回默认值。
+     */
+    fun restore(meanValues: DoubleArray, sigmaValue: Double, bestXValue: DoubleArray, bestFitnessValue: Double) {
+        require(meanValues.size == dim) { "恢复的均值维度不对" }
+        require(bestXValue.size == dim) { "恢复的精英维度不对" }
+        require(sigmaValue.isFinite() && sigmaValue > 0.0) { "恢复的步长非法：$sigmaValue" }
+        for (j in 0 until dim) {
+            mean[j] = meanValues[j].coerceIn(0.0, 1.0)
+            bestX[j] = bestXValue[j].coerceIn(0.0, 1.0)
+        }
+        sigma = sigmaValue.coerceIn(sigmaMin, sigmaMax)
+        bestFitness = bestFitnessValue
+    }
+
     private val rnd = java.util.Random(seed)
 
     /** 抽一代候选：lambda 个向量，两两对偶（θ+σε 与 θ-σε）；越界按镜像折回。 */
