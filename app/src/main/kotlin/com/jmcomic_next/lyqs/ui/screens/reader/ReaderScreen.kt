@@ -1,4 +1,6 @@
 package com.jmcomic_next.lyqs.ui.screens.reader
+import com.jmcomic_next.lyqs.data.ImageBytes
+import com.jmcomic_next.lyqs.data.PageSampler
 import com.jmcomic_next.lyqs.data.SelfTuner
 
 import com.jmcomic_next.lyqs.data.prefs.SharedPrefsKeyValueStore
@@ -955,7 +957,16 @@ private fun ReaderImage(
     // 图到位后把实测比例记下来。这一页自己已经跳完了，但它能让**后面还没加载的页**
     // 一上来就占对高度 —— 这才是「不再被弹走」的关键。
     LaunchedEffect(state) {
-        if (state is AsyncImagePainter.State.Success) {
+        val success = state as? AsyncImagePainter.State.Success
+        if (success != null) {
+            // 自学习采样（页级）：记这一页的延迟/命中/字节。停留时长由屏幕级结算（见 PageSampler 注释：
+            // 组件存活时间不等于用户停留时间）。
+            PageSampler.onImageReady(
+                key = image.fileNameStem,
+                now = System.currentTimeMillis(),
+                hitCache = success.result.dataSource == coil3.decode.DataSource.MEMORY_CACHE,
+                bytes = ImageBytes.diskSize(context, success.result.diskCacheKey),
+            )
             val size = painter.intrinsicSize
             if (size.isSpecified && size.width > 0f && size.height > 0f) {
                 PageRatioMemory.remember(aid, image.image, size.width / size.height)
