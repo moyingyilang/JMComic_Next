@@ -47,3 +47,19 @@
 以上我只验证到"**编译通过、调用链正确**"。**手感（快慢、幅度、是否跟手）没有任何真机/真桌面观察证据**，
 需要使用者确认。另外有一类编译器查不到的坑：`AnimatedContent` 块内若误用外层状态而非动画提供的
 `target`，动画会"空转"（新旧两帧渲染同一页面）——本轮已在桌面端踩到并修正。
+
+## 五、桌面端共享元素：现状与接线清单
+
+**状态：接入件已就位，尚未接线。** `desktop/.../SharedElement.kt` 提供两个 CompositionLocal
+（`LocalSharedScope`、`LocalPageVisibility`）与 `Modifier.jmSharedElement(key)`，结构照 Android 侧同名文件。
+因为接线尚未做，`jmSharedElement` 目前一律走"拿不到作用域就不做事"的分支 —— 没有效果，也不会出错。
+
+接线需要两处（细节写在 `SharedElement.kt` 末尾的注释里）：
+1. `Main.kt`：`AnimatedContent` 外包 `SharedTransitionLayout` + 提供 `LocalSharedScope`；
+   其 lambda 内提供 `LocalPageVisibility provides this@AnimatedContent`（`AnimatedContentScope`
+   本身就是 `AnimatedVisibilityScope`）；
+2. `ComicCover.kt` 与 `DetailScreen.kt` 的封面各加 `.jmSharedElement(jmCoverKey(...))`，key 必须一致。
+
+**为什么没有顺手做完**：前两次尝试都是"按行号插入"，一次因行号偏移导致功能静默失效（编译通过但
+`LocalPageVisibility` 没提供），一次把右括号插错位置直接语法报错。这类跨层结构性改动需要一次连续的、
+基于完整段落读写的实现，不适合边插边编 —— 已回退，保持仓库可编译、与已发布版本一致。
