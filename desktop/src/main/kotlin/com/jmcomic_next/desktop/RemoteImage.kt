@@ -198,6 +198,12 @@ object RemoteImage {
 
     /** 下载并记录状态码、字节数、异常 —— 失败原因的绝大多数都在这里。 */
     private suspend fun download(url: String, kind: String): ByteArray? = withContext(Dispatchers.IO) {
+        // 跳过非 http 资源：作品无封面时接口给的是本地占位图名（例如 nopic-Male.gif），
+        // 那不是 URL，交给 HTTP 客户端会抛 IllegalArgumentException（用户日志里出现过）。
+        if (!url.startsWith("http")) {
+            Log.line("图片", "跳过非 http 资源：" + url)
+            return@withContext null
+        }
         val t0 = System.currentTimeMillis()
         var conn: HttpURLConnection? = null
         try {
