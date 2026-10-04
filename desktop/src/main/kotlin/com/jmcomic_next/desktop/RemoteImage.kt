@@ -37,18 +37,40 @@ import javax.imageio.ImageIO
 object RemoteImage {
 
     /**
-     * 有上限的 LRU 缓存。
+     * 有上限的 LRU 缓存，**按总字节数**限制（256MB）。
      *
-     * 之前是无上限的 ConcurrentHashMap —— 这在阅读页会出事：一话 80 页，
-     * 解码后每页约 1MB（WebP 转 PNG 后更大），整话能吃掉几百 MB 内存。
-     * 桌面端一次只看得见一两页，超出窗口的图没必要留着。
-     *
-     * 上限按"张数"而不是"字节"：因为张数好推理，而单张大小的差别（几十 KB 到几 MB）
-     * 用字节上限反而会出现"一张大图挤掉全部小图"的抖动。64 张约覆盖两三屏。
+     * 从前按张数限 64 张。而一张 2116x3037 的解码位图约 25MB（宽 x 高 x 4 字节），
+     * 64 张的上限就是约 1.6GB —— 阅读时前后翻页很快把缓存填满，直接导致系统换页、
+     * 整机变慢（用户报过"宿主机 SoC 空转"与"应用连 API 都超时"，两件事同源）。
+     * 按字节算才给出真实的内存上限：大图多占、小图少占，逐出仍按最久未使用。
      */
+    private const val CACHE_MAX_BYTES = 256L * 1024 * 1024
+
+    /** 一张解码位图占的内存：宽 x 高 x 4 字节（ARGB）。 */
+    private fun bitmapBytes(b: ImageBitmap): Long = b.width.toLong() * b.height * 4
+
     private val cache = java.util.Collections.synchronizedMap(
-        object : LinkedHashMap<String, ImageBitmap>(64, 0.75f, true) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ImageBitmap>?) = size > 64
+        object : LinkedHashMap<String, ImageBitmap>(16, 0.75f, true) {
+            private var bytes = 0L
+
+            override fun put(key: String, value: ImageBitmap): ImageBitmap? {
+                val old = super.put(key, value)
+                bytes += bitmapBytes(value)
+                if (old == null) {
+                    // 新键：只加不减
+                } else {
+                    bytes -= bitmapBytes(old)
+                }
+                // accessOrder = true 时，entries 的迭代顺序就是"最久未使用在前"，
+                // 所以从头逐出即可，不必自己维护使用顺序。
+                val it = entries.iterator()
+                while (bytes > CACHE_MAX_BYTES && it.hasNext()) {
+                    val e = it.next()
+                    bytes -= bitmapBytes(e.value)
+                    it.remove()
+                }
+                return old
+            }
         },
     )
 
