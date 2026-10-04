@@ -184,7 +184,9 @@ fun ReaderScreen(
         // 键盘翻页用的焦点请求：桌面特有（Android 端只有手势）。
         // 第一步只把焦点基础设施就位；按键处理在下一步加到内容区那一行上。
         val focusRequester = remember { FocusRequester() }
-        LaunchedEffect(Unit) { focusRequester.requestFocus() }
+        // 键里带 mode 与 chapterId：切换阅读模式会重建内容区（焦点节点被销毁），
+        // 只写 LaunchedEffect(Unit) 的话只在首次组合请求一次，切换后键盘就失效了（对应 issue #2 第 2 条）。
+        LaunchedEffect(mode, chapterId) { focusRequester.requestFocus() }
         // 预取当前页之后的若干页图片（下载+解码都提前做完，翻页时直接命中缓存）。
         // 依据（真机实测，2026-10-04）：
         //  - 反切片总耗时里下载占绝大部分：配对 381 样本 → 总 1284ms、下载 1078ms、解码+画band 86ms；
@@ -327,6 +329,7 @@ fun ReaderScreen(
         // 作用域，风险大，故先不做。
         }
         PageRail(
+            modeLabel = if (mode == ReaderMode.Page) "横向" else "纵向",
             modifier = Modifier.align(androidx.compose.ui.Alignment.CenterEnd).width(40.dp),
             current = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage,
             total = p.images.size,
@@ -392,6 +395,7 @@ Log.line("阅读", "章节选择：开始请求 album(comicId)…")
             },
         )
         ReaderBottomBar(
+            modeLabel = if (mode == ReaderMode.Page) "横向" else "纵向",
             modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
             visible = true,
             current = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage,

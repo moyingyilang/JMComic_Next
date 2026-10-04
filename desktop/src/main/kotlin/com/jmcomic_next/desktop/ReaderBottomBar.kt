@@ -54,6 +54,7 @@ fun ReaderBottomBar(
     hasNextPage: Boolean,
     onPrevPage: () -> Unit,
     onNextPage: () -> Unit,
+    modeLabel: String = "纵向",
     onToggleMode: (() -> Unit)? = null,
     onOpenPicker: (() -> Unit)? = null,
     onOpenComments: (() -> Unit)? = null,
@@ -103,7 +104,7 @@ fun ReaderBottomBar(
 
                         Spacer(Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            BarAction("纵向", onToggleMode)
+                            BarAction(modeLabel, onToggleMode)
                             BarAction("章节", onOpenPicker)
                             BarAction("评论", onOpenComments)
                             BarAction("收藏", onToggleFavorite)

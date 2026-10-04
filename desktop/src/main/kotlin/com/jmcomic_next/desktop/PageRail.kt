@@ -61,6 +61,7 @@ fun PageRail(
     hasNext: Boolean,
     onPrev: () -> Unit,
     onNext: () -> Unit,
+    modeLabel: String = "纵向",
     onToggleMode: (() -> Unit)? = null,
     onOpenPicker: (() -> Unit)? = null,
     onOpenComments: (() -> Unit)? = null,
@@ -146,7 +147,7 @@ fun PageRail(
         )
 
         // ── 3. 五个功能按钮 ──
-        RailAction("纵向", onToggleMode)
+        RailAction(modeLabel, onToggleMode)
         RailAction("章节", onOpenPicker)
         RailAction("评论", onOpenComments)
         RailAction("收藏", onToggleFavorite)
