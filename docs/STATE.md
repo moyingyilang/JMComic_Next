@@ -22,7 +22,7 @@
 
 ```bash
 # 桌面端编译
-.work/enter.sh -c 'export JAVA_HOME=/opt/jdk21-linux LD_LIBRARY_PATH=/opt/jdk21-linux/lib; cd desktop && nice -n 19 /opt/gradle-9.8.0/bin/gradle --console=plain --no-daemon compileKotlin 2>&1 | grep -E "^e: |BUILD "'
+.work/enter.sh 'export JAVA_HOME=/opt/jdk21-linux LD_LIBRARY_PATH=/opt/jdk21-linux/lib; cd desktop && nice -n 19 /opt/gradle-9.8.0/bin/gradle --console=plain --no-daemon compileKotlin 2>&1 | grep -E "^e: |BUILD "'
 
 # Android 端核验（任务名必须写全，否则报 Ambiguous matches）
 :app:compileFullDebugKotlin  :app:compileLiteDebugKotlin
@@ -113,3 +113,24 @@ Android full/lite 两个 flavor 编译通过；算法核心 7 个单测、调参
 **仍未做**：连载更新表（类型 + 星期，用 `weekIssues()`/`weekList(issueId, type, page)`）—— 同属 4a 的第二部分，
 已明确停在这里（不糊假表）。下一步按顺序：第 5 项中等 8 项 → 第 6 项下载（实情是小件）→ 第 7 项连载提醒
 （桌面只能用 SystemTray，且仅程序运行时有效）→ 标签级屏蔽整条链路 → 第 8 项算法接线与 1.9.443 → 改名 → 2.0.0。
+
+## 十、两处环境事实（子代理实测发现，我已按事实修正本文档）
+
+1. **`.work/enter.sh` 不接受 `-c`**：它把收到的参数整行写进容器脚本，所以 `enter.sh -c '命令'` 会让第一行
+   变成 `-c …` 并报 `-c: command not found`。**正确用法是把整条命令作为一个参数**：
+   `.work/enter.sh 'export JAVA_HOME=…; cd … && gradle … 2>&1 | grep -E "^e: |BUILD "'`。
+   本文档上一版写的就是 `-c` 形式，是错的，已修正。
+2. **`write` 工具在本环境会 EACCES**（它用 hardlink 落到目标目录，而这台设备的文件系统不允许）：
+   新建文件要用 **bash heredoc**；覆盖已有文件有时可行，但不可依赖。这不是权限问题（目录属主就是当前用户），
+   是文件系统能力问题。
+
+## 十一、分页下标：两套接口不一样（容易接错）
+
+| 接口 | page 起算 | 说明 |
+| --- | --- | --- |
+| `promoteList(id, page)` | **0** 起算 | 分区「更多」页用；「刷新」重拉第 0 页 |
+| `weeklyUpdate(type, date, page)` | **1** 起算 | 连载更新表（类型 + 星期）用；`total` 恒为 0，靠空页判断到底 |
+| `latest(page)` 等 | 1 起算 | 首页用 |
+
+另记一条已确认的限制：`weeklyUpdate` 在共享层**没有**走 `blockFiltered`，所以那张表的 `hidden` 恒为 0，
+`BlockedNotice` 对它不会显示内容 —— 这是共享层的既有实现，不是桌面端漏做。
