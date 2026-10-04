@@ -69,10 +69,11 @@ fun DetailScreen(
     var detail by remember(comicId) { mutableStateOf<AlbumDetail?>(null) }
     var status by remember(comicId) { mutableStateOf("正在加载作品…") }
     var favorite by remember(comicId) { mutableStateOf(false) }
-    // 追更状态：只做本地翻转。**初始态没有从接口取**（详情接口不下发这个字段，
-    // Android 端为此单独请求一次）；所以第一次进来按钮一律显示"追更"，
-    // 若作品其实已在追更列表里，点一下会变成取消追更。这是已知简化。
+    // 追更状态：初始态由下面单独的 LaunchedEffect 从接口取（详情接口不下发这个字段）。
     var tracked by remember(comicId) { mutableStateOf(false) }
+    // 点赞状态：已赞与否、次数都在 AlbumDetail 里（与 Android 同源），这里只放忙碌标记与提示
+    var likeBusy by remember { mutableStateOf(false) }
+    var likeMessage by remember(comicId) { mutableStateOf<String?>(null) }
     var trackBusy by remember { mutableStateOf(false) }
     var favMessage by remember(comicId) { mutableStateOf<String?>(null) }
     var favBusy by remember { mutableStateOf(false) }
@@ -92,6 +93,15 @@ fun DetailScreen(
                 status = "加载失败：${it.message}"
                 it.printStackTrace()
             }
+    }
+
+    // 追更初始态必须从接口取一次（详情接口不下发这个字段，Android 端也是单独请求一次）。
+    // 早先只做本地翻转：作品其实已在追更列表里时，按钮会错误显示成"追更"，点一下反而变成取消追更。
+    LaunchedEffect(comicId) {
+        if (!repository.auth.isLoggedIn) return@LaunchedEffect
+        val t = runCatching { repository.isTracked(comicId) }.getOrDefault(false)
+        tracked = t
+        Log.line("详情", "追更初始态：" + t)
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -147,6 +157,39 @@ fun DetailScreen(
                             }
                         },
                     ) { Text(if (favorite) "已收藏" else "收藏") }
+
+                    // 点赞：与 Android 端一致 —— 已点过就不再打接口；成功后本地 liked=true、likes+1
+                    Button(
+                        enabled = !likeBusy,
+                        onClick = {
+                            if (d.liked) {
+                                likeMessage = "已经点过赞了"
+                            } else if (!repository.auth.isLoggedIn) {
+                                likeMessage = "请先登录再点赞"
+                            } else {
+                                likeBusy = true
+                                likeMessage = null
+                                scope.launch {
+                                    runCatching { repository.like(d.id) }
+                                        .onSuccess { action ->
+                                            if (action.isOk) {
+                                                detail = d.copy(liked = true, likes = d.likes + 1)
+                                                likeMessage = action.msg ?: "点赞成功"
+                                            } else {
+                                                likeMessage = action.msg ?: "点赞失败"
+                                            }
+                                            Log.line("详情", "点赞：" + likeMessage)
+                                        }
+                                        .onFailure {
+                                            if (it is CancellationException) return@onFailure
+                                            likeMessage = "点赞失败：" + it.message
+                                            Log.error("详情", "点赞失败", it)
+                                        }
+                                    likeBusy = false
+                                }
+                            }
+                        },
+                    ) { Text(if (d.liked) "已赞 " + d.likes else "点赞") }
 
                     // 未登录不显示：否则点了必然失败，还得多跳一次登录页（照抄 Android 端）
                     if (repository.auth.isLoggedIn) {
