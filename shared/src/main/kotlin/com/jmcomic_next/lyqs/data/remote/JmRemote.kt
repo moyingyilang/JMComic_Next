@@ -228,6 +228,11 @@ class JmRemote(
      */
     private fun Throwable.toJmException(): JmException {
         if (this is JmException) return this
+        // 协程取消不是网络故障：必须原样抛出。否则上层会把"切页面/离开阅读页/离开列表"记成加载失败
+        // （日志里出现过：「[界面] 加载失败：网络请求失败：The coroutine scope left the composition」），
+        // 而且会把当前 API 主机错误地标成可疑（session.hostSuspect），影响后续请求的选路。
+        // 用全限定名判断，避免为此改动 import。
+        if (this is kotlinx.coroutines.CancellationException) throw this
         if (this is HttpException) {
             val status = code()
             val parsed = runCatching {
