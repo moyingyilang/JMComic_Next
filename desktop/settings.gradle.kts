@@ -12,4 +12,4 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "JMComic_Next-Desktop"
+rootProject.name = "JMNeXt-Desktop"

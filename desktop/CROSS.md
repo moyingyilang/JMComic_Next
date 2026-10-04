@@ -10,7 +10,7 @@
    Compose 的 Gradle 插件为此提供显式平台限定符（`compose.desktop.linux_x64`），
    不能用 `currentOs` —— 后者解析的是**宿主**平台。
 3. **启动器**：jpackage 不能跨平台生成启动器，Linux 上改用 shell 脚本
-   （`exec java -cp ... com.jmcomic_next.desktop.MainKt`）完全够用。
+   （`exec java -cp ... com.jmnext.desktop.MainKt`）完全够用。
 
 `dpkg-deb` 与 `rpmbuild` 只是打包文件、不做编译，指定目标架构即可
 （`Architecture: amd64` / `--target x86_64`）。

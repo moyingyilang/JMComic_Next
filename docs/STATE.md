@@ -28,7 +28,7 @@
 :app:compileFullDebugKotlin  :app:compileLiteDebugKotlin
 
 # shared 单测
-:shared:test --tests "com.jmcomic_next.lyqs.selftune.*"
+:shared:test --tests "com.jmnext.selftune.*"
 ```
 
 **看报错**：只用 `grep -E "^e: "`（Kotlin 错误固定这样开头），**绝不要加 `tail`** —— 报错在输出前部、
@@ -141,11 +141,11 @@ Android full/lite 两个 flavor 编译通过；算法核心 7 个单测、调参
 
 实测过程（都发生在 1.9.153 的构建产物 `/root/jmnext-new/` 上）：
 
-1. `/root/jmnext-new/bin/jmcomic-next` 是 **ELF 原生启动器**（不是脚本）。用 `bash -x` 跑它会报
+1. `/root/jmnext-new/bin/jmnext` 是 **ELF 原生启动器**（不是脚本）。用 `bash -x` 跑它会报
    `cannot execute binary file`（退出码 126）；包内也**没有** `lib/runtime/bin/java`（这个 app-image 不带内置 JRE），
    所以原生启动器在无 JRE 环境下会立刻退出（退出码 1、无输出）。
 2. 直接用 jar 跑主类可以起来：
-   `java -cp "lib/app/*" com.jmcomic_next.desktop.MainKt`，日志写入
+   `java -cp "lib/app/*" com.jmnext.desktop.MainKt`，日志写入
    `[启动] 渲染后端：软件渲染` 与 `版本 1.9.153，构建时间 2026-10-04 17:41` —— **说明包里带的是这一版**。
 3. 随后崩在 `Main.kt:109` 的 `painterResource`（窗口图标）：
    加载 PNG 会初始化 Skiko 的 `Image`，而 **Skiko 原生库在本 chroot 里加载不了**（`ExceptionInInitializerError`，
@@ -177,7 +177,7 @@ README 的写法建议：只写两个读法（X = cross 跨平台，加上最终
 **这层语义不影响任何改名工作** —— 包名、产物名、仓库名一律 `jmnext`，X 只出现在展示用文本里。
 
 第 8 步要做的事：
-1. 包根 `com.jmcomic_next.desktop` 改为 `com.jmnext.desktop`，`com.jmcomic_next.lyqs.*` 改为 `com.jmnext.*`（去掉 lyqs）；
+1. 包根 `com.jmnext.desktop` 改为 `com.jmnext.desktop`，`com.jmnext.*` 改为 `com.jmnext.*`（去掉 lyqs）；
 2. 窗口标题、`/opt` 安装路径、包名、脚本名、jar 名、产物文件名改为 jmnext（展示处写 JMNeXt）；
 3. 日志文件名如果改，要同步改 `.work/verify.sh`；
 4. **Android applicationId 本次不动**（保老用户能升级），留到 2.0.0 之后另开一版；
@@ -280,19 +280,19 @@ README 的写法建议：只写两个读法（X = cross 跨平台，加上最终
 
 | 位置 | 数量 |
 | --- | --- |
-| `app/` 里声明 `package com.jmcomic_next.lyqs` 的文件 | 60 个（30 个子目录要一起搬） |
+| `app/` 里声明 `package com.jmnext` 的文件 | 60 个（30 个子目录要一起搬） |
 | `shared/` 里声明同上的文件 | 38 个（10 个子目录） |
-| `desktop/` 里声明 `package com.jmcomic_next.desktop` 的文件 | 40 个 |
+| `desktop/` 里声明 `package com.jmnext.desktop` 的文件 | 40 个 |
 | `import com.jmcomic_next...` 行总数 | 574 行 |
-| `desktop/scripts/package-*.sh` | 5 个脚本，脚本内 `jmcomic-next` 出现 107 次 |
-| `jmcomic-next.log` 出现处 | 2 个文件（`Log.kt` 与 `.work/verify.sh`） |
-| 窗口标题 | `Main.kt:116` 的 `title = "JMComic_Next"` |
+| `desktop/scripts/package-*.sh` | 5 个脚本，脚本内 `jmnext` 出现 107 次 |
+| `jmnext.log` 出现处 | 2 个文件（`Log.kt` 与 `.work/verify.sh`） |
+| 窗口标题 | `Main.kt:116` 的 `title = "JMNeXt"` |
 | `/opt/jmnext` | 在脚本与 `desktop/build.gradle.kts` 里**没有出现**（要改安装路径时另行确认） |
 
 **三条容易踩坏的地方（先想清楚再改）**：
 
-1. **`namespace` 与 `applicationId` 本次都不动**（`app/build.gradle.kts:22/27/103`：`com.jmcomic_next.lyqs`
-   与 `.lite`）。因此 **`R` 与 `BuildConfig` 的包路径不变**，所有 `import com.jmcomic_next.lyqs.R`
+1. **`namespace` 与 `applicationId` 本次都不动**（`app/build.gradle.kts:22/27/103`：`com.jmnext`
+   与 `.lite`）。因此 **`R` 与 `BuildConfig` 的包路径不变**，所有 `import com.jmnext.R`
    （以及 `.BuildConfig`）**保持原样**，只改我们自己写的那些包。
 2. **AndroidManifest 里的相对类名要跟着改**：例如 `android:name=".data.SerialNotifyReceiver"` 是相对
    `namespace` 解析的。若把该类搬进 `com.jmnext.*`，Manifest 必须写成新的全限定名，否则运行时报找不到类
@@ -306,7 +306,7 @@ README 的写法建议：只写两个读法（X = cross 跨平台，加上最终
 2. 同一次提交里改 `app`（60 个文件 + 30 个目录，注意 Manifest 的相对类名）与 `desktop`（40 个文件）
    的 `package` 与 `import`；
 3. 核对：`:app:compileFullDebugKotlin`、`:app:compileLiteDebugKotlin`、`desktop` 的 `compileKotlin` 三条都要过；
-4. 再改展示与打包层：窗口标题（`Main.kt:116`）、5 个 `package-*.sh` 里的产物名与 `jmcomic-next` 字样、
+4. 再改展示与打包层：窗口标题（`Main.kt:116`）、5 个 `package-*.sh` 里的产物名与 `jmnext` 字样、
    `Log.kt` 与 `.work/verify.sh` 里的日志名（两处必须同步，否则验证脚本找不到日志）；
 5. 打包核对照旧：9 个产物、体积与上一版对比、Windows ZIP 内含 `skiko-windows-*.jar`、deb 内图标条目；
 6. **Android applicationId 仍不动**（保老用户能升级），留到 2.0.0 之后另开一版。

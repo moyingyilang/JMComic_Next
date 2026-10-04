@@ -18,8 +18,8 @@ OUT_DIR="${1:-dist-win}"
 # 于是打出来的 Windows ZIP 名字仍是 1.9.003。
 VERSION="$(grep -oE '1\.9\.[0-9]+' src/main/kotlin/com/jmcomic_next/desktop/Version.kt | head -1)"
 [ -n "$VERSION" ] || { echo "没能从 Version.kt 读出版本号，中止"; exit 1; }
-JAR="build/libs/jmcomic-next-windows-arm64.jar"
-ZIP_NAME="jmcomic-next-${VERSION}-windows-arm64.zip"
+JAR="build/libs/jmnext-windows-arm64.jar"
+ZIP_NAME="jmnext-${VERSION}-windows-arm64.zip"
 
 [ -f "$JAR" ] || { echo "缺少单体 jar：$JAR"; echo "先执行：gradle fatJar -Ptarget=windows-arm64"; exit 1; }
 [ -f "$JRE_DIR/bin/java.exe" ] || { echo "运行时不像 Windows：缺 $JRE_DIR/bin/java.exe"; exit 1; }
@@ -27,18 +27,18 @@ ZIP_NAME="jmcomic-next-${VERSION}-windows-arm64.zip"
 
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
-mkdir -p "$STAGE/jmcomic-next"
-cp "$JAR" "$STAGE/jmcomic-next/"
-cp -a "$JRE_DIR" "$STAGE/jmcomic-next/runtime"
-cp scripts/win-launcher.bat "$STAGE/jmcomic-next/jmcomic-next.bat"
+mkdir -p "$STAGE/jmnext"
+cp "$JAR" "$STAGE/jmnext/"
+cp -a "$JRE_DIR" "$STAGE/jmnext/runtime"
+cp scripts/win-launcher.bat "$STAGE/jmnext/jmnext.bat"
 
 mkdir -p "$OUT_DIR"
 rm -f "$OUT_DIR/$ZIP_NAME"
 # 优先用 zip；没有就用 JDK 自带的 jar 工具打包（两者产出的都是标准 ZIP）
 if command -v zip >/dev/null 2>&1; then
-  ( cd "$STAGE" && zip -qr "$OLDPWD/$OUT_DIR/$ZIP_NAME" jmcomic-next )
+  ( cd "$STAGE" && zip -qr "$OLDPWD/$OUT_DIR/$ZIP_NAME" jmnext )
 else
   echo "没有 zip，改用 JDK 的 jar 工具打包（会慢一些，46M 运行时）"
-  ( cd "$STAGE" && jar cfM "$OLDPWD/$OUT_DIR/$ZIP_NAME" jmcomic-next )
+  ( cd "$STAGE" && jar cfM "$OLDPWD/$OUT_DIR/$ZIP_NAME" jmnext )
 fi
 echo "已生成 $OUT_DIR/$ZIP_NAME（$(du -h "$OUT_DIR/$ZIP_NAME" | cut -f1)）"

@@ -13,7 +13,7 @@
 -keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations, AnnotationDefault
 
 # Retrofit 的服务接口：方法体是注解 + 泛型，R8 看不到调用点，容易整段裁掉
--keep interface com.jmcomic_next.lyqs.data.remote.JmApi { *; }
+-keep interface com.jmnext.data.remote.JmApi { *; }
 -keep,allowobfuscation,allowshrinking interface retrofit2.Call
 -keep,allowobfuscation,allowshrinking class retrofit2.Response
 -keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
@@ -29,7 +29,7 @@
 
 # 数据模型本身可以混淆（字段名由 @SerialName 决定，不依赖反射），
 # 但类名会出现在序列化器查找里，保留名称最稳妥
--keep class com.jmcomic_next.lyqs.data.remote.dto.** { *; }
+-keep class com.jmnext.data.remote.dto.** { *; }
 
 # OkHttp 在部分平台实现里会引用可选依赖
 -dontwarn okhttp3.internal.platform.**

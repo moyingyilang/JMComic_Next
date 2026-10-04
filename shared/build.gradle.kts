@@ -2,7 +2,7 @@
 //
 // 为什么单独成模块：Android 与桌面端要复用同一份接口与数据模型，
 // 而 Android 模块编译需要 SDK；把纯逻辑放这里，桌面端构建就完全不依赖 Android 工具链。
-// 包名保持不变（com.jmcomic_next.lyqs.*），所以 :app 里的 import 一行都不用改。
+// 包名保持不变（com.jmnext.*），所以 :app 里的 import 一行都不用改。
 plugins {
     id("org.jetbrains.kotlin.jvm")  // 版本由根构建统一声明
     alias(libs.plugins.kotlin.serialization)

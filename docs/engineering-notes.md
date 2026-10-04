@@ -216,7 +216,7 @@ gradle :app:assembleRelease
 但 **`ssh.github.com:443` 通**，因此 origin 的 **push** 地址配成 SSH：
 
 ```bash
-git remote set-url --push origin ssh://git@ssh.github.com:443/moyingyilang/JMComic_Next.git
+git remote set-url --push origin ssh://git@ssh.github.com:443/moyingyilang/JMNeXt.git
 git push origin main        # 之后就可以直接用 push
 ```
 
@@ -1086,7 +1086,7 @@ SharedPreferences 时它被吞掉，读回来每部作品的标签粘成**一个
 这一轮我在同一个文件上连续弄坏两次，代价是三轮构建，值得记：
 
 1. **想写"空操作"结果删掉了包名**：`sed -i '0,/^package /s//package /'`
-   本意是什么都不改，实际把匹配到的 `package com.jmcomic_next.lyqs.data`
+   本意是什么都不改，实际把匹配到的 `package com.jmnext.data`
    整体替换成了 `package `，包名消失，整个文件从"合法"变成"非法"。
 2. **替换串里的 `\n` 不是换行**：`sed -i 's|...|第一行\n第二行|'` 在 GNU sed 的
    `s` 命令里 `\n` 是字面量，于是 Kotlin 字符串被从中间断开，报语法错误。
@@ -1119,7 +1119,7 @@ SharedPreferences 时它被吞掉，读回来每部作品的标签粘成**一个
 
 ```
 qemu-x86_64-static <deb 里解出来的运行时>/bin/java -version   → openjdk 21.0.12.1
-qemu-x86_64-static ... -cp "lib/app/*" com.jmcomic_next.desktop.MainKt
+qemu-x86_64-static ... -cp "lib/app/*" com.jmnext.desktop.MainKt
   → 55 个 jar 加载成功，最终停在 java.awt.HeadlessException
     (androidx.compose.ui.window.LayoutConfiguration_desktopKt.getGlobalDensity)
 ```

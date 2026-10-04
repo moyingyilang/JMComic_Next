@@ -850,7 +850,7 @@ deb 条目数 452 vs 正常的 234），内容是 `lib/app/app/libskiko-linux-ar
 
 | 项 | 内容 |
 | --- | --- |
-| 模式枚举 | `com.jmcomic_next.lyqs.data.prefs.ReaderMode`，在**共享层**，值 `Scroll`（纵向连续滚动）与 `Page`（横向逐页、每页适配整屏）—— **桌面端可直接复用，不必自己造** |
+| 模式枚举 | `com.jmnext.data.prefs.ReaderMode`，在**共享层**，值 `Scroll`（纵向连续滚动）与 `Page`（横向逐页、每页适配整屏）—— **桌面端可直接复用，不必自己造** |
 | 控件 | `androidx.compose.foundation.pager.HorizontalPager` + `rememberPagerState` |
 | 结构 | 两个可组合分别实现：`ScrollReader` 与 `PagedReader`，按 `mode` 切换；侧栏按钮 `onToggleMode` 在两者间切换 |
 | 持久化 | Android 存在 `AppPrefs` 里；桌面端可用自己的 `PreferencesKeyValueStore` 存同一枚举 |
@@ -1024,12 +1024,12 @@ Compose 窗口之前），默认软件渲染保证能看见；要回 GPU 渲染�
    用户回复"继续"时再 resume。
 
 **通知内容的写法**（让用户一眼看懂该测什么）：
-- 标题：`JMComic_Next 桌面端`
+- 标题：`JMNeXt 桌面端`
 - 正文：一句话说"这一版修了什么" + 本次提交号 + 时间，例如
   `已修好：默认软件渲染（画面全黑）· 提交 210d8c9 · 14:36 构建`
 
 **注意**：`Log.init()` 已移到 `main()` 最前面（提交 210d8c9），所以从这一版起，
-日志里才会真正出现 `[启动] JMComic_Next 桌面端 版本 …，构建时间 …` 与渲染后端那行。
+日志里才会真正出现 `[启动] JMNeXt 桌面端 版本 …，构建时间 …` 与渲染后端那行。
 
 ## 会话状态快照（1.9.027 之后，供接续）
 
@@ -1045,7 +1045,7 @@ Compose 窗口之前），默认软件渲染保证能看见；要回 GPU 渲染�
 画面全黑但数据正常。要回 GPU 设 `JMCOMIC_RENDER=GL`。
 
 **调试插桩（发布前要清理）**：
-- 每 20 秒导出画面到 `~/jmcomic-next-screen.png`（`54071d9`）—— 用户允许我看画面，
+- 每 20 秒导出画面到 `~/jmnext-screen.png`（`54071d9`）—— 用户允许我看画面，
   因 chroot 与宿主**网络命名空间不同**，vncsnapshot 连不上宿主 5902，故改为应用内 AWT Robot 导出；
 - `渲染内容：模式=…/待显示图片 N 张`、`内容区尺寸 WxH`、`根 Column 尺寸`、章节三行日志。
 
@@ -1075,7 +1075,7 @@ Compose 窗口之前），默认软件渲染保证能看见；要回 GPU 渲染�
 `androidx.compose.ui.scene.skia.SurfaceSkiaLayerComponent.<init>`。
 
 **修法**：把 `skiko-awt-runtime-windows-x64-0.150.1.jar`（含 `skiko-windows-x64.dll`）一起放进包里，
-bat 用 `-cp "jmcomic-next.jar;skiko-windows-x64.jar" com.jmcomic_next.desktop.MainKt` 启动。
+bat 用 `-cp "jmnext.jar;skiko-windows-x64.jar" com.jmnext.desktop.MainKt` 启动。
 补上后群友确认**能跑起来**。
 
 **我的核对失误（记一笔）**：我曾用 `grep -icE "skiko.*windows"` 得到 18 个匹配就判定"原生库在"——
@@ -1182,28 +1182,28 @@ bat 用 `-cp "jmcomic-next.jar;skiko-windows-x64.jar" com.jmcomic_next.desktop.M
 至少要能覆盖数页），并加"在途去重"（避免同一页被并发预取多次），必要时并发 2 个下载。
 ## 2.0.0 改名 JMNeXt：已拍板的决定与执行要点（2026-10-04）
 
-**背景**：现名 `JMComic_Next` 与另一个项目重名；新名 **JMNeXt**（大写 X 表示 cross / 跨平台）。
+**背景**：现名 `JMNeXt` 与另一个项目重名；新名 **JMNeXt**（大写 X 表示 cross / 跨平台）。
 
 **用户已确认的三条**：
 1. **改名时机**：留到 **2.0.0** 那一步一起做 —— 1.9.x 期间名字不变；
-2. **Android applicationId 本次不动**：保留 `com.jmcomic_next.lyqs`（主变体）与
-   `com.jmcomic_next.lyqs.lite`（lite 变体），使已装用户能就地升级；
+2. **Android applicationId 本次不动**：保留 `com.jmnext`（主变体）与
+   `com.jmnext.lite`（lite 变体），使已装用户能就地升级；
    **2.0.0 之后另开一版**再换 applicationId（届时老用户需重装，收藏等账号数据在服务端不受影响）；
-3. **去掉包名里的 `lyqs` 段**（那是原作者缩写）：`com.jmcomic_next.lyqs.*` 改为 `com.jmnext.*`。
+3. **去掉包名里的 `lyqs` 段**（那是原作者缩写）：`com.jmnext.*` 改为 `com.jmnext.*`。
 
 **完整映射**：
 
 | 项 | 现在 | 2.0.0 改成 |
 | --- | --- | --- |
-| 仓库名 | moyingyilang/JMComic_Next | moyingyilang/JMNeXt（**只能用户本人在 GitHub 改**；旧链接自动重定向） |
-| 桌面包根（37 个文件） | com.jmcomic_next.desktop | com.jmnext.desktop |
-| 移植代码包根 | com.jmcomic_next.lyqs.* | com.jmnext.* |
-| Android namespace | com.jmcomic_next.lyqs | com.jmnext（namespace 可与 applicationId 不同） |
-| **Android applicationId** | com.jmcomic_next.lyqs / .lite | **本次保持不变** |
-| 窗口标题 | JMComic_Next | JMNeXt |
-| 安装路径 | /opt/jmcomic-next | /opt/jmnext |
-| 包名 / 启动脚本 / jar / 桌面项 | jmcomic-next… | jmnext… |
-| 产物文件名 | jmcomic-next-2.0.0-… | jmnext-2.0.0-… |
+| 仓库名 | moyingyilang/JMNeXt | moyingyilang/JMNeXt（**只能用户本人在 GitHub 改**；旧链接自动重定向） |
+| 桌面包根（37 个文件） | com.jmnext.desktop | com.jmnext.desktop |
+| 移植代码包根 | com.jmnext.* | com.jmnext.* |
+| Android namespace | com.jmnext | com.jmnext（namespace 可与 applicationId 不同） |
+| **Android applicationId** | com.jmnext / .lite | **本次保持不变** |
+| 窗口标题 | JMNeXt | JMNeXt |
+| 安装路径 | /opt/jmnext | /opt/jmnext |
+| 包名 / 启动脚本 / jar / 桌面项 | jmnext… | jmnext… |
+| 产物文件名 | jmnext-2.0.0-… | jmnext-2.0.0-… |
 
 **执行要点（2.0.0 时照此做，逐项核对，不要凭印象）**：
 1. `git mv` 包目录，再用 sed 改 `package` 声明与 `import`（全部 `*.kt`）；核对条数前后一致；

@@ -15,9 +15,9 @@ STAGE="$W/stage"; mkdir -p "$STAGE"
 
 echo "== 1/5 胖 jar（windows-x64）=="
 /opt/gradle-9.8.0/bin/gradle --console=plain --no-daemon fatJar -Ptarget=windows-x64 >/dev/null
-JAR="build/libs/jmcomic-next-windows-x64.jar"
+JAR="build/libs/jmnext-windows-x64.jar"
 [ -f "$JAR" ] || { echo "  找不到 $JAR"; exit 1; }
-cp "$JAR" "$STAGE/jmcomic-next.jar"
+cp "$JAR" "$STAGE/jmnext.jar"
 
 echo "== 2/5 Skiko Windows x64 原生库（关键，缺了会 ExceptionInInitializerError）=="
 SK="$W/skiko.jar"
@@ -40,15 +40,15 @@ unzip -q "$JREZ" -d "$W/jre" && mv "$W"/jre/*/ "$STAGE/runtime"
 [ -f "$STAGE/runtime/bin/java.exe" ] || { echo "  runtime/bin/java.exe 不在，拒绝出包"; exit 1; }
 
 echo "== 4/5 启动脚本（英文，避免 cmd 代码页乱码）=="
-printf '@echo off\r\nset JMCOMIC_RENDER=GL\r\ncd /d "%%~dp0"\r\necho === JMComic_Next starting ===\r\nruntime\\bin\\java.exe -version\r\necho === running ===\r\nruntime\\bin\\java.exe -cp "jmcomic-next.jar;skiko-windows-x64.jar" com.jmcomic_next.desktop.MainKt\r\necho === exited with code %%ERRORLEVEL%% ===\r\npause\r\n' > "$STAGE/jmcomic-next.bat"
-printf '@echo off\r\ncd /d "%%~dp0"\r\nset OUT=diag.txt\r\necho ==== JMComic_Next diagnostics ==== > "%%OUT%%"\r\nsysteminfo | findstr /B /C:"OS Name" /C:"OS Version" /C:"System Type" >> "%%OUT%%" 2>&1\r\nruntime\\bin\\java.exe -version >> "%%OUT%%" 2>&1\r\necho ---- run app ---- >> "%%OUT%%"\r\nruntime\\bin\\java.exe -cp "jmcomic-next.jar;skiko-windows-x64.jar" com.jmcomic_next.desktop.MainKt >> "%%OUT%%" 2>&1\r\necho ---- exit code %%ERRORLEVEL%% ---- >> "%%OUT%%"\r\ntype "%%OUT%%"\r\npause\r\n' > "$STAGE/diag.bat"
+printf '@echo off\r\nset JMCOMIC_RENDER=GL\r\ncd /d "%%~dp0"\r\necho === JMNeXt starting ===\r\nruntime\\bin\\java.exe -version\r\necho === running ===\r\nruntime\\bin\\java.exe -cp "jmnext.jar;skiko-windows-x64.jar" com.jmnext.desktop.MainKt\r\necho === exited with code %%ERRORLEVEL%% ===\r\npause\r\n' > "$STAGE/jmnext.bat"
+printf '@echo off\r\ncd /d "%%~dp0"\r\nset OUT=diag.txt\r\necho ==== JMNeXt diagnostics ==== > "%%OUT%%"\r\nsysteminfo | findstr /B /C:"OS Name" /C:"OS Version" /C:"System Type" >> "%%OUT%%" 2>&1\r\nruntime\\bin\\java.exe -version >> "%%OUT%%" 2>&1\r\necho ---- run app ---- >> "%%OUT%%"\r\nruntime\\bin\\java.exe -cp "jmnext.jar;skiko-windows-x64.jar" com.jmnext.desktop.MainKt >> "%%OUT%%" 2>&1\r\necho ---- exit code %%ERRORLEVEL%% ---- >> "%%OUT%%"\r\ntype "%%OUT%%"\r\npause\r\n' > "$STAGE/diag.bat"
 
 echo "== 5/5 打包 + 验收 =="
 mkdir -p "$OUT_DIR"
-ABS="$(cd "$OUT_DIR" && pwd)/jmcomic-next-$VERSION-windows-x64.zip"
-Z="$OUT_DIR/jmcomic-next-$VERSION-windows-x64.zip"
+ABS="$(cd "$OUT_DIR" && pwd)/jmnext-$VERSION-windows-x64.zip"
+Z="$OUT_DIR/jmnext-$VERSION-windows-x64.zip"
 rm -f "$Z"; (cd "$STAGE" && zip -qr "$(cd "$OLDPWD" && pwd)/$Z" . 2>/dev/null) || (cd "$STAGE" && zip -qr "$ABS" .)
-for must in runtime/bin/java.exe skiko-windows-x64.jar jmcomic-next.jar jmcomic-next.bat diag.bat; do
+for must in runtime/bin/java.exe skiko-windows-x64.jar jmnext.jar jmnext.bat diag.bat; do
   unzip -l "$Z" > "$W/list.txt" 2>/dev/null; grep -q "$must" "$W/list.txt" || { echo "  验收失败：缺 $must"; exit 1; }
 done
 echo "  通过：$(stat -c %s "$Z") 字节 -> $Z"

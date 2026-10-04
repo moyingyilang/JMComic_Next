@@ -46,16 +46,16 @@ compose.desktop {
         // 必须是全限定名：之前这里写的是裸 MainKt，而仓库里同时存在一个默认包的
         // 旧验证文件（src/main/kotlin/Main.kt），于是启动的永远是那个 hello-world。
         // 那个文件已删除，这里也改成全限定名，避免同类问题再发生。
-        mainClass = "com.jmcomic_next.desktop.MainKt"
+        mainClass = "com.jmnext.desktop.MainKt"
         nativeDistributions {
             targetFormats(
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb,
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.Rpm,
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.AppImage,
             )
-            packageName = "jmcomic-next"  // deb/rpm 对包名字符有限制，大写与下划线不合法
+            packageName = "jmnext"  // deb/rpm 对包名字符有限制，大写与下划线不合法
             packageVersion = "1.9.453"
-            description = "JMComic_Next 桌面版"
+            description = "JMNeXt 桌面版"
             vendor = "moyingyilang"
         }
     }
@@ -71,7 +71,7 @@ compose.desktop {
 tasks.register<JavaExec>("smoke") {
     group = "verification"
     description = "桌面端连通性冒烟（无界面）：JM_USER/JM_PASS gradle smoke"
-    mainClass.set("com.jmcomic_next.desktop.SmokeKt")
+    mainClass.set("com.jmnext.desktop.SmokeKt")
     classpath = sourceSets["main"].runtimeClasspath
 }
 
@@ -102,11 +102,11 @@ dependencies {
 tasks.register<Jar>("fatJar") {
     group = "distribution"
     description = "把所有依赖合成一个可 java -jar 运行的单体 jar（-Ptarget=windows-arm64 交叉）"
-    archiveBaseName.set("jmcomic-next")
+    archiveBaseName.set("jmnext")
     archiveClassifier.set(targetPlatform)
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
-        attributes["Main-Class"] = "com.jmcomic_next.desktop.MainKt"
+        attributes["Main-Class"] = "com.jmnext.desktop.MainKt"
         attributes["Implementation-Version"] = "1.9.453"
     }
     from(sourceSets.main.get().output)

@@ -12,7 +12,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT=${1:-dist-x64}
-APP=build/compose/binaries/main/app/jmcomic-next
+APP=build/compose/binaries/main/app/jmnext
 X64_RUNTIME=${X64_RUNTIME:-/root/x64-runtime}
 SKIKO_JAR=${SKIKO_JAR:-/root/skiko-win-none.jar}     # 名字起错了，内容是 linux-x64 的
 [ -f "$SKIKO_JAR" ] || { echo "缺少 x86_64 的 Skiko jar"; exit 1; }
@@ -20,7 +20,7 @@ SKIKO_JAR=${SKIKO_JAR:-/root/skiko-win-none.jar}     # 名字起错了，内容�
 
 echo "== 1/5 组装 x86_64 应用目录 =="
 rm -rf "$OUT" && mkdir -p "$OUT/stage"
-STAGE="$OUT/stage/jmcomic-next"
+STAGE="$OUT/stage/jmnext"
 mkdir -p "$STAGE/bin" "$STAGE/lib"
 cp -a "$APP/lib/app" "$STAGE/lib/app"
 cp -a "$X64_RUNTIME" "$STAGE/lib/runtime"
@@ -30,20 +30,20 @@ rm -f "$STAGE"/lib/app/libskiko-linux-arm64.so "$STAGE"/lib/app/libskiko-linux-a
 ( cd "$STAGE/lib/app" && unzip -o -q "$SKIKO_JAR" 'libskiko-linux-x64.so' 'libskiko-linux-x64.so.sha256' )
 
 # 启动器：脚本代替 ELF
-cat > "$STAGE/bin/jmcomic-next" <<'LAUNCH'
+cat > "$STAGE/bin/jmnext" <<'LAUNCH'
 #!/bin/sh
-# JMComic_Next 桌面版启动器（x86_64）
+# JMNeXt 桌面版启动器（x86_64）
 # jpackage 不能跨平台生成启动器，所以这里用脚本；行为与它的 ELF 等价：
 # 用自带的运行时跑应用的 jar，并把 $APPDIR 传给 Skiko 找原生库。
 DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 exec "$DIR/lib/runtime/bin/java" \
   -Dskiko.library.path="$DIR/lib/app" \
   -cp "$DIR/lib/app/*" \
-  com.jmcomic_next.desktop.MainKt "$@"
+  com.jmnext.desktop.MainKt "$@"
 LAUNCH
-chmod 755 "$STAGE/bin/jmcomic-next"
-cp $(cd "$(dirname "$0")/.." && pwd)/src/main/resources/icon.png "$STAGE/jmcomic-next.png" 2>/dev/null || true
-cp $(cd "$(dirname "$0")/.." && pwd)/src/main/resources/icon.png "$OUT/jmcomic-next.png" 2>/dev/null || true
+chmod 755 "$STAGE/bin/jmnext"
+cp $(cd "$(dirname "$0")/.." && pwd)/src/main/resources/icon.png "$STAGE/jmnext.png" 2>/dev/null || true
+cp $(cd "$(dirname "$0")/.." && pwd)/src/main/resources/icon.png "$OUT/jmnext.png" 2>/dev/null || true
 
 echo "== 2/5 架构自检（不通过就拒绝出包）=="
 file "$STAGE/lib/runtime/bin/java" | grep -q "x86-64" || { echo "  失败：运行时不是 x86-64"; exit 1; }
@@ -52,36 +52,36 @@ file "$STAGE/lib/runtime/bin/java" | grep -q "x86-64" || { echo "  失败：运�
 echo "  运行时 x86-64、Skiko x86_64、Arm 原生库已清"
 
 echo "== 3/5 便携包 =="
-tar czf "$OUT/jmcomic-next-1.9.453-linux-x86_64-portable.tar.gz" -C "$STAGE" .
+tar czf "$OUT/jmnext-1.9.453-linux-x86_64-portable.tar.gz" -C "$STAGE" .
 
 echo "== 4/5 deb(amd64) 与 rpm(x86_64) =="
-D=$(mktemp -d)/jmcomic-next
-mkdir -p "$D/DEBIAN" "$D/opt/jmcomic-next" "$D/usr/bin" "$D/usr/share/icons/hicolor/256x256/apps"
-cp -a "$STAGE/." "$D/opt/jmcomic-next/"
-printf '#!/bin/sh\nexec /opt/jmcomic-next/bin/jmcomic-next "$@"\n' > "$D/usr/bin/jmcomic-next"
-chmod 755 "$D/usr/bin/jmcomic-next"
-cp "$OUT/jmcomic-next.png" "$D/usr/share/icons/hicolor/256x256/apps/jmcomic-next.png" 2>/dev/null || true
+D=$(mktemp -d)/jmnext
+mkdir -p "$D/DEBIAN" "$D/opt/jmnext" "$D/usr/bin" "$D/usr/share/icons/hicolor/256x256/apps"
+cp -a "$STAGE/." "$D/opt/jmnext/"
+printf '#!/bin/sh\nexec /opt/jmnext/bin/jmnext "$@"\n' > "$D/usr/bin/jmnext"
+chmod 755 "$D/usr/bin/jmnext"
+cp "$OUT/jmnext.png" "$D/usr/share/icons/hicolor/256x256/apps/jmnext.png" 2>/dev/null || true
 cat > "$D/DEBIAN/control" <<'CTL'
-Package: jmcomic-next
+Package: jmnext
 Version: 1.9.453
 Architecture: amd64
 Maintainer: moyingyilang
 Depends: libc6
 Section: utils
 Priority: optional
-Description: JMComic_Next desktop client (x86_64)
+Description: JMNeXt desktop client (x86_64)
  A third-party JMComic client built with Kotlin and Compose Desktop.
 CTL
-dpkg-deb --build --root-owner-group "$D" "$OUT/jmcomic-next_1.9.453_amd64.deb" >/dev/null
+dpkg-deb --build --root-owner-group "$D" "$OUT/jmnext_1.9.453_amd64.deb" >/dev/null
 
 TOP=$(mktemp -d)
 mkdir -p "$TOP"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-cp -a "$STAGE" "$TOP/SOURCES/jmcomic-next-app"
-cat > "$TOP/SPECS/jmcomic-next.spec" <<'SPEC'
-Name:           jmcomic-next
+cp -a "$STAGE" "$TOP/SOURCES/jmnext-app"
+cat > "$TOP/SPECS/jmnext.spec" <<'SPEC'
+Name:           jmnext
 Version:        1.9.453
 Release:        1
-Summary:        JMComic_Next desktop client (x86_64)
+Summary:        JMNeXt desktop client (x86_64)
 License:        AGPL-3.0-only
 BuildArch:      x86_64
 Requires:       glibc
@@ -91,25 +91,25 @@ A third-party JMComic client built with Kotlin and Compose Desktop.
 %build
 %install
 rm -rf %{buildroot}
-mkdir -p %{buildroot}/opt/jmcomic-next %{buildroot}/usr/bin
-cp -a %{_sourcedir}/jmcomic-next-app/. %{buildroot}/opt/jmcomic-next/
-printf '#!/bin/sh\nexec /opt/jmcomic-next/bin/jmcomic-next "$@"\n' > %{buildroot}/usr/bin/jmcomic-next
-chmod 755 %{buildroot}/usr/bin/jmcomic-next
+mkdir -p %{buildroot}/opt/jmnext %{buildroot}/usr/bin
+cp -a %{_sourcedir}/jmnext-app/. %{buildroot}/opt/jmnext/
+printf '#!/bin/sh\nexec /opt/jmnext/bin/jmnext "$@"\n' > %{buildroot}/usr/bin/jmnext
+chmod 755 %{buildroot}/usr/bin/jmnext
 %files
-/opt/jmcomic-next
-/usr/bin/jmcomic-next
+/opt/jmnext
+/usr/bin/jmnext
 SPEC
 # rpm：本机 rpmbuild（aarch64）会以 "No compatible architectures found for build"
 # 拒绝跨架构构建（试过八种 define 组合均无效）。绕法是**让 rpmbuild 自己就是 x86_64**：
 # 装 rpm:amd64（多架构），再用 qemu 运行它 —— 它看到的宿主就是 x86_64，
 # 于是这条构建路径与在真机上完全一致，而不是伪造架构标记。
 RPM_OK=0
-if rpmbuild -bb --define "_topdir $TOP" --define "_target_cpu x86_64" "$TOP/SPECS/jmcomic-next.spec" 2>/dev/null; then
+if rpmbuild -bb --define "_topdir $TOP" --define "_target_cpu x86_64" "$TOP/SPECS/jmnext.spec" 2>/dev/null; then
   RPM_OK=1
 elif [ -x /usr/bin/qemu-x86_64-static ] && [ -x /usr/bin/rpmbuild ]; then
   echo "  本机 rpmbuild 拒绝跨架构，改用 qemu 运行 x86_64 的 rpmbuild"
   if /usr/bin/qemu-x86_64-static /usr/bin/rpmbuild -bb --define "_topdir $TOP" \
-       "$TOP/SPECS/jmcomic-next.spec" 2>&1 | tail -2; then
+       "$TOP/SPECS/jmnext.spec" 2>&1 | tail -2; then
     RPM_OK=1
   fi
 fi
@@ -125,14 +125,14 @@ if [ -f /root/runtime-x86_64 ]; then
   AD=$(mktemp -d)/AppDir
   mkdir -p "$AD/usr"
   cp -a "$STAGE/." "$AD/usr/"
-  printf '#!/bin/sh\nexec "$(dirname "$0")/usr/bin/jmcomic-next" "$@"\n' > "$AD/AppRun"
+  printf '#!/bin/sh\nexec "$(dirname "$0")/usr/bin/jmnext" "$@"\n' > "$AD/AppRun"
   chmod 755 "$AD/AppRun"
-  cp "$OUT/jmcomic-next.png" "$AD/jmcomic-next.png" 2>/dev/null || true
-  printf '[Desktop Entry]\nType=Application\nName=JMComic_Next\nExec=jmcomic-next\nIcon=jmcomic-next\nTerminal=false\nCategories=Utility;Graphics;\n' > "$AD/jmcomic-next.desktop"
+  cp "$OUT/jmnext.png" "$AD/jmnext.png" 2>/dev/null || true
+  printf '[Desktop Entry]\nType=Application\nName=JMNeXt\nExec=jmnext\nIcon=jmnext\nTerminal=false\nCategories=Utility;Graphics;\n' > "$AD/jmnext.desktop"
   SQ=$(mktemp -u).squashfs
   mksquashfs "$AD" "$SQ" -root-owned -noappend -comp gzip -quiet
-  cat /root/runtime-x86_64 "$SQ" > "$OUT/jmcomic-next-1.9.453-x86_64.AppImage"
-  chmod 755 "$OUT/jmcomic-next-1.9.453-x86_64.AppImage"
+  cat /root/runtime-x86_64 "$SQ" > "$OUT/jmnext-1.9.453-x86_64.AppImage"
+  chmod 755 "$OUT/jmnext-1.9.453-x86_64.AppImage"
   rm -f "$SQ"
 else
   echo "  跳过：缺少 x86_64 的 AppImage runtime"

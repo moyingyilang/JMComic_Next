@@ -19,12 +19,12 @@ val keystoreProps = Properties().apply {
 }
 
 android {
-    namespace = "com.jmcomic_next.lyqs"
+    namespace = "com.jmnext"
     compileSdk = 37
     compileSdkMinor = 2
 
     defaultConfig {
-        applicationId = "com.jmcomic_next.lyqs"
+        applicationId = "com.jmnext"
         minSdk = 24
         targetSdk = 36
         // 1.1.0-beta.1 = 周刊 / 画师与作品库 / 随机推荐 + 一轮缺陷修复
@@ -100,7 +100,7 @@ android {
             // 独立包名：两个版本可以**同时安装**、互不覆盖，用户想两个都留着也行。
             // 代价是数据不共享（lite 与 full 各自的收藏/设置互相独立），这是刻意的：
             // 共用一个包名就不可能让两者并存。
-            applicationId = "com.jmcomic_next.lyqs.lite"
+            applicationId = "com.jmnext.lite"
             // 应用名走 flavor 专属资源覆盖（app/src/lite/res/values/strings.xml）——
             // 项目的 resValues 构建特性是关闭的，资源覆盖不需要打开它。
         }

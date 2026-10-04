@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "JMComic_Next"
+rootProject.name = "JMNeXt"
 
 include(":app")
 include(":shared")

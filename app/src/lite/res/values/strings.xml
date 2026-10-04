@@ -6,5 +6,5 @@
   而资源覆盖不需要打开任何构建特性。full 变体没有这个目录，仍用 src/main 里的名字。
 -->
 <resources>
-    <string name="app_name">JMComic_Next Lite</string>
+    <string name="app_name">JMNeXt Lite</string>
 </resources>
