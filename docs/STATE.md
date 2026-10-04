@@ -273,3 +273,43 @@ README 的写法建议：只写两个读法（X = cross 跨平台，加上最终
    未登录不轮询 + 失败只记日志 + 类注释写明"仅程序运行时有效"），再在 `Main.kt` 接线，最后编译。
 
 方案本身已经定死，不需要再讨论；卡点只在"读得太多、写得太少"。
+
+## 十九、改名 JMNeXt 的清单（第 8 步照此机械执行）
+
+**盘点结果（改动范围的事实，先看清再动手）**：
+
+| 位置 | 数量 |
+| --- | --- |
+| `app/` 里声明 `package com.jmcomic_next.lyqs` 的文件 | 60 个（30 个子目录要一起搬） |
+| `shared/` 里声明同上的文件 | 38 个（10 个子目录） |
+| `desktop/` 里声明 `package com.jmcomic_next.desktop` 的文件 | 40 个 |
+| `import com.jmcomic_next...` 行总数 | 574 行 |
+| `desktop/scripts/package-*.sh` | 5 个脚本，脚本内 `jmcomic-next` 出现 107 次 |
+| `jmcomic-next.log` 出现处 | 2 个文件（`Log.kt` 与 `.work/verify.sh`） |
+| 窗口标题 | `Main.kt:116` 的 `title = "JMComic_Next"` |
+| `/opt/jmnext` | 在脚本与 `desktop/build.gradle.kts` 里**没有出现**（要改安装路径时另行确认） |
+
+**三条容易踩坏的地方（先想清楚再改）**：
+
+1. **`namespace` 与 `applicationId` 本次都不动**（`app/build.gradle.kts:22/27/103`：`com.jmcomic_next.lyqs`
+   与 `.lite`）。因此 **`R` 与 `BuildConfig` 的包路径不变**，所有 `import com.jmcomic_next.lyqs.R`
+   （以及 `.BuildConfig`）**保持原样**，只改我们自己写的那些包。
+2. **AndroidManifest 里的相对类名要跟着改**：例如 `android:name=".data.SerialNotifyReceiver"` 是相对
+   `namespace` 解析的。若把该类搬进 `com.jmnext.*`，Manifest 必须写成新的全限定名，否则运行时报找不到类
+   （编译期不一定报错，属于"编过但一跑就崩"的坑）。
+3. **`shared` 被两端同时编译**（Android 经 `:shared`、桌面经 `srcDir` 直编源码），所以 shared 的包名改动
+   必须与 `app`、`desktop` 的 import 改动**放在同一次提交**里完成，中间任何一步单独提交都会编译不过。
+
+**执行顺序（每步都要编译核对，不要一口气改完）**：
+
+1. 先改 `shared`（38 个文件 + 10 个目录）→ 只为它编译一次是不可能的（没人单独编它），所以紧接着做第 2 步；
+2. 同一次提交里改 `app`（60 个文件 + 30 个目录，注意 Manifest 的相对类名）与 `desktop`（40 个文件）
+   的 `package` 与 `import`；
+3. 核对：`:app:compileFullDebugKotlin`、`:app:compileLiteDebugKotlin`、`desktop` 的 `compileKotlin` 三条都要过；
+4. 再改展示与打包层：窗口标题（`Main.kt:116`）、5 个 `package-*.sh` 里的产物名与 `jmcomic-next` 字样、
+   `Log.kt` 与 `.work/verify.sh` 里的日志名（两处必须同步，否则验证脚本找不到日志）；
+5. 打包核对照旧：9 个产物、体积与上一版对比、Windows ZIP 内含 `skiko-windows-*.jar`、deb 内图标条目；
+6. **Android applicationId 仍不动**（保老用户能升级），留到 2.0.0 之后另开一版。
+
+**改名后的展示语义**（第十三节）：`JMNeXt`，X = cross（跨平台）与 extended（扩展、加强）；
+包名、产物名、仓库名一律小写 `jmnext`。
