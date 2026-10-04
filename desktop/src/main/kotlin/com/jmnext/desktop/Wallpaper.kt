@@ -1,5 +1,5 @@
 package com.jmnext.desktop
-import com.jmnext.data.wallpaper.WallpaperMode
+import com.jmnext.wallpaper.WallpaperMode
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.runtime.LaunchedEffect
 

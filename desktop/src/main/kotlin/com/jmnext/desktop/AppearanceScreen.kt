@@ -1,6 +1,6 @@
 package com.jmnext.desktop
 import com.jmnext.data.prefs.ReaderMode
-import com.jmnext.data.wallpaper.WallpaperMode
+import com.jmnext.wallpaper.WallpaperMode
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

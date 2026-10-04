@@ -1,4 +1,5 @@
 package com.jmnext.ui.screens.home
+import androidx.compose.ui.res.stringResource
 
 import com.jmnext.ui.components.jmAnimateItem
 import com.jmnext.data.remote.dto.NotificationItem
@@ -90,7 +91,7 @@ fun HomeScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         GlassTopBar(
-            title = "JMComic Next",
+            title = stringResource(com.jmnext.R.string.app_name),
             subtitle = if (state.loading) "加载中…" else null,
             actions = {
                 // 周刊入口（官方在顶栏放的就是日历图标）
