@@ -888,3 +888,29 @@ deb 条目数 452 vs 正常的 234），内容是 `lib/app/app/libskiko-linux-ar
 **风险点（真实存在的那个）**：`pagerState` 的所有权 —— 若 `PagedReader` 内部持有，侧栏的
 `onSeek` 就够不到它。第 4 点里"把状态提升到阅读页"是正解，但会让 `PagedReader` 变成
 受控组件（多一个参数），这一步要小心，别又改坏。
+
+## 第 3 步接线：ReaderScreen.kt 的实际结构与插入点（下一轮照此做）
+
+**已确认的结构**（行号为当前状态）：
+
+| 行 | 内容 |
+| --- | --- |
+| 161 | `val p = payload ?: return@Column` |
+| 163 到 188 左右 | 预加载块（`var prefetched` … `LaunchedEffect` … `runCatching { repository.read(nextId) }`） |
+| 其后 | `Row(Modifier.fillMaxWidth().weight(1f)) { LazyColumn(...) ... PageRail(...) }` ← **要包进 if/else 的就是这一段** |
+
+**下一轮的机械步骤（不用再判断）**：
+1. `grep -n 'Row(Modifier.fillMaxWidth().weight(1f)) {'` 取行号 N（该模式只应出现一次，先 `grep -c` 确认）；
+2. 在 N 行之前插入 `        if (mode == ReaderMode.Page) {`；
+3. 在该 Row 块结束处（PageRail 调用闭合的那个 `        }` 之前/之后按实际缩进）插入：
+   `        } else {` 与 `            LazyColumn(...) 的原有内容不动` —— **更稳的等价做法**：
+   不动 LazyColumn，而是在它**前面**加 `if (mode == ReaderMode.Page) { PagedReader(...) } else {`，
+   在它的**结束花括号之后**加 `}`；因为 LazyColumn 与 PageRail 都在同一个 Row 里，
+   只替换 LazyColumn 那一段即可（PageRail 保持在外，两种模式都显示滑轨）；
+4. 插入 `PagedReader` 与 `pagerState`（`rememberPagerState` 必须在 payload 可用之后创建，
+   即放在第 1 步插入点附近、`val p = ...` 之后）；
+5. 侧栏的 `current` 改用 `pageIndex`，`onSeek` 按模式分支；
+6. 键盘：给内容区加 `Modifier.onKeyEvent { ... }`（左右键/PageUp/Down）。
+
+**纪律**：插完先 `head -1` 看文件头、再 `grep -c` 数括号是否配对，然后才构建；构建成功才提交。
+本步是结构性改动，一次只做一处，做完立刻构建。
