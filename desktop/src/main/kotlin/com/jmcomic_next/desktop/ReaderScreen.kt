@@ -197,7 +197,9 @@ fun ReaderScreen(
         LaunchedEffect(chapterId, currentPage, mode) {
             val start = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage
             scope.launch {
-                val to = minOf(start + 6, p.images.size - 1)
+                val depth = SelfTuner.prefetchDepth.coerceAtLeast(1)
+                val to = minOf(start + depth, p.images.size - 1)
+                Log.line("阅读", "本窗口预取深度 $depth（来自 SelfTuner）")
                 var i = start + 1
                 while (i <= to) {
                     val img = p.images[i]
