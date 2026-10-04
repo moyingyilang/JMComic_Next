@@ -338,7 +338,26 @@ fun ReaderScreen(
                 // 后者会牵动「换话要重置滚动位置」的 key 逻辑。
                 val pageLink = remember(state.currentChapterId) { ReaderPageLink() }
 
+                // 自学习采样（屏幕级）：`pageLink.current` 是"用户当前在看第几页"，两种翻页模式都会更新它
+                // （它由 mutableIntStateOf 支撑，所以能触发重组合）。**停留只能在这里结算** ——
+                // 图片组件的存活时间不等于停留时间（分页会预组合相邻页、滚动会懒加载回收），
+                // 用错了会污染 Fitness 判断快翻/慢读所依据的中位停留。
+                var sampledKey by remember(state.currentChapterId) { mutableStateOf<String?>(null) }
+                val readerImages = state.payload?.images
+                LaunchedEffect(pageLink.current, state.currentChapterId) {
+                    val key = readerImages?.getOrNull(pageLink.current)?.fileNameStem
+                    val prev = sampledKey
+                    if (prev != null && prev != key) {
+                        // 离开上一页 → 结算成样本喂回调参器（图始终没到位的记 failed，由 PageSampler 判定）
+                        PageSampler.settle(prev, System.currentTimeMillis())?.let { SelfTuner.onPage(it) }
+                    }
+                    if (key != null && key != prev) PageSampler.onPageEntered(key, System.currentTimeMillis())
+                    sampledKey = key
+                }
+
                 key(state.currentChapterId) {
+                // 换话时丢弃上一话未结算的采样挂账，避免算到这一话
+                LaunchedEffect(state.currentChapterId) { PageSampler.clear() }
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
