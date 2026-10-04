@@ -1,4 +1,5 @@
 package com.jmcomic_next.desktop
+import com.jmcomic_next.lyqs.data.wallpaper.WallpaperMode
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -114,7 +115,13 @@ fun AppearanceScreen() {
                         Modifier
                             .width(96.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .clickable { Appearance.preset = p; Appearance.wallpaperPath = null; refresh++ }
+                            .clickable {
+                                Appearance.preset = p
+                                Appearance.wallpaperPath = null
+                                // 选预设渐变时把在线壁纸关掉，否则两张图会叠着打架
+                                RemoteWallpaper.setMode(WallpaperMode.Off)
+                                refresh++
+                            }
                             .padding(4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
@@ -134,6 +141,9 @@ fun AppearanceScreen() {
                 }
             }
 
+
+            // 在线壁纸（模式/换一张/轮换/自定义地址/署名）：见 WallpaperRemoteSection.kt
+            WallpaperRemoteSection(onChanged = { refresh++ })
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),

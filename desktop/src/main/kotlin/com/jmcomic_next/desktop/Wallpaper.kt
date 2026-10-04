@@ -1,4 +1,7 @@
 package com.jmcomic_next.desktop
+import com.jmcomic_next.lyqs.data.wallpaper.WallpaperMode
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.runtime.LaunchedEffect
 
 import kotlinx.coroutines.CancellationException
 
@@ -149,7 +152,26 @@ fun WallpaperLayer(modifier: Modifier = Modifier) {
     val colors = if (dark) preset.dark else preset.light
     val blurRadius = if (Appearance.style.blurWallpaper) Appearance.wallpaperBlur.toFloat() else 0f
 
-    Box(modifier.fillMaxSize()) {
+    // 在线壁纸：进入非纯渐变模式时先取一张；设了自动轮换就按间隔换。
+    // 键里带 mode 与间隔，改了任一项就重启计时（间隔改成 0 只手动时不再循环）。
+    val remote = RemoteWallpaper.state
+    LaunchedEffect(remote.mode, remote.intervalMinutes) {
+        if (remote.mode == WallpaperMode.Off) return@LaunchedEffect
+        if (remote.url.isNullOrBlank()) RemoteWallpaper.next()
+        val minutes = remote.intervalMinutes
+        while (minutes > 0) {
+            kotlinx.coroutines.delay(minutes * 60_000L)
+            RemoteWallpaper.next()
+        }
+    }
+
+    Box(
+        modifier
+            .fillMaxSize()
+            // 告知当前窗口是不是竖长比例：Bing 的尺寸段据此取 1080x1920 或 1920x1080。
+            // 这不是 Compose 状态（普通可变字段），在布局回调用它不会引发重组循环。
+            .onSizeChanged { RemoteWallpaper.portraitHint = it.height > it.width },
+    ) {
         if (blurRadius > 0f) {
             // 模糊会把边缘透出底色，所以画得比窗口大一圈
             Box(
@@ -161,6 +183,23 @@ fun WallpaperLayer(modifier: Modifier = Modifier) {
         } else {
             Box(Modifier.fillMaxSize().background(Brush.linearGradient(colors)).background(Color.Black.copy(alpha = Appearance.dim / 100f)))
         }
+        // 在线壁纸（模式非纯渐变且已取到地址时）。优先于本地图片：
+        // 在外观页选了在线来源会自动清掉本地路径，反之选预设会把模式设回纯渐变，
+        // 所以正常情况下两者不会同时存在；这里再按"在线优先"兜一层，避免两张图叠着打架。
+        if (remote.showsImage) {
+            val remoteImage = rememberRemoteImage(remote.url)
+            if (remoteImage != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = remoteImage,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(if (blurRadius > 0f) Modifier.blur(blurRadius.dp) else Modifier),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                )
+            }
+        }
+
         // 用户指定了图片就用它（叠在渐变上，透明处仍见渐变）。
         // **本地解码**：直接读文件字节交给 Skiko，不走网络加载器 ——
         // 之前用 file:// 借网络加载器读，那是为 HTTP 写的，读不到本地文件。
