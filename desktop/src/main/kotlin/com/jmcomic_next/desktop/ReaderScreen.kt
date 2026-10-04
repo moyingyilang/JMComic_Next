@@ -274,7 +274,7 @@ fun ReaderScreen(
 }
 
 @Composable
-private fun PageItem(repository: JmRepository, payload: ReadPayload, image: ReadImage, index: Int) {
+internal fun PageItem(repository: JmRepository, payload: ReadPayload, image: ReadImage, index: Int) {
     val url = image.image
     val needsUnscramble = remember(url) {
         runCatching { repository.needsUnscramble(url, payload.id, payload.scrambleId) }.getOrDefault(false)
