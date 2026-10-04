@@ -52,6 +52,16 @@ object ImageUnscramble {
     }
 
     /**
+     * 这一话需要搬运哪些 band（给"按 band 重画"这类实现用）。
+     *
+     * 存在的理由：`JmCrypto` 在共享层是 internal，桌面端用不了它的 `sliceCount`；
+     * 与其让调用方各自去拿 sliceCount，不如在这里把"宽度/高度 + 作品号/页号 → band 列表"
+     * 作为一个公开入口，band 的公式仍然只有这一处。
+     */
+    fun bandsFor(width: Int, height: Int, aid: Int, page: String): List<Band> =
+        bands(width, height, JmCrypto.sliceCount(aid, page))
+
+    /**
      * 还原像素；不需要还原时**原样返回传入的数组**。
      *
      * @param pixels 长度必须为 width * height 的 ARGB 数组
