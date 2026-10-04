@@ -254,3 +254,22 @@ README 的写法建议：只写两个读法（X = cross 跨平台，加上最终
 - 允许改：`desktop/.../Main.kt`、`AppearanceScreen.kt`，并新建 `desktop/.../SerialReminder.kt`；不要改 `shared/`。
 
 接手顺序：第 7 项 → 标签级屏蔽整条链路 → 第 8 步（算法接线 → 1.9.443 → 改名 JMNeXt → 2.0.0）。
+
+## 十八、第 7 项：两次分派均未产出（结论与下次的做法）
+
+**事实**：为第 7 项连续派了两个子代理，两次都在"分析阶段"耗尽预算，**没有产出可用实现**
+（第一个完全没有落盘；第二个按要求先建了 390 字节的骨架文件，但后续两轮一直停在骨架、没有再写）。
+两个代理都已被主动中断；那个只有骨架、无人引用的 `SerialReminder.kt` 已移出仓库，留档在
+`.work/SerialReminder.skeleton.kt.bak`（不留半成品在仓库里误导接手）。
+
+**下次不要再用"分派给子代理"的方式做这一项**。第一项任务的失败模式已经清楚：它需要先读
+`SerialNotify.kt` + `AppPrefs.kt` + 共享层接口，阅读量把预算吃掉，写不出东西来。**直接自己做**，做法：
+
+1. 先只做两处 grep 取证（**不要通读**）：
+   `grep -nE "suspend fun .*(track|serial|weeklyUpdate|weekList)" shared/src/main/kotlin/com/jmcomic_next/lyqs/data/JmRepository.kt`
+   与 `grep -nE "Serial|serial|notify|interval|hour" app/src/main/kotlin/com/jmcomic_next/lyqs/data/prefs/AppPrefs.kt`；
+2. 再只 grep `app/.../data/SerialNotify.kt` 的两点：取数用哪个接口、怎么判断"有更新"；
+3. 然后**立刻**写 `desktop/.../SerialReminder.kt`（托盘为主 + 窗口内回调 + `isSupported()` 降级 +
+   未登录不轮询 + 失败只记日志 + 类注释写明"仅程序运行时有效"），再在 `Main.kt` 接线，最后编译。
+
+方案本身已经定死，不需要再讨论；卡点只在"读得太多、写得太少"。
