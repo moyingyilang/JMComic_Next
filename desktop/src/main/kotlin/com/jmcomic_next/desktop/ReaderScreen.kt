@@ -167,6 +167,22 @@ fun ReaderScreen(
 
         val p = payload ?: return@Box
 
+        // 调试用：每 20 秒把屏幕导出成 PNG，便于远程核对界面（用户允许我看画面）。
+        // 为什么不用 VNC 客户端：chroot 与宿主网络命名空间不同，vncsnapshot 连不上 5902；
+        // 应用内用 AWT Robot 导出不依赖网络，且导出的就是应用真实绘制的内容。
+        // 输出：~/jmcomic-next-screen.png（覆盖写）。
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            while (true) {
+                kotlinx.coroutines.delay(20_000L)
+                runCatching {
+                    val size = java.awt.Toolkit.getDefaultToolkit().screenSize
+                    val img = java.awt.Robot().createScreenCapture(java.awt.Rectangle(size))
+                    javax.imageio.ImageIO.write(img, "png", java.io.File(System.getProperty("user.home"), "jmcomic-next-screen.png"))
+                    Log.line("调试", "已导出画面 " + size.width + "x" + size.height + " 到 ~/jmcomic-next-screen.png")
+                }.onFailure { Log.error("调试", "导出画面失败", it) }
+            }
+        }
+
         Log.line("阅读", "渲染内容：模式=" + mode + "，待显示图片 " + p.images.size + " 张")
 
         // 横向翻页用的 pager 状态。放在这里（payload 可用之后）是因为页数取自 p.images.size；
