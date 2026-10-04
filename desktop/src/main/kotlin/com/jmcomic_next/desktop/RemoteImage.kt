@@ -73,6 +73,7 @@ object RemoteImage {
         cache[url]?.let { return it }
         val t0 = System.currentTimeMillis()
         val bytes = download(url, "反切片") ?: return null
+        val tDownloaded = System.currentTimeMillis()
         val bitmap = withContext(Dispatchers.IO) {
             runCatching {
                 var src = ImageIO.read(ByteArrayInputStream(bytes))
@@ -98,14 +99,21 @@ object RemoteImage {
                         return@runCatching null
                     }
                 }
+                val tDecoded = System.currentTimeMillis()
                 val w = src.width
                 val h = src.height
                 val pixels = IntArray(w * h)
                 src.getRGB(0, 0, w, h, pixels, 0, w)
+                val tPixels = System.currentTimeMillis()
                 val fixed = ImageUnscramble.unscramble(pixels, w, h, aid, page)
+                val tUnscrambled = System.currentTimeMillis()
                 val out = BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
                 out.setRGB(0, 0, w, h, fixed, 0, w)
-                out.toComposeImageBitmap()
+                val tFilled = System.currentTimeMillis()
+                val tBeforeConvert = System.currentTimeMillis()
+                val converted = out.toComposeImageBitmap()
+                Log.line("图片", "反切片耗时明细：下载 " + (tDownloaded - t0) + "ms，解码 " + (tDecoded - tDownloaded) + "ms，取像素 " + (tPixels - tDecoded) + "ms，还原 " + (tUnscrambled - tPixels) + "ms，回填 " + (tFilled - tUnscrambled) + "ms，转位图 " + (System.currentTimeMillis() - tBeforeConvert) + "ms")
+                converted
             }.onFailure {
                 if (it is CancellationException) return@onFailure
                 Log.error("图片", "反切片解码异常 url=$url", it) }.getOrNull()
