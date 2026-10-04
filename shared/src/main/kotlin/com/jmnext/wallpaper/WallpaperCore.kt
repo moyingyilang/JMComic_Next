@@ -1,4 +1,4 @@
-package com.jmnext.data.wallpaper
+package com.jmnext.wallpaper
 
 /**
  * 壁纸的平台无关部分：模式、状态、地址改写与轮换规则。

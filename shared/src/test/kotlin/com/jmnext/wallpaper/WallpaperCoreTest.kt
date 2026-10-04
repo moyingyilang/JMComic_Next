@@ -1,4 +1,4 @@
-package com.jmnext.data.wallpaper
+package com.jmnext.wallpaper
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
