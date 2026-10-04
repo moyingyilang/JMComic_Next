@@ -50,16 +50,23 @@
 
 ## 五、桌面端共享元素（已接线）
 
-**状态：已接线（2.1.1）。** 列表封面与详情封面用同一个 `jmCoverKey(id)` 登记，根部由 `SharedPageHost` 提供两个作用域。 `desktop/.../SharedElement.kt` 提供两个 CompositionLocal
-（`LocalSharedScope`、`LocalPageVisibility`）与 `Modifier.jmSharedElement(key)`，结构照 Android 侧同名文件。
-因为接线尚未做，`jmSharedElement` 目前一律走"拿不到作用域就不做事"的分支 —— 没有效果，也不会出错。
+**状态：已接线。** 根部由 `SharedPageHost` 建一层 `SharedTransitionLayout`，并通过 CompositionLocal
+提供两个作用域（共享作用域 + 页面动画作用域）；列表封面与详情封面各用**同一个** `jmCoverKey(漫画 id)`
+登记，因此打开详情时封面从列表位置连续过渡到详情位置。
 
-接线已完成，实现见  的  与  /  的  两处。
-1. `Main.kt`：`AnimatedContent` 外包 `SharedTransitionLayout` + 提供 `LocalSharedScope`；
-   其 lambda 内提供 `LocalPageVisibility provides this@AnimatedContent`（`AnimatedContentScope`
-   本身就是 `AnimatedVisibilityScope`）；
-2. `ComicCover.kt` 与 `DetailScreen.kt` 的封面各加 `.jmSharedElement(jmCoverKey(...))`，key 必须一致。
+实现位置：
 
-**为什么没有顺手做完**：前两次尝试都是"按行号插入"，一次因行号偏移导致功能静默失效（编译通过但
-`LocalPageVisibility` 没提供），一次把右括号插错位置直接语法报错。这类跨层结构性改动需要一次连续的、
-基于完整段落读写的实现，不适合边插边编 —— 已回退，保持仓库可编译、与已发布版本一致。
+| 位置 | 做了什么 |
+| --- | --- |
+| `Main.kt` | `SharedPageHost(this@AnimatedContent) { when (val s = target) { ... } }` —— 包住整个路由分支 |
+| `SharedElement.kt` | 提供 `LocalSharedScope` / `LocalPageVisibility` 与 `Modifier.jmSharedElement(key)`；拿不到作用域时退化为"什么都不做" |
+| `ComicCover.kt` | 封面 modifier 链加 `.jmSharedElement(jmCoverKey(item.id))` |
+| `DetailScreen.kt` | 详情封面加 `.jmSharedElement(jmCoverKey(d.id))` |
+
+**两个坑（都吃过）**：
+1. modifier 链**中间的行不能带逗号**（逗号只属于参数表最后一项），否则整段语法错误；
+2. 只做一半（提供了共享作用域但漏了页面动画作用域）**编译照样通过、功能静默失效** ——
+   因为缺作用域时是安静退化为空操作。所以接线必须两处都在，且用 grep 断言而不是只看编译。
+
+**未验证**：封面过渡的实际观感（位置、缩放、快慢是否自然）没有任何真机/真桌面观察记录。
+若观感不对，回退到 2.1.0 的近似效果即可。
