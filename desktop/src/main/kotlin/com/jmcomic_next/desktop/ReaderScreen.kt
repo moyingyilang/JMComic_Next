@@ -131,10 +131,6 @@ fun ReaderScreen(
                 TextButton(onClick = { retryToken += 1 }) { Text("重试") }
             }
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
-                Button(enabled = prevId != null, onClick = { prevId?.let(onSwitchChapter) }) { Text("上一话") }
-                Box(Modifier.padding(start = 8.dp)) {
-                    Button(enabled = nextId != null, onClick = { nextId?.let(onSwitchChapter) }) { Text("下一话") }
-                }
             }
         }
 
