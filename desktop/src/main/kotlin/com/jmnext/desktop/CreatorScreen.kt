@@ -167,7 +167,7 @@ fun CreatorScreen(repository: JmRepository) {
                 modifier = Modifier.width(300.dp),
             )
             Button(enabled = !busy, onClick = { page = 1; load(1) }) { Text("搜索") }
-            Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            StatusLine(status, busy)
         }
 
         // 加宽：点了画师就显示他的作品；点了作品就显示作品信息

@@ -95,7 +95,7 @@ fun CommentsScreen(repository: JmRepository, aid: String, onBack: () -> Unit) {
         ) {
             TextButton(onClick = onBack) { Text("返回") }
             Text("评论", style = MaterialTheme.typography.titleMedium)
-            Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            StatusLine(status, busy)
         }
 
         // 发表区：回复时显示"正在回复谁"，可取消

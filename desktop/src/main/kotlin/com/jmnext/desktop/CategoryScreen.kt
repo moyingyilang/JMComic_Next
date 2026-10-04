@@ -253,7 +253,7 @@ fun CategoryScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(currentName, style = MaterialTheme.typography.titleLarge)
-                Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            StatusLine(status, busy)
                 // 排序档位：换档后从第一页重新加载
                 listOf(
                     "" to "最新",
