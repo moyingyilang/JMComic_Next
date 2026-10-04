@@ -183,20 +183,8 @@ fun DetailScreen(
                     Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
 
-                // 继续阅读：进度存在本地（章节粒度）。只有"上次读的章节确实还在这一话列表里"
-                // 才显示 —— 否则会指向一个不存在的章节，点一下就报错（与 Android 端同一条规矩）。
-                val orderedIds = d.series.map { it.id }
-                val lastRead = remember(comicId, d.series.size) { progress.lastChapterId(comicId) }
-                val resumeIndex = lastRead?.let { orderedIds.indexOf(it) } ?: -1
-                if (d.series.isNotEmpty() && resumeIndex >= 0) {
-                    val target = d.series[resumeIndex]
-                    Button(
-                        onClick = { onOpenChapter(target, orderedIds) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("继续阅读 · 第 ${target.sort ?: (resumeIndex + 1).toString()} 话")
-                    }
-                }
+                // 「继续观看」已移到右栏章节列表顶部（用户要求：与「从头开始」并排）。
+                // 原处这份会造成同一个入口出现两次，已移除；进度的读取在右栏顶部就地完成。
 
 
                 InfoLine("标题", d.name.orEmpty())
