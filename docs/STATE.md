@@ -195,3 +195,26 @@ README 的写法建议：只写两个读法（X = cross 跨平台，加上最终
 
 **证据等级**：这一批与前面各批一样，只有编译证据，界面未跑过（本环境 Skiko 原生库加载不了，
 做不了 GUI 运行时验证，详见第十二节）。
+
+## 十五、第 5 项（中等缺口）第二批量与遗留事项
+
+已提交 `756a4e1`：
+
+| 小件 | 落地方式 | 依据 |
+| --- | --- | --- |
+| 分类页分组标签 + 兜底 | `CategoryScreen.kt` 补分组标签，缺数据用 `hotTags()` 兜底，并接上点标签搜索（局部函数 `searchTag`） | Android `CategoryScreen.kt:499/545` |
+| 首页随机/签到浮钮 | `Main.kt` 的 `RandomFab`（单击随机一本、长按进随机列表）与 `DailyQuickFab`（未登录不渲染、点击 `dailyCheck`） | 共享层 `randomRecommend()`:479、`daily(uid)`:698、`dailyCheck(uid,dailyId)`:719 |
+| 通知未读角标进导航 | `SideNav.kt` 的「通知（N）」，>99 显示 99+；`Main.kt` 以 `screen` 为 key 拉 `notificationsUnread().total` | Android 的未读数实际在 `ProfileScreen.kt:267-276`（不是 JmNavHost），按它的语义：未登录不请求、只镜像服务端数量 |
+| 阅读默认形态进设置页 | 新增 `ReaderModePref`（`PreferencesKeyValueStore("jm_reader_mode")`），阅读页读它、设置页写它 | Android `AppPrefs.readerMode`（默认 Scroll）、设置项在 `ProfileScreen.kt:923-941`；`ReaderMode` 枚举在共享层 |
+
+**遗留事项（记下来，别丢）**：
+
+1. **`Daily` 逻辑两端各写了一份**：Android 的 `Daily` 纯逻辑对象在 `app/.../data/Daily.kt`（**不在 shared**），
+   桌面端看不到，于是照 `isSignedToday` 与 `isAlreadyChecked` 写了三个等价本地函数
+   （`dailySignedToday` / `dailyDayNumberOf` / `dailyAlreadyChecked`）。**这是会漂移的重复逻辑**，
+   建议将来把 `Daily` 移进 `shared`，两端共用一份 —— 属于"减少两头分叉"的清理项，不是缺陷。
+2. 有意未移植：Android `DailyQuickFab` 的 `MAX_ALREADY_PROMPTS` 兜底计数（桌面只用"今天已签"禁用按钮）；
+   桌面端没有引入 material-icons 依赖，浮钮与图标按钮一律用文字（「随机」「签到」），代码注释里写明了。
+3. **证据等级**：这批同样只有编译证据。界面观感、浮钮是否遮挡内容、鼠标长按是否触发、
+   随机跳详情、签到写操作真实结果、未读数字是否与服务端一致、标记已读后角标是否刷新、
+   设置页选完进阅读页是否真按所选形态打开 —— **全部未核实**。
