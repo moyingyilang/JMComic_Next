@@ -540,3 +540,20 @@ Android 侧同样要先找到它的预取/并发旋钮，再接 `SelfTune`（算
    从映射里取出该页的 latency/hitCache/bytes，组装 `PageSample` 喂 `SelfTuner.onPage`；
 3. 图未到位就被取消的，记 `failed=true` 并调 `SelfTuner.onCancellation()`（取消单独统计）；
 4. 两种变体（full/lite）编译都过才算完成。
+
+### 二十之七、两端算法接线完成（参数 + 反馈）
+
+| 端 | 内容 | 提交 |
+| --- | --- | --- |
+| 共享层 | `PageSample.bytes` 支持"未知"（null，不是 0）+ 4 个单测 | `6c20584` |
+| 桌面端 | 预取深度取自 `SelfTuner.prefetchDepth` | `d408fc2` |
+| 桌面端 | `RemoteImage.loadSized`/`downloadedSize` 暴露真实字节 | `24e0749` |
+| 桌面端 | 阅读页进页记时、离页结算并喂 `SelfTuner.onPage` | `c673d6e` |
+| Android 参数侧 | `SelfTuner` + `JmApp.init` + 阅读页按比例缩放窗口 | `78cccb7` |
+| Android 取字节 | `ImageBytes.diskSize`（Coil 落盘真实大小，拿不到为 null） | `0c56f3b` |
+| Android 采样核心 | `PageSampler` + 5 个单测（报告 tests=5 failures=0） | `7ba55ad` |
+| Android 页级 | `State.Success` 处记 latency/hitCache/bytes | `b4677fe` |
+| Android 屏幕级 | `pageLink.current` 变化时 settle 并喂样本；换话 clear | 本节提交 |
+
+**主动不接**：`prefetchConcurrency`（桌面串行预取、Android 无并发上限，两端都没有对应物）。
+**边界**：全部只有编译与单测证据；效果要真机数据。下一步：发 **1.9.443 基线（+300）**。
