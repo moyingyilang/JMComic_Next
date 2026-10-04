@@ -161,3 +161,19 @@ Android full/lite 两个 flavor 编译通过；算法核心 7 个单测、调参
 
 **因此，本环境能给出的最高证据是：编译通过 + 启动到写出启动日志**。
 界面、交互、写操作是否生效、自动轮换等，只能靠用户或群友在真机上看。
+
+## 十三、改名 JMNeXt 的命名语义（第 8 步要落实）
+
+用户提出：名字里的 X 除了 cross（跨平台，Cross Multiplatform 之意），也可读作 **enchanted**（着迷、倾心），
+寓意好。结论：采纳这层含义，并在写给人看的地方说明；**不影响任何改名工作**，因为改名是按拼写做的
+（包名、产物名、仓库名一律 `jmnext`，X 的大小写只出现在展示用文本里）。
+
+用词上的提醒（避免写错被人看出来）：英文里是 **enchanted**，不是 exchanted —— `ex-` 是 former/out of 的
+前缀，写成 exchanted 读不通。
+
+第 8 步要做的事：
+1. 包根 `com.jmcomic_next.desktop` 改为 `com.jmnext.desktop`，`com.jmcomic_next.lyqs.*` 改为 `com.jmnext.*`（去掉 lyqs）；
+2. 窗口标题、`/opt` 安装路径、包名、脚本名、jar 名、产物文件名改为 jmnext（展示处写 JMNeXt）；
+3. 日志文件名如果改，要同步改 `.work/verify.sh`；
+4. **Android applicationId 本次不动**（保老用户能升级），留到 2.0.0 之后另开一版；
+5. README 与 2.0.0 发布说明里写一句命名语义："X 既是 cross（跨平台），也可读作 enchanted（着迷）"。
