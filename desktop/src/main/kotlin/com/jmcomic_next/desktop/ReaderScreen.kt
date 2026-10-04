@@ -125,6 +125,7 @@ fun ReaderScreen(
 
     // 章节选择对话框（按 Android 的 ChapterPickerDialog 移植，见该文件注释）
     if (pickerOpen && series.isNotEmpty()) {
+            Log.line("阅读", "章节选择：series 到达（${series.size} 话），准备弹对话框")
         ChapterPickerDialog(
             series = series,
             currentChapterId = chapterId,
@@ -271,6 +272,7 @@ fun ReaderScreen(
             onOpenPicker = {
                 // 章节选择：点一次才请求 album（A 方案），拿到含话名的 series 再开对话框
                 scope.launch {
+Log.line("阅读", "章节选择：开始请求 album(comicId)…")
                     runCatching { repository.album(comicId) }
                         .onSuccess {
                             series = it.series
