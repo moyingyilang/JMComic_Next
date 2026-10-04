@@ -192,20 +192,25 @@ fun ReaderScreen(
         // 依据：配对实测 381 个样本显示反切片总耗时中位数 1284ms，其中**下载 1078ms（约 84%）**，
         // 而解码+画band 合计仅 86ms —— 所以真正有效的优化是把"按需下载"挪到后台，而不是改解码。
         // 只取 2 页：再多会挤占带宽与内存（图片缓存按字节封顶 256MB）。
-        // 失败不影响阅读：load/loadScrambled 自带兜底与日志，这里只记一行结果。
+        // **为什么用 scope.launch 而不是直接在 LaunchedEffect 里跑**：LaunchedEffect 的键含 currentPage，
+        // 每翻一页它就会被取消并重启，正在进行的预取会被中途取消 —— 快速翻页时预取几乎永远跑不完，
+        // 等于白做。scope 只在离开阅读页时取消，不随翻页取消，所以预取能跑完；
+        // 由于命中缓存的会跳过，重复触发也不会把同一页反复下载。
         LaunchedEffect(chapterId, currentPage, mode) {
             val start = if (mode == ReaderMode.Page) pagerState.currentPage else currentPage
-            val to = minOf(start + 2, p.images.size - 1)
-            var i = start + 1
-            while (i <= to) {
-                val img = p.images[i]
-                if (RemoteImage.cached(img.image) == null) {
-                    val t0 = System.currentTimeMillis()
-                    val need = runCatching { repository.needsUnscramble(img.image, p.id, p.scrambleId) }.getOrDefault(false)
-                    val got = if (need) RemoteImage.loadScrambled(img.image, p.id, img.fileNameStem) else RemoteImage.load(img.image)
-                    Log.line("阅读", "预取第 " + (i + 1) + " 页" + (if (got == null) "失败" else "成功") + "（用时 " + (System.currentTimeMillis() - t0) + " ms）")
+            scope.launch {
+                val to = minOf(start + 2, p.images.size - 1)
+                var i = start + 1
+                while (i <= to) {
+                    val img = p.images[i]
+                    if (RemoteImage.cached(img.image) == null) {
+                        val t0 = System.currentTimeMillis()
+                        val need = runCatching { repository.needsUnscramble(img.image, p.id, p.scrambleId) }.getOrDefault(false)
+                        val got = if (need) RemoteImage.loadScrambled(img.image, p.id, img.fileNameStem) else RemoteImage.load(img.image)
+                        Log.line("阅读", "预取第 " + (i + 1) + " 页" + (if (got == null) "失败" else "成功") + "（用时 " + (System.currentTimeMillis() - t0) + " ms）")
+                    }
+                    i++
                 }
-                i++
             }
         }
 
