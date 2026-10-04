@@ -48,13 +48,13 @@
 需要使用者确认。另外有一类编译器查不到的坑：`AnimatedContent` 块内若误用外层状态而非动画提供的
 `target`，动画会"空转"（新旧两帧渲染同一页面）——本轮已在桌面端踩到并修正。
 
-## 五、桌面端共享元素：现状与接线清单
+## 五、桌面端共享元素（已接线）
 
-**状态：接入件已就位，尚未接线。** `desktop/.../SharedElement.kt` 提供两个 CompositionLocal
+**状态：已接线（2.1.1）。** 列表封面与详情封面用同一个 `jmCoverKey(id)` 登记，根部由 `SharedPageHost` 提供两个作用域。 `desktop/.../SharedElement.kt` 提供两个 CompositionLocal
 （`LocalSharedScope`、`LocalPageVisibility`）与 `Modifier.jmSharedElement(key)`，结构照 Android 侧同名文件。
 因为接线尚未做，`jmSharedElement` 目前一律走"拿不到作用域就不做事"的分支 —— 没有效果，也不会出错。
 
-接线需要两处（细节写在 `SharedElement.kt` 末尾的注释里）：
+接线已完成，实现见  的  与  /  的  两处。
 1. `Main.kt`：`AnimatedContent` 外包 `SharedTransitionLayout` + 提供 `LocalSharedScope`；
    其 lambda 内提供 `LocalPageVisibility provides this@AnimatedContent`（`AnimatedContentScope`
    本身就是 `AnimatedVisibilityScope`）；
