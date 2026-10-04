@@ -479,3 +479,40 @@ premultiplied 也只是数据本身的性质，不因搬行而改变。**真正�
 **结论（当前不动这条路径）**：我在"猜 API"上连续耗了三轮，收益为零。相比之下，
 1.9.004 里已发布的**六段耗时插桩**能直接回答"2715 ms 到底花在哪一段" ——
 用户跑一次就有数据，比继续猜 API 靠谱得多。**先拿数据，再决定要不要继续这条路。**
+
+## 反切片的新做法：用 Skia 自己画 band（本地实测有效，待接入）
+
+三次"取像素"的尝试失败后换思路：**反切片的本质是把各 band 按新顺序画到画布上**，
+不需要把像素取出来 —— 直接让 Skia 画。
+
+```kotlin
+val surf = Surface.makeRasterN32Premul(w, h)
+val c = surf.canvas
+for (b in ImageUnscramble.bands(w, h, sliceCount)) {
+    c.drawImageRect(src,
+        Rect.makeLTRB(0f, b.srcY.toFloat(), w.toFloat(), (b.srcY + b.height).toFloat()),
+        Rect.makeLTRB(0f, b.dstY.toFloat(), w.toFloat(), (b.dstY + b.height).toFloat()))
+}
+val fixed = surf.makeImageSnapshot()      // 直接 toComposeImageBitmap()
+```
+
+**本地实测（合成图 2116x3037，与用户日志同尺寸）**：
+
+| 阶段 | 新做法 | 现在的做法 |
+| --- | --- | --- |
+| 解码 WebP | 1.2 ms | 同 |
+| 反切片 | **81.2 ms**（Skia 画 band） | 编码 PNG 666.7 ms + ImageIO 读 PNG 759.9 ms + getRGB 277.5 ms |
+| 中间产物 | 无 | 12 到 25 MB 的 PNG 字节 |
+
+即这一段的成本从约 **1700 ms 降到约 82 ms**，且不再有 12MB 中间产物。
+
+**API 已核实**：`Surface.makeRasterN32Premul(w,h)`（在 Companion 上）、
+`Surface.getCanvas()`、`Canvas.drawImageRect(Image, Rect, Rect)`、`Surface.makeImageSnapshot()`。
+band 的计算直接复用共享层的 `ImageUnscramble.bands(w, h, count)`，**公式一字不改** ✓。
+
+**一个必须修正的验证方法（本轮踩到）**：我最初拿"合成原图"逐像素严格比对，结论是"重排不符" ——
+但中间经过了**有损的 WebP**，逐像素严格相等本来就不成立。正确做法是
+**与解码后的源图比较**（两条路都从同一张解码图出发，才可能逐像素相等）；
+或对源图与输出图各自取同一行做比较。下次验证按这个来。
+
+**未做**：接入 Kotlin（`loadScrambled` 的新路径 + 保留 PNG 兜底）、以及用上面修正后的方法复验。
