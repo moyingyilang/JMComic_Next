@@ -441,3 +441,21 @@ premultiplied 也只是数据本身的性质，不因搬行而改变。**真正�
 
 **自验方式**（不需要界面）：写一个本地比对程序，对同一张 WebP 分别用两条路径解出像素数组，
 逐行比较（band 搬移是确定的，两条路应当得到相同的行分布）；若一致再请用户看颜色。
+
+## 直读像素这条路：两次尝试都失败，已回退（不要重复踩）
+
+目标是用 Skiko 直读像素，砍掉 WebP → PNG → ImageIO 的往返。本地验证（合成图 200x300，
+每行颜色不同，一眼能看出行序与内容是否对）结果：
+
+| 尝试 | 做法 | 结果 |
+| --- | --- | --- |
+| 1 | `Bitmap.allocPixels(info)` + `Image.readPixels(bitmap)` + `Bitmap.readPixels(info, 0, 0, rowBytes)` | `readPixels(info,...)` **返回 null** → 取不到像素 |
+| 2 | `Bitmap.installPixels(info, 自己的数组, rowBytes)` + `Image.readPixels(bitmap)` | 两个调用都返回 true，但**我的数组保持全零** —— 说明 `installPixels(ImageInfo, byte[], int)` 是**拷贝**而不是引用，Skia 写的是它自己的存储 |
+
+**已回退**：直读路径的 import、调用与函数全部撤掉，保留可用且带六段插桩的 PNG 路径。
+若没有本地验证，我会把这个"每张图都退回兜底、等于没生效"的改动当成"已优化"发出去。
+
+**下一步该试的**（未做）：`Bitmap.peekPixels(): Pixmap` 这条路 —— 用 Pixmap 读像素，
+或看 Pixmap 是否有直接取字节的方法；仍要在本地合成图上先验证行序与内容，再谈接入。
+另外 `Bitmap.readPixels` 的 `$skiko` 变体（`readPixels$skiko(byte[], ImageInfo, ...)`）是内部 API，
+不适合直接用。**结论：先别动这条路径，等把像素导出的正确方式验证出来再说。**
