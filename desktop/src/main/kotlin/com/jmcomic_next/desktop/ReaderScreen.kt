@@ -86,11 +86,9 @@ fun ReaderScreen(
     var series by remember(comicId) { mutableStateOf<List<SeriesItem>>(emptyList()) }
     var pickerOpen by remember(comicId) { mutableStateOf(false) }
     // 阅读模式：复用共享层的 ReaderMode（Scroll = 纵向连续滚动 / Page = 横向逐页适配整屏）。
-    // 这一步只做状态与持久化，翻页行为在下一步换成 PagedReader。
-    val modePrefs = remember { PreferencesKeyValueStore("jm_reader_mode") }
-    var mode by remember {
-        mutableStateOf(if (modePrefs.getString("mode", null) == "page") ReaderMode.Page else ReaderMode.Scroll)
-    }
+    // 默认形态取自设置页（AppearanceScreen 写、这里读，见文件末尾的 ReaderModePref）；
+    // 阅读页底栏与右侧栏的切换按钮也写回同一个键。
+    var mode by remember { mutableStateOf(ReaderModePref.mode) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var status by remember(chapterId) { mutableStateOf("正在加载章节…") }
     var retryToken by remember(chapterId) { mutableStateOf(0) }
@@ -355,7 +353,7 @@ fun ReaderScreen(
                 }
                 // 与 Android 同一个枚举、同一个语义；桌面端额外把选择存下来
                 mode = if (mode == ReaderMode.Scroll) ReaderMode.Page else ReaderMode.Scroll
-                modePrefs.putString("mode", if (mode == ReaderMode.Page) "page" else "scroll")
+                ReaderModePref.mode = mode
                 Log.line("阅读", "阅读模式切换为 " + (if (mode == ReaderMode.Page) "横向翻页" else "纵向滚动"))
             },
             onOpenPicker = {
@@ -428,7 +426,7 @@ Log.line("阅读", "章节选择：开始请求 album(comicId)…")
                     if (mode == ReaderMode.Page) listState.scrollToItem(pagerState.currentPage) else pagerState.scrollToPage(currentPage)
                 }
                 mode = if (mode == ReaderMode.Scroll) ReaderMode.Page else ReaderMode.Scroll
-                modePrefs.putString("mode", if (mode == ReaderMode.Page) "page" else "scroll")
+                ReaderModePref.mode = mode
                 Log.line("阅读", "阅读模式切换为 " + (if (mode == ReaderMode.Page) "横向翻页" else "纵向滚动"))
             },
             onOpenPicker = {
@@ -501,4 +499,27 @@ internal fun PageItem(repository: JmRepository, payload: ReadPayload, image: Rea
             else -> Text("第 ${index + 1} 页 加载中…", style = MaterialTheme.typography.labelSmall)
         }
     }
+}
+
+/**
+ * 阅读默认形态（桌面端）。
+ *
+ * 放在这里而不是设置页，是因为**实际取值在阅读页**：[ReaderScreen] 进入时读它，
+ * 设置页（`AppearanceScreen`）只写。两边共用同一个持久化键，所以设置页选完，
+ * 下次进阅读页就是所选形态。
+ *
+ * 对应 Android 的 `AppPrefs.readerMode`（默认 [ReaderMode.Scroll]，见 app 模块
+ * `data/prefs/AppPrefs.kt:157`）与「我的」页的 ReadingCard（`ProfileScreen.kt:923`）。
+ * 那个 AppPrefs 在 `app` 模块，桌面端看不到，所以这里用桌面自己的 KeyValueStore
+ * 存同一个语义；键名沿用阅读页原来私有使用的 `jm_reader_mode` / `mode`，
+ * 老用户已有的选择不会丢。
+ */
+internal object ReaderModePref {
+    private val prefs = PreferencesKeyValueStore("jm_reader_mode")
+
+    var mode: ReaderMode
+        get() = if (prefs.getString("mode", null) == "page") ReaderMode.Page else ReaderMode.Scroll
+        set(value) {
+            prefs.putString("mode", if (value == ReaderMode.Page) "page" else "scroll")
+        }
 }

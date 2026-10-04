@@ -1,4 +1,5 @@
 package com.jmcomic_next.desktop
+import com.jmcomic_next.lyqs.data.prefs.ReaderMode
 import com.jmcomic_next.lyqs.data.wallpaper.WallpaperMode
 
 import androidx.compose.foundation.background
@@ -185,6 +186,37 @@ fun AppearanceScreen() {
                 if (Appearance.dark) "当前：深色" else "当前：浅色",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        // 阅读默认形态（照 Android 的 AppPrefs.readerMode 与「我的」页的 ReadingCard）。
+        // 设置页只写，取值在阅读页：两边共用 ReaderModePref 这一个键，
+        // 所以这里选完，下次进阅读页就是所选形态。
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("阅读形态", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "进入阅读页时的默认形态：纵向连续滚动（与 Android 的默认值一致）或横向逐页。改完下次进阅读页生效。",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ReaderMode.entries.forEach { m ->
+                    val label = if (m == ReaderMode.Scroll) "纵向滚动" else "横向翻页"
+                    Button(
+                        onClick = { ReaderModePref.mode = m; refresh++ },
+                        modifier = Modifier.height(38.dp),
+                    ) {
+                        Text(
+                            if (ReaderModePref.mode == m) "· $label" else label,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            }
+            Text(
+                "当前：${if (ReaderModePref.mode == ReaderMode.Scroll) "纵向滚动" else "横向翻页"}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
     }
