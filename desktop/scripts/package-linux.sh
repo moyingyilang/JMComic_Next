@@ -69,7 +69,7 @@ printf '[Desktop Entry]\nType=Application\nName=JMNeXt\nExec=/opt/jmnext/bin/jmn
   > "$STAGE/usr/share/applications/jmnext.desktop"
 cat > "$STAGE/DEBIAN/control" <<'CTL'
 Package: jmnext
-Version: 2.0.0
+Version: @V@
 Architecture: arm64
 Maintainer: moyingyilang
 Depends: libc6
@@ -78,6 +78,7 @@ Priority: optional
 Description: JMNeXt desktop client
  A third-party JMComic client built with Kotlin and Compose Desktop.
 CTL
+sed -i "s/@V@/$V/" "$STAGE/DEBIAN/control"
 dpkg-deb --build --root-owner-group "$STAGE" "$OUT/Linux-aarch64-$V.deb" >/dev/null
 
 echo "== 5/6 rpm =="
@@ -87,7 +88,7 @@ cp -a "$APP" "$TOP/SOURCES/jmnext-app"
 cp "$ICON" "$TOP/SOURCES/jmnext.png"
 cat > "$TOP/SPECS/jmnext.spec" <<'SPEC'
 Name:           jmnext
-Version:        2.0.0
+Version:        @V@
 Release:        1
 Summary:        JMNeXt desktop client
 License:        AGPL-3.0-only
@@ -110,10 +111,11 @@ cp %{_sourcedir}/jmnext.png %{buildroot}/usr/share/icons/hicolor/256x256/apps/jm
 /usr/bin/jmnext
 /usr/share/icons/hicolor/256x256/apps/jmnext.png
 SPEC
+sed -i "s/@V@/$V/" "$TOP/SPECS/jmnext.spec"
 # rpm：不要静音构建输出 —— 静音过一次，失败时看不到原因，白跑一轮。
 # 也**不要让它中断脚本**：rpm 失败不该连累后面 AppImage 的产出。
 if rpmbuild -bb --define "_topdir $TOP" --define "_target_cpu aarch64" "$TOP/SPECS/jmnext.spec"; then
-  find "$TOP/RPMS" -name "*.rpm" -exec cp {} "$OUT/" \;
+  find "$TOP/RPMS" -name "*.rpm" -exec cp {} "$OUT/Linux-aarch64-$V.rpm" \;
   echo "  rpm 成功"
 else
   echo "  rpm 失败：详情见上面 rpmbuild 的输出（已记档，不影响其它产物）"
