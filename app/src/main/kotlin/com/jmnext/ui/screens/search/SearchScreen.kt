@@ -447,21 +447,6 @@ fun SearchScreen(
             )
         }
 
-        FilterRow(
-            label = "排序",
-            options = SearchFilters.Order.entries.map { it.key to it.label },
-            selected = state.filters.order,
-            enabled = !state.loading,
-            onSelect = { key -> vm.updateFilters { it.copy(order = key) } },
-        )
-
-        FilterRow(
-            label = "检索",
-            options = SearchFilters.Type.entries.map { it.key to it.label },
-            selected = state.filters.type,
-            enabled = !state.loading,
-            onSelect = { key -> vm.updateFilters { it.copy(type = key) } },
-        )
 
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
@@ -538,11 +523,17 @@ fun SearchScreen(
                 },
             )
 
-            state.results.isEmpty() -> MessageState(
-                title = "没有找到相关作品",
-                description = "换个关键词，或调整检索字段与年份",
-                icon = Icons.Filled.Search,
-            )
+            state.results.isEmpty() -> Column(Modifier.fillMaxSize()) {
+                // 空结果也显示筛选：提示语写着"换个关键词，或调整检索字段与年份"，
+                // 若此时把筛选藏起来就自相矛盾了。这里没有内容可滚，固定显示是合理的。
+                SearchFilterRows(state, vm)
+                MessageState(
+                    title = "没有找到相关作品",
+                    description = "换个关键词，或调整检索字段与年份",
+                    icon = Icons.Filled.Search,
+                    modifier = Modifier.weight(1f),
+                )
+            }
 
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -554,6 +545,11 @@ fun SearchScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
+                // 排序/检索筛选改放在列表首位（issue #3 的 C）：原来它们在滚动区之外常驻，
+                // 优先级过高——现在随内容一起滚动，且只在"有结果"这一支出现（未搜索那一屏本就不该显示它们）。
+                // 排序/检索筛选放在列表首位（issue #3 的 C）：原来它们在滚动区之外常驻，优先级过高。
+                // 现在随内容一起滚动，只在"有结果"这一支出现（未搜索那一屏本就不该显示它们）。
+                item(key = "filters") { SearchFilterRows(state, vm) }
                 // 「有结果被你的屏蔽规则挡掉了」的说明条已移到列表外（见上面）：
                 // 放进列表首位会被 LazyList 的锚定顶出可视区
                 if (state.total > 0) {
@@ -790,6 +786,27 @@ private fun WordChips(words: List<String>, onPick: (String) -> Unit) {
                 )
             }
         }
+    }
+}
+
+/** 搜索页的两行筛选（排序 / 检索）。抽出来是为了在"有结果"与"空结果"两支里各用一次而不复制。 */
+@Composable
+private fun SearchFilterRows(state: SearchUiState, vm: SearchViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        FilterRow(
+            label = "排序",
+            options = SearchFilters.Order.entries.map { it.key to it.label },
+            selected = state.filters.order,
+            enabled = !state.loading,
+            onSelect = { key -> vm.updateFilters { it.copy(order = key) } },
+        )
+        FilterRow(
+            label = "检索",
+            options = SearchFilters.Type.entries.map { it.key to it.label },
+            selected = state.filters.type,
+            enabled = !state.loading,
+            onSelect = { key -> vm.updateFilters { it.copy(type = key) } },
+        )
     }
 }
 
