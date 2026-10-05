@@ -1013,3 +1013,39 @@ AppImage 的外层运行时本身就是架构相关的。
 
 **处理**：用修正版**替换上传**了同一个版本下的 `Linux-universal-2.1.6.tar.gz`（159,265,260 字节，16 项不变、体积一致）。
 这一步是"就地修正已发布附件"，没有升版本号 —— 若你希望改为发一个新版本（2.1.7）来承载这次修正，告诉我即可。
+
+## 三十一、改名到 JMComiX：评估后**决定不做**（用户决定，2026-10-05）
+
+### 起因
+
+用户发现 `JMNeXt` 在 GitHub 上**重名严重**（`FFFutureflo/JMNext`、`K423-K310/JMnext`、`SCCplayer/JMNext`、
+`li1679/JMNext`、`Himanshu8432/jmnextsaas`…），一度提出改名为 **JMComiX**（我查过：该名在 GitHub 上零重名；
+`JMComicX` 已被 `Sakura-TWT/JMComicX` 占用）。
+
+我已按方案把改名落到工作区（5 个 Kotlin 包目录改名为 `com/jmcomix`、1241 处文本替换、`applicationId`、
+`app_name`、deb/rpm 包名与安装路径等），**未提交、未推送**。
+
+### 最终决定：**不改**，保持 JMNeXt
+
+用户原话："我有点对这个疲倦了，先不改吧要不，这东西沾点人怕出名猪怕壮，隐藏点不是啥坏事，**仓库对得上就行**。"
+
+理由（记录在案，避免以后有人再提议改一遍）：
+
+1. **仓库名与项目名已经对得上**（`moyingyilang/JMNeXt` ↔ 项目 `JMNeXt`）——用户的标准就是这个；
+2. 重名的是**别人的**仓库，不是同一项目的分叉：本项目 applicationId 是 `com.jmnext`、发布在 `moyingyilang/JMNeXt`，
+   与那些同名仓库没有实际冲突；
+3. **改名代价大**（包名变更意味着 Android 必须卸载重装、桌面端安装路径与日志路径全变、1241 处文本与 5 个包目录），
+   而收益只是"名字更独特"——在"低调一点更好"的判断下不划算。
+
+### 处理
+
+- 已 `git reset --hard da9f1bb` 回退全部未提交改动，并清掉改名残留目录；`applicationId` 回到 `com.jmnext`；
+- 2.1.6 与其之前的发布**完全未受影响**；
+- 自动目标（改名并发布 2.2.0）已**暂停**，实质作废。
+
+### 如果将来又要改名（给自己与后来者）
+
+步骤是可行的、且这次已经演练过：`git mv` 五个包目录 → 全仓三变体替换（`jmnext`/`JMNeXt`/`JMNext`）→
+改 `applicationId`/`namespace`/`app_name`/`packageName`/`archiveBaseName` → 两端编译 + 单测 +
+`verify-apk.sh` 断言新包名 → 全量打包验收 → 发大版本（+010）。**注意**：改名后 Android 是新的应用身份，必须卸载重装；
+`%LOCALAPPDATA%\<旧名>`、`~/<旧名>.log`、`/opt/<旧名>` 都会变成新路径。
