@@ -889,3 +889,38 @@ buildarch_compat: aarch64: x86_64
 在本机**没有**稳定收益（见第二十四节）；也说明"少并发反而更快"在本机不是反直觉，而是热力学。
 
 **做法建议**：长时间连续打包时，中途停一次让温度回落到 70 度以下再继续（本次就是典型：停掉 daemon 后从 95 度降到 50-62 度）。
+
+## 二十八、架构自适应（方案 A）与一处 Linux 包的结构真相
+
+### 已完成
+
+| 产物 | 内容 | 体积 |
+| --- | --- | --- |
+| `Windows-universal-<版本>.exe` | 两套胖 jar + 两套 Skiko + 两套运行时，启动时按 `PROCESSOR_ARCHITECTURE` / `PROCESSOR_ARCHITEW6432` 选择 | 约 175MB |
+| `Linux-universal-<版本>.tar.gz` | `lib/app-arm64` + `lib/app-x64` + `lib/runtime-arm64` + `lib/runtime-x64` + `bin/jmnext`（按 `uname -m` 选择） | 约 159MB |
+
+**APK 不需要改**：`aapt2` 显示 native-code 已覆盖 `arm64-v8a`、`armeabi-v7a`、`x86`、`x86_64` 四个 ABI，
+dex 本身架构无关，所以同一个 APK 在 arm64 与 x86_64 上都能装能跑。full/lite 的差别是功能不是架构。
+
+**deb / rpm / AppImage 保持按架构**：架构写在包元数据里（里面装着架构相关的 JRE，不能声明成 `all`），
+AppImage 的外层运行时本身就是架构相关的。
+
+### 关键事实：jpackage 的 app-image 里 `lib/runtime` **没有** `bin/java`
+
+- jpackage 生成的启动器是 ELF，经 `libjli` 启动 JVM，**不需要** `bin/java`；
+- 而统一包改用 shell 启动器（`exec lib/runtime-<arch>/bin/java`），所以 arm64 那一半必须换成**带可执行文件**的运行时；
+- 做法（模块清单直接取自该运行时自己的 `lib/modules`，避免多带或漏带）：
+
+```
+/opt/jdk21-linux/bin/jlink --module-path /opt/jdk21-linux/jmods \
+  --add-modules java.base,java.datatransfer,java.desktop,java.logging,java.prefs,java.xml,jdk.crypto.ec \
+  --output /root/arm64-runtime --strip-debug --no-header-files --no-man-pages
+```
+
+产物核对：`bin/java` 为 ELF aarch64、`java -version` 能正常输出、体积 87MB。
+**jlink 必须带 `LD_LIBRARY_PATH=/opt/jdk21-linux/lib`**，否则报 `libjli.so: cannot open shared object file`（本机环境要求）。
+
+### 未验证
+
+- 两个统一包都只做到**结构验收**（架构、文件齐全、启动脚本逻辑）：能否真的在对应机器上启动，需要用户确认；
+- 用户此前确认过"修复后的单体 exe 能启动"，但那是 per-arch 版本，统一版是新产物。
