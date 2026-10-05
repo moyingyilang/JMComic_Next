@@ -223,6 +223,8 @@ private fun HomeContent(
     val hiddenFlow = remember(tagBlocker) {
         tagBlocker?.hidden ?: MutableStateFlow(emptySet<String>())
     }
+    // 最新上架那条列表要用（LazyListScope 不是 composable，无法把收集下沉到它内部）
+    val latestHiddenIds by hiddenFlow.collectAsStateWithLifecycle()
 
     val duplicatedComicIds = remember(sections) {
         sections.asSequence()
@@ -328,7 +330,11 @@ private fun HomeContent(
             item { ErrorBox(message = state.latestError) }
         }
 
-        items(state.latest, key = { "latest-${it.id}" }) { comic ->
+        // 最新上架也要过屏蔽：与上面的分区同一套（标签异步取回，命中即滤掉）。
+        // 注：这里的集合在父级收集，后台每扫出一条结果会让本列表重组一次——这是把过滤做在
+        // 同一个 LazyColumn 里的代价（LazyListScope 不是 composable 作用域，无法下沉到这一行）。
+        items(state.latest.filterNot { it.id in latestHiddenIds }, key = { "latest-${it.id}" }) { comic ->
+            LaunchedEffect(comic.id) { tagBlocker?.request(comic.id) }
             val cover = repo.coverUrl(comic)
             Box(Modifier.padding(horizontal = Spacing.lg)) {
                 ComicRow(
