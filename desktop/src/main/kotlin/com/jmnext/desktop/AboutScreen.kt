@@ -87,7 +87,26 @@ fun AboutScreen(repository: JmRepository) {
                 ) { Text(if (checking) "检查中…" else "检查更新") }
 
                 updatable?.let { tag ->
-                    TextButton(onClick = { uri.openUri(UpdateCheck.releaseUrl(tag)) }) { Text("打开发布页") }
+                    // 按本机系统与架构给直链（issue #5 的桌面端对应问题：发布页附件多，用户不知道该下哪个）。
+                    // 统一包排在第一个：内含两套运行时，不用分辨架构。
+                    val names = UpdateCheck.desktopAssetNames(
+                        tag,
+                        System.getProperty("os.name"),
+                        System.getProperty("os.arch"),
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        names.forEachIndexed { i, asset ->
+                            TextButton(onClick = { uri.openUri(UpdateCheck.assetUrl(tag, asset)) }) {
+                                Text(if (i == 0) "下载更新包（$asset，推荐）" else "或下载 $asset")
+                            }
+                        }
+                        Text(
+                            text = "推荐包内含两套运行时，会自动按架构选择，无需分辨。",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        TextButton(onClick = { uri.openUri(UpdateCheck.releaseUrl(tag)) }) { Text("打开发布页") }
+                    }
                 }
             }
             result?.let {

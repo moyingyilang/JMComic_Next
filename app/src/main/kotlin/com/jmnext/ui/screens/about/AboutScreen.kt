@@ -141,7 +141,23 @@ fun AboutScreen(
                     }
                 }
                 updatable?.let { tag ->
-                    TextButton(onClick = { uri.openUri(UpdateCheck.releaseUrl(tag)) }) { Text("打开发布页") }
+                    // 直接给「该变体的安装包」直链（issue #5 的症结）：
+                    // 发布页上的附件名是 Android-full-<版本>.apk，**名字里没有架构**（一个包同时含
+                    // arm64 与 x86_64 的 native 库），用户按"arm64 版"去找自然找不到。
+                    val isLite = BuildConfig.APPLICATION_ID.endsWith(".lite")
+                    val asset = UpdateCheck.androidAssetName(tag, lite = isLite)
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        TextButton(onClick = { uri.openUri(UpdateCheck.assetUrl(tag, asset)) }) {
+                            Text("下载更新包（$asset）")
+                        }
+                        Text(
+                            text = "一个安装包同时支持 arm64 与 x86_64，无需区分架构。" +
+                                "若直链打不开，可改用下面的发布页自行挑选。",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = c.textTertiary,
+                        )
+                        TextButton(onClick = { uri.openUri(UpdateCheck.releaseUrl(tag)) }) { Text("打开发布页") }
+                    }
                 }
             }
 
