@@ -143,10 +143,16 @@ fun RandomListScreen(
         }
     }
 
-    // 逐条读标签：**只读可见的**，并发上限 3（突发一批请求不该把服务端和自己都压住）。
-    // 滚动时可见集合变化会再次触发，于是新滚进来的条目按需补读 —— 总量被"屏幕上最多几十条"封顶。
-    LaunchedEffect(visibleIds) {
-        val todo = visibleIds.filterNot { knownTags.containsKey(it) }
+    // 逐条读标签：**整批都读**（可见的排在队首），并发上限 3。
+    //
+    // 为什么不能只读可见的（1.6.0 的优化）：屏蔽与排序都依赖标签，只读可见的会让"还没滚到的条目"
+    // 一直没有标签 —— 于是用户必须自己翻过去一遍，才看到屏蔽与排序生效（issue #3 的 B 就是这个）。
+    // 现在的取舍：整批读（当前一批通常二十几条），但把**可见的排在最前**，所以屏幕上看得见的先出结果，
+    // 其余陆续补上；共享缓存（tagBlocker）与并发上限 3 保证不会重复请求、也不会突发压住服务端。
+    LaunchedEffect(items_, visibleIds) {
+        val all = items_.map { it.id }
+        val orderedIds = (visibleIds.filter { it in all } + all).distinct()
+        val todo = orderedIds.filterNot { knownTags.containsKey(it) }
         if (todo.isEmpty()) return@LaunchedEffect
         val gate = Semaphore(3)
         coroutineScope {
