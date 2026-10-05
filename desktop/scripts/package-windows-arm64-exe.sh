@@ -47,7 +47,7 @@ fi
 unzip -q "$JREZ" -d "$W/jre" && mv "$W"/jre/*/ "$STAGE/runtime"
 [ -f "$STAGE/runtime/bin/java.exe" ] || { echo "  runtime/bin/java.exe 不在，拒绝出包"; exit 1; }
 # 诊断脚本：单体 exe 静默无窗口，出问题时双击它就能看到报错（并 pause 住）
-printf '@echo off\r\ncd /d "%%~dp0"\r\nset JMCOMIC_RENDER=GL\r\necho === JMNeXt ===\r\nruntime\\bin\\java.exe -version\r\necho === running ===\r\nruntime\\bin\\java.exe -cp "jmnext.jar;skiko-windows-arm64.jar" com.jmnext.desktop.MainKt\r\necho === exited with code %%ERRORLEVEL%% ===\r\npause\r\n' > "$STAGE/run.bat"
+printf '@echo off\r\ncd /d "%%~dp0"\r\nset JMCOMIC_RENDER=GL\r\necho === JMNeXt ===\r\nruntime\\bin\\java.exe -version\r\necho === running ===\r\nruntime\\bin\\java.exe -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -cp "jmnext.jar;skiko-windows-arm64.jar" com.jmnext.desktop.MainKt\r\necho === exited with code %%ERRORLEVEL%% ===\r\npause\r\n' > "$STAGE/run.bat"
 
 echo "== 4/4 NSIS 打成单体 exe =="
 OUT_EXE="$VERSION-$$.exe"
@@ -73,7 +73,7 @@ jmnext_done:
   ; 与 zip 版一致：Windows 上默认用 GL 渲染，绕开部分环境的 OpenGL 上下文问题
   System::Call 'kernel32::SetEnvironmentVariable(t "JMCOMIC_RENDER", t "GL")'
   ; javaw：不弹控制台窗口。若打不开，双击应用目录里的 run.bat 可看到报错，日志另有 %USERPROFILE%\\jmnext.log
-  Exec '"\$LOCALAPPDATA\\JMNeXt\\runtime\\bin\\javaw.exe" -cp "\$LOCALAPPDATA\\JMNeXt\\jmnext.jar;\$LOCALAPPDATA\\JMNeXt\\skiko-windows-arm64.jar" com.jmnext.desktop.MainKt'
+  Exec '"\$LOCALAPPDATA\\JMNeXt\\runtime\\bin\\javaw.exe" -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -cp "\$LOCALAPPDATA\\JMNeXt\\jmnext.jar;\$LOCALAPPDATA\\JMNeXt\\skiko-windows-arm64.jar" com.jmnext.desktop.MainKt'
 SectionEnd
 NSI
 ( cd "$W" && makensis -V2 "app.nsi" >/dev/null )
