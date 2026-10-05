@@ -34,3 +34,5 @@ desktop/dist-win64/
 
 # buildkit 的本机配置本地生成，不入库（模板是 env.example）
 tools/buildkit/build.env
+desktop/dist-universal/
+desktop/dist-win-universal/
