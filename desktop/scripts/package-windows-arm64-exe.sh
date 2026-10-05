@@ -46,6 +46,8 @@ else
 fi
 unzip -q "$JREZ" -d "$W/jre" && mv "$W"/jre/*/ "$STAGE/runtime"
 [ -f "$STAGE/runtime/bin/java.exe" ] || { echo "  runtime/bin/java.exe 不在，拒绝出包"; exit 1; }
+# 诊断脚本：单体 exe 静默无窗口，出问题时双击它就能看到报错（并 pause 住）
+printf '@echo off\r\ncd /d "%%~dp0"\r\nset JMCOMIC_RENDER=GL\r\necho === JMNeXt ===\r\nruntime\\bin\\java.exe -version\r\necho === running ===\r\nruntime\\bin\\java.exe -cp "jmnext.jar;skiko-windows-arm64.jar" com.jmnext.desktop.MainKt\r\necho === exited with code %%ERRORLEVEL%% ===\r\npause\r\n' > "$STAGE/run.bat"
 
 echo "== 4/4 NSIS 打成单体 exe =="
 OUT_EXE="$VERSION-$$.exe"
@@ -57,13 +59,21 @@ SilentInstall silent
 RequestExecutionLevel user
 AutoCloseWindow true
 Section
-  ; 解压到固定目录：首次稍慢，之后直接启动
   SetOutPath "\$LOCALAPPDATA\\JMNeXt"
+  ; 条件解压：只有版本标记不存在时才解压。
+  ; 此前 File /r 每次启动都执行 —— 静默 + 无窗口 + 重解约 150MB，用户看到的就是"点了没反应/炸了"。
+  IfFileExists "\$LOCALAPPDATA\\JMNeXt\\.installed-$VERSION" jmnext_done jmnext_extract
+jmnext_extract:
   File /r "stage\\*"
+  FileOpen \$0 "\$LOCALAPPDATA\\JMNeXt\\.installed-$VERSION" w
+  FileClose \$0
+jmnext_done:
+  ; 工作目录切到应用目录：ZIP 版的 jmnext.bat 一直有 cd /d "%~dp0"，单体 exe 此前漏了这一步
+  System::Call 'kernel32::SetCurrentDirectory(t "\$LOCALAPPDATA\\JMNeXt")'
   ; 与 zip 版一致：Windows 上默认用 GL 渲染，绕开部分环境的 OpenGL 上下文问题
   System::Call 'kernel32::SetEnvironmentVariable(t "JMCOMIC_RENDER", t "GL")'
-  ; javaw：不弹控制台窗口
-  Exec '"\\\$LOCALAPPDATA\\JMNeXt\\runtime\\bin\\javaw.exe" -cp "\\\$LOCALAPPDATA\\JMNeXt\\jmnext.jar;\\\$LOCALAPPDATA\\JMNeXt\\skiko-windows-arm64.jar" com.jmnext.desktop.MainKt'
+  ; javaw：不弹控制台窗口。若打不开，双击应用目录里的 run.bat 可看到报错，日志另有 %USERPROFILE%\\jmnext.log
+  Exec '"\$LOCALAPPDATA\\JMNeXt\\runtime\\bin\\javaw.exe" -cp "\$LOCALAPPDATA\\JMNeXt\\jmnext.jar;\$LOCALAPPDATA\\JMNeXt\\skiko-windows-arm64.jar" com.jmnext.desktop.MainKt'
 SectionEnd
 NSI
 ( cd "$W" && makensis -V2 "app.nsi" >/dev/null )
