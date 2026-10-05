@@ -30,15 +30,23 @@ unzip -l "$SK" | grep -q "skiko-windows-x64.dll" || { echo "  该 jar 里没有 
 cp "$SK" "$STAGE/skiko-windows-x64.jar"
 
 echo "== 3/5 Temurin 21 Windows x64 运行时（国内镜像优先）=="
-JREZ="$W/jre.zip"
-for base in \
-  "https://mirrors.tuna.tsinghua.edu.cn/Adoptium/21/jre/x64/windows" \
-  "https://mirror.nju.edu.cn/Adoptium/21/jre/x64/windows" \
-  "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1" ; do
-  curl -sL --max-time 600 -o "$JREZ" "$base/OpenJDK21U-jre_x64_windows_hotspot_21.0.12.1_1.zip" || true
-  [ -s "$JREZ" ] && [ "$(stat -c %s "$JREZ")" -gt 1000000 ] && break
-done
-[ -s "$JREZ" ] || { echo "  运行时下载失败"; exit 1; }
+# 缓存优先：镜像下载失败过一次（拿到非 zip，unzip 报 "End-of-central-directory signature not found"），
+# 每次重新下载 45MB 既慢又脆；这里与 exe 脚本一致，优先用缓存，并在解压前先确认拿到的确实是 zip。
+JREZ="$W/jre.zip"; CACHE="${JRE_CACHE:-$HOME/.cache/win-jre-x64.zip}"
+if [ -s "$CACHE" ]; then
+  cp "$CACHE" "$JREZ"; echo "  用缓存：$(stat -c %s "$JREZ") 字节"
+else
+  for base in \
+    "https://mirrors.tuna.tsinghua.edu.cn/Adoptium/21/jre/x64/windows" \
+    "https://mirror.nju.edu.cn/Adoptium/21/jre/x64/windows" \
+    "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1" ; do
+    curl -sL --max-time 600 -o "$JREZ" "$base/OpenJDK21U-jre_x64_windows_hotspot_21.0.12.1_1.zip" || true
+    [ -s "$JREZ" ] && [ "$(stat -c %s "$JREZ")" -gt 1000000 ] && break
+  done
+  [ -s "$JREZ" ] || { echo "  运行时下载失败"; exit 1; }
+  unzip -l "$JREZ" >/dev/null 2>&1 || { echo "  下载到的不是有效 zip（镜像可能返回了错误页），拒绝继续"; exit 1; }
+  mkdir -p "$(dirname "$CACHE")"; cp "$JREZ" "$CACHE"; echo "  已缓存到 $CACHE"
+fi
 unzip -q "$JREZ" -d "$W/jre" && mv "$W"/jre/*/ "$STAGE/runtime"
 [ -f "$STAGE/runtime/bin/java.exe" ] || { echo "  runtime/bin/java.exe 不在，拒绝出包"; exit 1; }
 

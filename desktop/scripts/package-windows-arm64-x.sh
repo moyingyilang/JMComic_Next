@@ -13,14 +13,27 @@ curl -sL --max-time 300 -o "$W/skiko.jar" "https://repo1.maven.org/maven2/org/je
 unzip -l "$W/skiko.jar" | grep -q "skiko-windows-arm64.dll" || { echo "  缺 skiko-windows-arm64.dll，拒绝出包"; exit 1; }
 cp "$W/skiko.jar" "$STAGE/skiko-windows-arm64.jar"
 echo "== 2/4 Temurin 21 Windows aarch64 =="
-for base in "https://mirrors.tuna.tsinghua.edu.cn/Adoptium/21/jre/aarch64/windows" "https://mirror.nju.edu.cn/Adoptium/21/jre/aarch64/windows"; do
-  curl -sL --max-time 600 -o "$W/jre.zip" "$base/OpenJDK21U-jre_aarch64_windows_hotspot_21.0.12.1_1.zip" || true
-  [ -s "$W/jre.zip" ] && [ "$(stat -c %s "$W/jre.zip")" -gt 1000000 ] && break
-done
-unzip -q "$W/jre.zip" -d "$W/jre" && mv "$W"/jre/*/ "$STAGE/runtime"
+# 缓存优先 + 校验确实是 zip（与 x64 脚本、exe 脚本一致）：镜像偶发返回错误页会让 unzip 直接失败
+JREZ="$W/jre.zip"; CACHE="${JRE_CACHE:-$HOME/.cache/win-jre-arm64.zip}"
+if [ -s "$CACHE" ]; then
+  cp "$CACHE" "$JREZ"; echo "  用缓存：$(stat -c %s "$JREZ") 字节"
+else
+  for base in \
+    "https://mirrors.tuna.tsinghua.edu.cn/Adoptium/21/jre/aarch64/windows" \
+    "https://mirror.nju.edu.cn/Adoptium/21/jre/aarch64/windows" \
+    "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1" ; do
+    curl -sL --max-time 600 -o "$JREZ" "$base/OpenJDK21U-jre_aarch64_windows_hotspot_21.0.12.1_1.zip" || true
+    [ -s "$JREZ" ] && [ "$(stat -c %s "$JREZ")" -gt 1000000 ] && break
+  done
+  [ -s "$JREZ" ] || { echo "  运行时下载失败"; exit 1; }
+  unzip -l "$JREZ" >/dev/null 2>&1 || { echo "  下载到的不是有效 zip（镜像可能返回了错误页），拒绝继续"; exit 1; }
+  mkdir -p "$(dirname "$CACHE")"; cp "$JREZ" "$CACHE"; echo "  已缓存到 $CACHE"
+fi
+unzip -q "$JREZ" -d "$W/jre" && mv "$W"/jre/*/ "$STAGE/runtime"
 [ -f "$STAGE/runtime/bin/java.exe" ] || { echo "  缺 runtime/bin/java.exe"; exit 1; }
 echo "== 3/4 启动脚本 =="
 printf '@echo off\r\nset JMCOMIC_RENDER=GL\r\ncd /d "%%~dp0"\r\nruntime\\bin\\java.exe -cp "jmnext.jar;skiko-windows-arm64.jar" com.jmnext.desktop.MainKt\r\npause\r\n' > "$STAGE/jmnext.bat"
+printf '@echo off\r\ncd /d "%%~dp0"\r\nset OUT=diag.txt\r\necho ==== JMNeXt diagnostics ==== > "%%OUT%%"\r\nsysteminfo | findstr /B /C:"OS Name" /C:"OS Version" /C:"System Type" >> "%%OUT%%" 2>&1\r\nruntime\\bin\\java.exe -version >> "%%OUT%%" 2>&1\r\necho ---- run app ---- >> "%%OUT%%"\r\nruntime\\bin\\java.exe -cp "jmnext.jar;skiko-windows-arm64.jar" com.jmnext.desktop.MainKt >> "%%OUT%%" 2>&1\r\necho ---- exit code %%ERRORLEVEL%% ---- >> "%%OUT%%"\r\ntype "%%OUT%%"\r\npause\r\n' > "$STAGE/diag.bat"
 echo "== 4/4 打包 + 验收 =="
 mkdir -p "$OUT_DIR"
 ABS="$(cd "$OUT_DIR" && pwd)/Windows-arm64-$VERSION.zip"
