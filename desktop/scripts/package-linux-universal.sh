@@ -52,6 +52,13 @@ ARM64_RUNTIME=${ARM64_RUNTIME:-/root/arm64-runtime}
 rm -rf "$ARMROOT/lib/runtime-arm64"
 cp -a "$ARM64_RUNTIME" "$ARMROOT/lib/runtime-arm64"
 printf "  runtime-arm64 已换成 jlink 运行时：%s\n" "$(file -b "$ARMROOT/lib/runtime-arm64/bin/java" | cut -d, -f1-2)"
+# 权限归一化：jlink 在容器 umask 下会把库生成成 600（没有 x 位），加载器会报
+# "libjli.so: cannot open shared object file"。必须显式补上可执行/可读位，否则运行时启动不了。
+chmod -R a+r "$ARMROOT/lib/runtime-arm64" "$ARMROOT/lib/runtime-x64"
+chmod -R a+x "$ARMROOT/lib/runtime-arm64/bin" "$ARMROOT/lib/runtime-x64/bin"
+chmod 755 "$ARMROOT/lib/runtime-arm64/bin/java" "$ARMROOT/lib/runtime-x64/bin/java"
+printf "  runtime-arm64 的 libjli.so 权限: %s\n" "$(stat -c %a "$ARMROOT/lib/runtime-arm64/lib/libjli.so")"
+printf "  runtime-x64   的 libjli.so 权限: %s\n" "$(stat -c %a "$ARMROOT/lib/runtime-x64/lib/libjli.so")"
 # jpackage 生成的 ELF 启动器只对本架构有效，统一换成按架构选择的脚本
 rm -rf "$ARMROOT/bin"; mkdir -p "$ARMROOT/bin"
 
@@ -68,6 +75,11 @@ case "$(uname -m)" in
 esac
 [ -d "$DIR/lib/runtime-$A" ] || { echo "缺运行时：$DIR/lib/runtime-$A" >&2; exit 1; }
 [ -d "$DIR/lib/app-$A" ] || { echo "缺应用目录：$DIR/lib/app-$A" >&2; exit 1; }
+# 显式设置库搜索路径：包内 libjli.so 存在、bin/java 的 rpath 也写着 $ORIGIN/../lib，
+# 但在 bind mount 这类路径下 $ORIGIN 解析不可靠（实测不设就报 "libjli.so: cannot open shared object file"），
+# 设上即可正常启动。写死这一行比依赖 rpath 稳。
+LD_LIBRARY_PATH="$DIR/lib/runtime-$A/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH
 exec "$DIR/lib/runtime-$A/bin/java" \
   -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 \
   -Dskiko.library.path="$DIR/lib/app-$A" \
