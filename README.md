@@ -259,3 +259,16 @@ scripts/package-windows-arm64-x.sh dist-win   # arm64 免装 Java ZIP
 
 本项目以 **AGPL-3.0-only** 授权，见 [LICENSE](LICENSE)。
 禁漫、JMComic 及相关内容的权利归其权利人所有；本应用与官方无关，仅提供客户端实现。
+
+## 相关项目
+
+- **[JMNeXt4QtDesktop](https://github.com/moyingyilang/JMNeXt4QtDesktop)** —— 桌面端的**原生重实现**（C++ / Qt），
+  与主项目**并行开发**，定位不同：
+
+  | 项目 | 技术 | 适用场景 |
+  | --- | --- | --- |
+  | 本仓库 `JMNeXt` | Kotlin + Compose Multiplatform | Android（移植为主）与桌面（JVM，**稳定线**） |
+  | `JMNeXt4QtDesktop` | C++ + Qt | 桌面**原生线**：桌面没有 ART 这类限制，原生版可做到约 5–20MB 体积、约 50ms 启动、**无需 JVM**（因而摆脱 jlink/jpackage/自解压 exe 那一整套打包链） |
+
+  后者目前处于**骨架阶段**，功能对齐的判据写在它的 `docs/PORT-SPEC.md` 里（移植规格清单）。
+  **注意：该仓库目前是私有的**，公开访问需要先将其改为 public。
