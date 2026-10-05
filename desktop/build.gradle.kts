@@ -39,7 +39,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 }
 
-// 说明：2.1.5 桌面端自成一个 Gradle 构建（不并进 Android 的 settings），
+// 说明：2.1.6 桌面端自成一个 Gradle 构建（不并进 Android 的 settings），
 // 这样构建桌面版完全不需要 Android SDK，容器里也就能独立编译。
 compose.desktop {
     application {
@@ -54,7 +54,7 @@ compose.desktop {
                 org.jetbrains.compose.desktop.application.dsl.TargetFormat.AppImage,
             )
             packageName = "jmnext"  // deb/rpm 对包名字符有限制，大写与下划线不合法
-            packageVersion = "2.1.5"
+            packageVersion = "2.1.6"
             description = "JMNeXt 桌面版"
             vendor = "moyingyilang"
         }
@@ -107,7 +107,7 @@ tasks.register<Jar>("fatJar") {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
         attributes["Main-Class"] = "com.jmnext.desktop.MainKt"
-        attributes["Implementation-Version"] = "2.1.5"
+        attributes["Implementation-Version"] = "2.1.6"
     }
     from(sourceSets.main.get().output)
     from({
