@@ -81,6 +81,49 @@ object UpdateCheck {
         }.getOrNull()
     }
 
+    /**
+     * 版本号归一化成纯数字段（去掉 v 前缀与变体后缀），用于拼附件名。
+     * 例：`v2.1.7` → `2.1.7`；`2.1.7.lite` → `2.1.7`。
+     */
+    fun cleanVersion(raw: String?): String =
+        parts(raw)?.joinToString(".") ?: raw?.trim()?.removePrefix("v").orEmpty()
+
+    /** 发布 tag 的规范形式（带 v 前缀）。附件直链里必须用它。 */
+    fun tagOf(raw: String?): String {
+        val t = raw?.trim().orEmpty()
+        return if (t.startsWith("v") || t.startsWith("V")) t else "v" + cleanVersion(t)
+    }
+
+    /**
+     * Android 该下哪个包 —— 与发布脚本的命名严格对应。
+     *
+     * 这里正是 issue #5 的症结：发布页的附件名是 `Android-full-<版本>.apk`，
+     * **名字里没有架构**（一个包同时含 arm64 与 x86_64 的 native 库）。
+     * 用户按"arm64 版"去找，自然找不到。
+     */
+    fun androidAssetName(version: String?, lite: Boolean): String =
+        "Android-" + (if (lite) "lite" else "full") + "-" + cleanVersion(version) + ".apk"
+
+    /**
+     * 桌面端按系统与架构给出候选附件名，**第一个是最推荐的**（统一包，内含两套运行时，不用分辨架构）。
+     */
+    fun desktopAssetNames(version: String?, os: String?, arch: String?): List<String> {
+        val v = cleanVersion(version)
+        val o = os.orEmpty().lowercase()
+        val a = arch.orEmpty().lowercase()
+        val isArm = a.contains("arm") || a.contains("aarch64")
+        val isWin = o.contains("win")
+        return if (isWin) {
+            listOf("Windows-universal-$v.exe", "Windows-" + (if (isArm) "arm64" else "x64") + "-$v.zip")
+        } else {
+            listOf("Linux-universal-$v.tar.gz", "Linux-" + (if (isArm) "aarch64" else "x86_64") + "-$v.tar.gz")
+        }
+    }
+
+    /** release 里某个附件的直链。 */
+    fun assetUrl(tag: String?, assetName: String, repo: String = REPO): String =
+        "https://github.com/" + repo + "/releases/download/" + tagOf(tag) + "/" + assetName
+
     const val REPO = "moyingyilang/JMNeXt"
 
     /** GitHub 的"最新发布"接口。 */

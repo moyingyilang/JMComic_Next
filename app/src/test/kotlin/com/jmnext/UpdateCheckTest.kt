@@ -57,4 +57,36 @@ class UpdateCheckTest {
             UpdateCheck.releaseUrl(null),
         )
     }
+
+    @Test
+    fun `android asset name matches the release naming and covers both architectures`() {
+        assertEquals("Android-full-2.1.7.apk", UpdateCheck.androidAssetName("v2.1.7", lite = false))
+        assertEquals("Android-lite-2.1.7.apk", UpdateCheck.androidAssetName("v2.1.7", lite = true))
+        // 本机版本带变体后缀时也要归一化，否则拼出的附件名不存在
+        assertEquals("Android-lite-2.1.7.apk", UpdateCheck.androidAssetName("2.1.7.lite", lite = true))
+    }
+
+    @Test
+    fun `desktop asset names prefer the universal package per platform`() {
+        val win = UpdateCheck.desktopAssetNames("v2.1.7", "Windows 10", "amd64")
+        assertEquals("Windows-universal-2.1.7.exe", win.first())
+        assertTrue(win.contains("Windows-x64-2.1.7.zip"))
+        val winArm = UpdateCheck.desktopAssetNames("v2.1.7", "Windows 11", "aarch64")
+        assertTrue(winArm.contains("Windows-arm64-2.1.7.zip"))
+        val linux = UpdateCheck.desktopAssetNames("v2.1.7", "Linux", "aarch64")
+        assertEquals("Linux-universal-2.1.7.tar.gz", linux.first())
+        assertTrue(linux.contains("Linux-aarch64-2.1.7.tar.gz"))
+        val linuxX64 = UpdateCheck.desktopAssetNames("v2.1.7", "Linux", "amd64")
+        assertTrue(linuxX64.contains("Linux-x86_64-2.1.7.tar.gz"))
+    }
+
+    @Test
+    fun `asset url uses the tag with v prefix`() {
+        assertEquals(
+            "https://github.com/moyingyilang/JMNeXt/releases/download/v2.1.7/Android-full-2.1.7.apk",
+            UpdateCheck.assetUrl("v2.1.7", "Android-full-2.1.7.apk"),
+        )
+        // 传进来的 tag 没有 v 前缀时也要补上
+        assertTrue(UpdateCheck.assetUrl("2.1.7", "x").contains("/download/v2.1.7/"))
+    }
 }
