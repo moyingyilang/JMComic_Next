@@ -924,3 +924,36 @@ AppImage 的外层运行时本身就是架构相关的。
 
 - 两个统一包都只做到**结构验收**（架构、文件齐全、启动脚本逻辑）：能否真的在对应机器上启动，需要用户确认；
 - 用户此前确认过"修复后的单体 exe 能启动"，但那是 per-arch 版本，统一版是新产物。
+
+## 二十九、2.1.6：产物矩阵与两条后备方案
+
+### 附件矩阵（16 项）
+
+| 类别 | 项 |
+| --- | --- |
+| Linux aarch64 | tar.gz / deb / rpm / AppImage |
+| Linux x86_64 | tar.gz / deb / rpm / AppImage |
+| Linux 统一 | **Linux-universal-\<版本\>.tar.gz**（含两套运行时，`bin/jmnext` 按 `uname -m` 选择） |
+| Windows x64 | ZIP / 单体 exe |
+| Windows arm64 | ZIP / 单体 exe |
+| Windows 统一 | **Windows-universal-\<版本\>.exe**（含两套运行时，按 `PROCESSOR_ARCHITECTURE` 选择） |
+| Android | full / lite（各自覆盖四个 ABI，无需按架构分） |
+
+### 统一包的构建依赖（重建时必须先满足）
+
+- **Windows 统一 exe**：依赖两个 JRE 缓存（`$HOME/.cache/win-jre-x64.zip`、`win-jre-arm64.zip`）与两套 Skiko；
+  脚本内部会跑两次 `fatJar`（x64 与 arm64）。
+- **Linux 统一 tar.gz**：依赖 `/root/arm64-runtime`（jlink 产物）与两个已生成的按架构 tar.gz。生成命令见第二十八节；
+  缺失时脚本会直接报错退出（不会悄悄用一个没有 `bin/java` 的运行时去打一个启动不了的包）。
+
+### 后备方案（若用户反馈）
+
+| 反馈 | 后备做法 |
+| --- | --- |
+| 汉字仍显示为方框 | 说明用户机器缺少可用中文字体 → 下一版**打包 Noto Sans SC**（OFL 许可，约 5-10MB），用 `Font(resource)` 加载并作为首选族 |
+| 统一包启动失败 | 先让用户跑 `run.bat`（Windows）或 `bin/jmnext`（Linux）拿到报错；Windows 侧若 32 位进程读到 `PROCESSOR_ARCHITECTURE=x86`，已有 `PROCESSOR_ARCHITEW6432` 兜底 |
+| Linux 统一包 arm64 启动失败 | 检查 `/root/arm64-runtime` 是否被误删/替换；确认 `lib/runtime-arm64/bin/java` 是 aarch64 ELF |
+
+### 未验证（持续跟踪）
+
+汉字显示效果、两个统一包能否真正启动 —— 都只有用户能在对应机器上确认。
