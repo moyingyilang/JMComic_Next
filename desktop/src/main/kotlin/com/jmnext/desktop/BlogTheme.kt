@@ -15,6 +15,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.platform.Typeface
 
 /**
  * 桌面端主题：直接采用 moyingyilang.github.io 的设计令牌（2.0.0）。
@@ -103,14 +105,31 @@ fun BlogTheme(
     }
 
     // 字号也照博客：正文 1rem(16sp) 上下、辅助文字 0.85/0.78rem
+    // 汉字要靠一个**确定含中日韩字形**的字体族，不能只依赖 FontFamily.Default：
+    // Windows 的默认字体（Segoe UI）不含汉字，fallback 可能挑到不含汉字的字体（显示成方框），
+    // 也可能挑到日文字体 —— 汉字会按日式写法渲染（比如"直""骨"这类字的形态）。两者都属于"汉字显示有毛病"。
+    val cjk = cjkFontFamily()
     val typography = Typography(
         titleMedium = MaterialTheme.typography.titleMedium.copy(
+            fontFamily = cjk,
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
         ),
-        bodyMedium = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 22.sp),
-        bodySmall = MaterialTheme.typography.bodySmall.copy(fontSize = 13.6.sp, lineHeight = 20.sp),
-        labelSmall = MaterialTheme.typography.labelSmall.copy(fontSize = 12.5.sp),
+        bodyMedium = MaterialTheme.typography.bodyMedium.copy(fontFamily = cjk, fontSize = 15.sp, lineHeight = 22.sp),
+        bodySmall = MaterialTheme.typography.bodySmall.copy(fontFamily = cjk, fontSize = 13.6.sp, lineHeight = 20.sp),
+        labelSmall = MaterialTheme.typography.labelSmall.copy(fontFamily = cjk, fontSize = 12.5.sp),
+        // 其余样式也统一到同一字体族：否则大标题、按钮文字等会退回默认字体，汉字又可能出问题
+        displayLarge = MaterialTheme.typography.displayLarge.copy(fontFamily = cjk),
+        displayMedium = MaterialTheme.typography.displayMedium.copy(fontFamily = cjk),
+        displaySmall = MaterialTheme.typography.displaySmall.copy(fontFamily = cjk),
+        headlineLarge = MaterialTheme.typography.headlineLarge.copy(fontFamily = cjk),
+        headlineMedium = MaterialTheme.typography.headlineMedium.copy(fontFamily = cjk),
+        headlineSmall = MaterialTheme.typography.headlineSmall.copy(fontFamily = cjk),
+        titleLarge = MaterialTheme.typography.titleLarge.copy(fontFamily = cjk),
+        titleSmall = MaterialTheme.typography.titleSmall.copy(fontFamily = cjk),
+        bodyLarge = MaterialTheme.typography.bodyLarge.copy(fontFamily = cjk),
+        labelLarge = MaterialTheme.typography.labelLarge.copy(fontFamily = cjk),
+        labelMedium = MaterialTheme.typography.labelMedium.copy(fontFamily = cjk),
     )
 
     MaterialTheme(
@@ -130,3 +149,29 @@ fun BlogTheme(
         }
     }
 }
+
+/**
+ * 选一个含中日韩字形的系统字体族。
+ *
+ * 为什么要显式选：`FontFamily.Default` 在桌面端等于系统默认字体，Windows 上是 Segoe UI（不含汉字），
+ * 于是 fallback 要么找不到字形（方框），要么落到日文字体上（汉字按日式写法渲染）。这两者都是"汉字显示有毛病"。
+ *
+ * 候选按平台给，取到第一个能加载的；都取不到就返回 null，让 Compose 用默认字体（至少不比现在差）。
+ * 用 Skiko 的 FontMgr 按**字体名**查系统字体，再用 Compose Desktop 的 Typeface 包装成 FontFamily。
+ */
+private fun cjkFontFamily(): FontFamily? = runCatching {
+    val os = System.getProperty("os.name").orEmpty().lowercase()
+    val names = when {
+        os.contains("win") -> listOf("Microsoft YaHei UI", "Microsoft YaHei", "SimHei", "SimSun")
+        os.contains("mac") -> listOf("PingFang SC", "Hiragino Sans GB", "STHeiti", "Heiti SC")
+        else -> listOf(
+            "Noto Sans CJK SC", "Source Han Sans SC", "Noto Sans SC",
+            "WenQuanYi Micro Hei", "Droid Sans Fallback", "DejaVu Sans",
+        )
+    }
+    val mgr = org.jetbrains.skia.FontMgr.default
+    val sk = names.firstNotNullOfOrNull { name ->
+        runCatching { mgr.matchFamilyStyle(name, org.jetbrains.skia.FontStyle.NORMAL) }.getOrNull()
+    } ?: return@runCatching null
+    FontFamily(androidx.compose.ui.text.platform.Typeface(sk))
+}.getOrNull()
