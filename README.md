@@ -30,7 +30,7 @@ Android 端移植而来，两端共用同一个 `shared` 数据层。这是一�
 | Linux | x86_64 | 便携 tar.gz | `Linux-x86_64-2.1.8.tar.gz` | 未在真机跑过 |
 | Linux | x86_64 | deb | `Linux-x86_64-2.1.8.deb` | 同左 |
 | Linux | x86_64 | AppImage | `Linux-x86_64-2.1.8.AppImage` | 同左 |
-| Linux | x86_64 | rpm | 无 | **出不来**，见[已知限制](#已知限制) |
+| Linux | x86_64 | rpm | `Linux-x86_64-2.1.8.rpm` | 已产出（原生 aarch64 的 rpmbuild 加 `--target x86_64`） |
 | Windows | x64 | 免装 Java 的 ZIP | `Windows-x64-2.1.8.zip` | 可用（用户真机确认） |
 | Windows | arm64 | 免装 Java 的 ZIP | `Windows-arm64-2.1.8.zip` | 真机未验证 |
 | Android | arm64 / armv7 | APK（`full` / `lite`） | [Releases](https://github.com/moyingyilang/JMNeXt/releases/latest)：`Android-full-2.1.8.apk`（full）与 `Android-lite-2.1.8.apk`（lite） | 已发布至 2.1.8；**applicationId 已改为 `com.jmnext`，老版本不能覆盖安装、需重装**（旧包数据不会自动迁移） |
@@ -115,9 +115,10 @@ chmod +x Linux-aarch64-2.1.8.AppImage && ./Linux-aarch64-2.1.8.AppImage
 
 ### 已知限制
 
-- **x86_64 的 rpm 出不来。** rpm 4.18 拒绝跨架构构建（`No compatible architectures found for build`，
-  八种 define 组合全部失败）；改用 qemu 运行 `rpm:amd64` 后，真实 spec 的 `%install` 仍会失败 ——
-  rpm 每个脚本段都要 `exec /bin/sh`，而环境里 binfmt_misc 不可用。需要真正的 x86_64 机器才能补上。
+- **x86_64 的 rpm 曾经出不来，现已能产出。** rpm 4.18 会拒绝跨架构构建（`No compatible architectures found for build`），
+  用 qemu 跑 `rpm:amd64` 也会在 `%install` 阶段失败（rpm 每个脚本段都要 `exec /bin/sh`，而环境里 binfmt_misc 不可用）。
+  可用的绕法是 **让本机原生的 aarch64 rpmbuild 加 `--target x86_64` 并显式指定 buildroot**
+  （见 `desktop/scripts/package-linux-x64.sh`）。2.1.8 的 `Linux-x86_64-2.1.8.rpm`（89,448,740 字节）就是这样产出的，已在 Release 上。
 - **x86_64 产物未在真实机器上运行过。** 只验证到 qemu 用户态模拟下"创建窗口"这一步。
 - 桌面端的半成品与未做页：标签、画师与作品库是半成品，评论未做。
 
