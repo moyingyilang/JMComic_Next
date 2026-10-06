@@ -1,6 +1,7 @@
 import java.util.Properties
 
 plugins {
+    id("androidx.baselineprofile")
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
@@ -194,6 +195,8 @@ if (project.hasProperty("composeReports")) {
 }
 
 dependencies {
+    // baseline profile 安装器：让设备在首次启动时安装随包发布的 profile
+    implementation("androidx.profileinstaller:profileinstaller:1.4.1")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -224,4 +227,14 @@ dependencies {
 
     // 纯 JVM 单元测试：覆盖协议推导与「宽容解析」这两块最容易悄悄改坏、又不需要设备的地方
     testImplementation(libs.junit)
+}
+
+/**
+ * Baseline Profile：声明各 release 变体的 profile 由 :baselineprofile 测试模块生成。
+ * 没有这一段时，generateXxxBaselineProfile 会"成功但什么都不做"（插件只给出警告）。
+ */
+baselineProfile {
+    variants {
+        create("fullRelease") { from(project(":baselineprofile")) }
+    }
 }
