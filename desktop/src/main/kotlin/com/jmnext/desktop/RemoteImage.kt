@@ -101,7 +101,7 @@ object RemoteImage {
             return Loaded(null, bytes.size.toLong())
         }
         sizes[url] = bytes.size.toLong()
-        Log.line("图片", "普通加载成功 ${bitmap.width}x${bitmap.height} ${bytes.size}B ${System.currentTimeMillis() - t0}ms")
+        Log.debug("图片", "普通加载成功 ${bitmap.width}x${bitmap.height} ${bytes.size}B ${System.currentTimeMillis() - t0}ms")
         cache[url] = bitmap
         return Loaded(bitmap, bytes.size.toLong())
     }
@@ -171,7 +171,7 @@ object RemoteImage {
                 if (it is CancellationException) return@onFailure
                 Log.error("图片", "反切片解码异常 url=$url", it) }.getOrNull()
         } ?: return null
-        Log.line("图片", "反切片成功 ${bitmap.width}x${bitmap.height} ${bytes.size}B ${System.currentTimeMillis() - t0}ms")
+        Log.debug("图片", "反切片成功 ${bitmap.width}x${bitmap.height} ${bytes.size}B ${System.currentTimeMillis() - t0}ms")
         cache[url] = bitmap
         return bitmap
     }
@@ -233,15 +233,16 @@ object RemoteImage {
             conn.setRequestProperty("User-Agent", "Mozilla/5.0 (jmnext-desktop)")
             val code = conn.responseCode
             if (code != 200) {
-                Log.error("图片", "[$kind] HTTP $code ${conn.responseMessage} ${System.currentTimeMillis() - t0}ms url=$url")
+                Log.errorOnce("图片", "$kind|HTTP $code", "[$kind] HTTP $code ${conn.responseMessage} url=$url")
                 return@withContext null
             }
             val bytes = conn.inputStream.use { it.readBytes() }
-            Log.line("图片", "[$kind] 下载 ${bytes.size}B HTTP $code ${System.currentTimeMillis() - t0}ms")
+            Log.debug("图片", "[$kind] 下载 ${bytes.size}B HTTP $code ${System.currentTimeMillis() - t0}ms")
             bytes
         } catch (t: Throwable) {
             // 超时、连接被拒、DNS、TLS 等都在这里被区分出来
-            Log.error("图片", "[$kind] 下载异常 ${System.currentTimeMillis() - t0}ms url=$url", t)
+            // 同一类失败按 (kind + 异常类型) 聚合并周期汇总：用户日志里这类曾刷满上千行（issue #9）
+            Log.errorOnce("图片", "$kind|${t?.javaClass?.simpleName}", "[$kind] 下载异常 url=$url → ${t?.javaClass?.simpleName}: ${t?.message}")
             null
         } finally {
             runCatching { conn?.disconnect() }

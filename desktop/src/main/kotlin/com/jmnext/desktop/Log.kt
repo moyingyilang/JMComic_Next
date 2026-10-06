@@ -40,7 +40,8 @@ object Log {
             System.getProperty("jmnext.verbose")?.equals("true", ignoreCase = true) == true
     }
 
-    private val seenOnce = ConcurrentHashMap<String, Boolean>()
+    /** key -> 出现次数（用于 errorOnce 聚合） */
+    private val counts = ConcurrentHashMap<String, Int>()
 
     fun init() {
         val stream = runCatching {
@@ -63,9 +64,18 @@ object Log {
         if (verbose) line(tag, message)
     }
 
-    /** 同一个 key 只打第一次：同一 URL 反复失败时不再刷屏。 */
-    fun errorOnce(tag: String, key: String, message: String) {
-        if (seenOnce.putIfAbsent(key, true) == null) line(tag, message)
+    /**
+     * 按同类聚合的错误日志：同一 key 首次全量打印，之后每 [everyN] 次汇总一条。
+     *
+     * 为什么要这样：用户日志里出现过同一批封面下载失败刷满上千行（issue #9），
+     * 既淹没其它信息、又不增加信息量。聚合后仍能看出"这类错误发生了多少次"。
+     */
+    fun errorOnce(tag: String, key: String, message: String, everyN: Int = 50) {
+        val n = (counts[key] ?: 0) + 1
+        counts[key] = n
+        if (n == 1 || (everyN > 0 && n % everyN == 0)) {
+            line(tag, if (n == 1) message else "$message（同类已出现 $n 次）")
+        }
     }
 
     /** 把异常打到日志里（含类型与消息，便于区分超时/404/解码失败）。 */
