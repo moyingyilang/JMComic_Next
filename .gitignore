@@ -36,3 +36,5 @@ desktop/dist-win64/
 tools/buildkit/build.env
 desktop/dist-universal/
 desktop/dist-win-universal/
+
+desktop/*.zip
