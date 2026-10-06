@@ -105,10 +105,15 @@ fun main() {
         java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(java.util.Date(File(loc.toURI()).lastModified()))
     }.getOrNull() ?: "未知"
     Log.line("启动", "JMNeXt 桌面端 版本 $DESKTOP_VERSION，构建时间 $builtAt")
+    // issue #9：启动即记录运行环境（系统/版本/架构/运行时/图形后端/字体），
+    // 拿到用户日志时第一眼看这行，判断是不是平台差异。
+    Log.line("环境", Log.envSummary())
     // 把 stdout/stderr 同时写进 ~/jmnext.log，便于远程读日志定位问题
     // 组合期抛出的异常默认只进 AWT 的日志，容器里看不到；这里显式打到 stderr
     Thread.setDefaultUncaughtExceptionHandler { t, e ->
         System.err.println("[崩溃] 线程 ${t.name}：")
+        // 崩溃时把环境信息一并写进日志头部（对应 issue #8 的"没有任何输出"）
+        System.err.println(Log.envBlock())
         e.printStackTrace()
     }
     runApp()
