@@ -58,8 +58,7 @@
 
 - 版本号三处一致：`Version.kt` 回退常量、`desktop/build.gradle.kts` 的 `packageVersion` 与
   `Implementation-version` 均为 2.1.8（`DESKTOP_VERSION` **优先读 jar 清单**，只改常量会导致包自称旧版本）。
-- **本版未包含 Android 包**：Android 侧未重新构建（需要签名配置）。若需一并发布请告知，
-  我会补齐 `Android-full` / `Android-lite`。
+- **本版包含 Android 包**：`Android-full-2.1.8.apk` 与 `Android-lite-2.1.8.apk`（versionCode 42）。
 
 **每个版本遵循同一条纪律**：改动能说清「为什么慢 / 省了什么」、**已验证**与**未验证**分开写、**已知未修**的明确记档。完整细节在下方索引对应的条目里。
 
