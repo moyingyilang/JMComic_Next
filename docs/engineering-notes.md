@@ -1204,3 +1204,23 @@ qemu-x86_64-static ... -cp "lib/app/*" com.jmnext.desktop.MainKt
 2. **桌面端与 Android 端各自编译 `:shared`**（桌面端是独立 Gradle 构建）；
 3. 打包脚本**没有时间戳**，无法拆解各阶段耗时 —— 优化前先补上；
 4. Gradle 输出里已提示"Consider enabling configuration cache"（配置缓存未开）。
+
+### 优化记录 1：桌面端开启配置缓存（2026-10-06）
+
+**背景**：根 `gradle.properties` 早已开 `org.gradle.configuration-cache=true`，但**桌面端是独立 Gradle 构建**
+（自己的 `desktop/` 目录），不会继承根配置，所以一直没吃到这项收益。
+
+**改动**：`desktop/gradle.properties` 增加 `org.gradle.configuration-cache=true`（一行）。
+
+**同一条件实测**（容器内，`--offline --console=plain`，daemon 热，机器空闲）：
+
+| 命令 | 改前 | 改后 | 说明 |
+| --- | --- | --- | --- |
+| `compileKotlin` | 4.4 / 4.7 秒 | **2.0 / 2.7 秒** | 日志出现 `Configuration cache entry reused.` |
+| `fatJar -Ptarget=windows-x64`（全复用） | 7.4 秒 | **2.9 秒** | 首次写入缓存后复用 |
+
+**顺带确认**（避免重复劳动）：
+- `org.gradle.caching=true`、`configuration-cache`（根）**已开**；`parallel` 与 `workers.max` 经项目此前
+  受控 A/B 判定**无稳定收益**，故未再动；`--no-daemon` 实测更慢（21/14 秒 vs 7/5 秒），已明确不用。
+
+**未采用**：未安装 `ninja`（Qt 端 Generator 对比做不了）；`ccache` 已装（4.7.5），留待 Qt 端 C++ 编译优化时评估。
