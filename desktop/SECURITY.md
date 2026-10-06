@@ -90,3 +90,49 @@ dir "%USERPROFILE%\.config\jmnext\keys"
 - **未在 Windows 实测**：ACL 分支与注册表路径的实际表现（开发环境无 Windows）。
 - **未验证**：Swing 口令框在真实桌面的交互、以及启动-输入口令-解密的端到端流程（开发环境无图形界面）。
 - **未验证**：Android 侧未重新编译（本次改动是共享接口上带默认实现的 `forget`，按设计不影响 Android）。
+
+---
+
+## 附：第三方 PoC 实证（`NTdebug145/JMNeXt-TokenRead`，2026-10-06）
+
+报告者（issue #14 的作者）发布了一个针对本项目的凭据提取 PoC。**我只做代码级阅读分析，没有运行它**
+（第三方代码、且只在 Windows 上有效）。它包含两条**性质完全不同**的路径：
+
+### 路径一：`1.bat` —— attach + 堆转储（已被现有缓解措施挡住）
+
+流程：用 `wmic` 按命令行里的 `jmnext` 找到 `java.exe` 的 PID →
+`jcmd <pid> GC.heap_dump`（失败则回退 `jmap -dump`）→ 在 hprof 里用正则匹配 `eyJ...` 形态的 JWT。
+
+这条路径**正是 `-XX:+DisableAttachMechanism` 所针对的向量**：`jcmd` / `jmap` 都依赖 attach 机制，
+该参数在默认启动器里已开启（见上文"内存中的凭据"一节），因此这条路被挡住。
+
+### 路径二：`UserD.java` —— 读密钥文件 + 用 JVM 解码 prefs（**不被该参数挡住**）
+
+流程：读 `~/.config/jmnext/keys/jm_session_v1.key`（明文 AES 密钥）→
+在**自己的 JVM** 里 `Preferences.userRoot().node("com/jmnext/jm_secure")` →
+`get("jwt")` / `get("member")` → 用该密钥做 AES-GCM 解密。
+
+因为它**完全不需要 attach**，`-XX:+DisableAttachMechanism` 对它无效 —— 这与本文档一直写明的残余风险一致
+（"本机同用户的普通程序：口令开启时能防住；默认配置防不住"）。
+
+**它被什么挡住**：开启口令保护时，`jm_session_v1.key` **根本不存在** —— 实现里 `PassphraseKeyProvider`
+只写 `jm_session_v1.wrapped`（`salt || iv || AES-GCM(密钥)`，包裹密钥由用户口令经 PBKDF2 派生），
+明文密钥从不落盘。此时 `UserD.java` 的第一步就会失败。
+反之，若用户当初选择了"暂不使用口令"（或属于老安装），这条路径就会成功。
+（另：新装默认会弹一次口令保护询问 —— 见 issue #16 的修复。）
+
+### 它顺带澄清的一个技术点
+
+PoC 的 README 论证"必须经由 JVM 读取，无法从注册表原始值反推"—— **这个判断是正确的**：
+`java.util.prefs` 在 Windows 上的存储层编码（`WindowsPreferences` 的私有转义、边界处理）既无文档也无稳定性承诺，
+拿注册表原始串自行解码会在长度与 padding 上失败。这一点对防守方也有意义：
+**只要攻击者能执行 JVM 代码并读到密钥材料，本地存储层的任何"花式编码"都提供不了额外保护。**
+
+### 结论
+
+该 PoC 不改变本文档的威胁模型，但提供了两个具体价值：
+1. **确认**了 attach 向量确实可用（因此 `-XX:+DisableAttachMechanism` 不是空做功）；
+2. **演示**了不依赖 attach 的那条路，也就是"必须靠口令保护或缩短令牌价值"的那条路。
+
+因此推荐做法不变，且优先级更明确：**开启口令保护**（或用 `JMNEXT_KEY_PASSPHRASE_ENABLE=1`），
+并推动服务端改为短效 JWT + 刷新令牌轮换 + 可撤销。
