@@ -23,19 +23,19 @@ Android 端移植而来，两端共用同一个 `shared` 数据层。这是一�
 
 | 平台 | 架构 | 格式 | 附件名 | 状态 |
 | --- | --- | --- | --- | --- |
-| Linux | aarch64 | 便携 tar.gz | `Linux-aarch64-2.0.0.tar.gz` | 可用 |
-| Linux | aarch64 | deb | `Linux-aarch64-2.0.0.deb` | 可用 |
-| Linux | aarch64 | rpm | `Linux-aarch64-2.0.0.rpm` | 可用 |
-| Linux | aarch64 | AppImage | `Linux-aarch64-2.0.0.AppImage` | 可用 |
-| Linux | x86_64 | 便携 tar.gz | `Linux-x86_64-2.0.0.tar.gz` | 未在真机跑过 |
-| Linux | x86_64 | deb | `Linux-x86_64-2.0.0.deb` | 同左 |
-| Linux | x86_64 | AppImage | `Linux-x86_64-2.0.0.AppImage` | 同左 |
+| Linux | aarch64 | 便携 tar.gz | `Linux-aarch64-2.1.8.tar.gz` | 可用 |
+| Linux | aarch64 | deb | `Linux-aarch64-2.1.8.deb` | 可用 |
+| Linux | aarch64 | rpm | `Linux-aarch64-2.1.8.rpm` | 可用 |
+| Linux | aarch64 | AppImage | `Linux-aarch64-2.1.8.AppImage` | 可用 |
+| Linux | x86_64 | 便携 tar.gz | `Linux-x86_64-2.1.8.tar.gz` | 未在真机跑过 |
+| Linux | x86_64 | deb | `Linux-x86_64-2.1.8.deb` | 同左 |
+| Linux | x86_64 | AppImage | `Linux-x86_64-2.1.8.AppImage` | 同左 |
 | Linux | x86_64 | rpm | 无 | **出不来**，见[已知限制](#已知限制) |
-| Windows | x64 | 免装 Java 的 ZIP | `Windows-x64-2.0.0.zip` | 可用（用户真机确认） |
-| Windows | arm64 | 免装 Java 的 ZIP | `Windows-arm64-2.0.0.zip` | 真机未验证 |
-| Android | arm64 / armv7 | APK（`full` / `lite`） | [Releases](https://github.com/moyingyilang/JMNeXt/releases/latest)：`Android-full-2.0.0.apk`（full）与 `Android-lite-2.0.0.apk`（lite） | 已发布至 2.0.0；**applicationId 已改为 `com.jmnext`，老版本不能覆盖安装、需重装**（旧包数据不会自动迁移） |
+| Windows | x64 | 免装 Java 的 ZIP | `Windows-x64-2.1.8.zip` | 可用（用户真机确认） |
+| Windows | arm64 | 免装 Java 的 ZIP | `Windows-arm64-2.1.8.zip` | 真机未验证 |
+| Android | arm64 / armv7 | APK（`full` / `lite`） | [Releases](https://github.com/moyingyilang/JMNeXt/releases/latest)：`Android-full-2.1.8.apk`（full）与 `Android-lite-2.1.8.apk`（lite） | 已发布至 2.1.8；**applicationId 已改为 `com.jmnext`，老版本不能覆盖安装、需重装**（旧包数据不会自动迁移） |
 
-两个 Windows ZIP 都自带 Temurin JRE 21 与对应架构的 Skiko 原生库，解压后双击 `jmcomic-next.bat`，
+两个 Windows ZIP 都自带 Temurin JRE 21 与对应架构的 Skiko 原生库，解压后双击 `jmnext.bat`，
 不需要另装 Java；包里另有 `diag.bat`，启动不了时收集系统信息与运行日志。Android 的 `full` 与 `lite`
 是同一个应用的两种裁剪，`applicationId` 不同，可以同时安装。Linux 只支持 64 位：渲染层 Skiko 不发布
 32 位 Linux 原生库（armv7a / i686 均为 404），32 位 JDK 也没有 —— 这是上游依赖缺失，不是打包问题。
@@ -44,23 +44,23 @@ macOS 与 iOS 不再发布。
 
 ## 快速开始
 
-Linux 便携包（解压后运行 `./bin/jmcomic-next`）：
+Linux 便携包（解压后运行 `./bin/jmnext`）：
 
 ```bash
-tar xzf jmnext-2.0.0-linux-aarch64-portable.tar.gz && ./bin/jmcomic-next
+tar xzf Linux-aarch64-2.1.8.tar.gz && ./bin/jmnext
 ```
 
 deb（x86_64 换成 `_amd64.deb`）、rpm、AppImage：
 
 ```bash
-sudo dpkg -i jmnext_2.0.0_arm64.deb && jmcomic-next
-sudo rpm -i jmnext-2.0.0-1.aarch64.rpm && jmcomic-next
-chmod +x jmnext-2.0.0-aarch64.AppImage && ./jmnext-2.0.0-aarch64.AppImage
+sudo dpkg -i Linux-aarch64-2.1.8.deb && jmnext
+sudo rpm -i Linux-aarch64-2.1.8.rpm && jmnext
+chmod +x Linux-aarch64-2.1.8.AppImage && ./Linux-aarch64-2.1.8.AppImage
 ```
 
 系统缺 `libfuse.so.2` 时，AppImage 可以不挂载直接跑：加 `--appimage-extract-and-run`。运行时需要
 图形环境（X11 / Wayland）与 OpenGL；纯无头环境会在创建窗口时失败，这是 Compose Desktop 的既有
-行为，不是本项目的缺陷。Windows 解压 ZIP 后双击 `jmcomic-next.bat`；Android 装 APK 即可，
+行为，不是本项目的缺陷。Windows 解压 ZIP 后双击 `jmnext.bat`；Android 装 APK 即可，
 登录是可选的，不登录也能浏览、搜索、阅读。
 
 ---
@@ -194,7 +194,7 @@ scripts/package-windows-arm64-x.sh dist-win   # arm64 免装 Java ZIP
 
 ```bash
 ./gradlew :shared:test
-./gradlew :shared:test --tests "com.jmcomic_next.lyqs.selftune.*"
+./gradlew :shared:test --tests "com.jmnext.selftune.*"
 ```
 
 ---
