@@ -1169,3 +1169,38 @@ qemu-x86_64-static ... -cp "lib/app/*" com.jmnext.desktop.MainKt
   qemu 只能跑"我直接指定的那一个二进制"，**子进程不会被自动转译**。
 - 也就是说：单进程的交叉工具能跑，带子进程的构建流程跑不了。要在 x86_64 上出 rpm，
   需要真正能注册 binfmt 的内核环境（真机、或允许 binfmt_misc 的容器）。
+
+## 构建/编译耗时：测量方法与基线（2026-10-06 起）
+
+**为什么要写这一节**：优化编译速度时最容易犯的错是"凭感觉说快了"。这里固定测量方法，
+保证任何一次优化都能用同一把尺子对比。
+
+### 测量约定
+
+- 一律在**容器内**执行：`/opt/jdk21-linux` + `LD_LIBRARY_PATH=$JAVA_HOME/lib`（容器未挂载 `/proc`，
+  java 启动器无法用 `$ORIGIN` 找 `libjli.so`，不加这个环境变量会报 "libjli.so: cannot open"）。
+- Gradle 命令一律 `--offline --console=plain`；每次测量前记录 **daemon 是否已热**（连续第二次测量为热）。
+- **测量时机器上不应同时跑其它构建**（打包、Android 构建都会抢占 CPU，导致数字偏大且不可比）。
+  判断容器内是否还有构建在跑：**不要用 `ps`**（容器内 `/proc` 未挂载，`ps` 结果不可信），
+  改为看目标文件的体积/时间戳是否在变化。
+- 记录四项：命令、daemon 状态（冷/热）、是否首次执行、墙上时间（`time` 输出）。
+- 打包类测量要**拆开**记录：gradle（fatJar）部分、jpackage/NSIS 部分、以及自检/验收部分。
+
+### 待测清单
+
+| 目标 | 命令 | 现状 |
+| --- | --- | --- |
+| 桌面端编译（热） | `gradle --offline --console=plain compileKotlin`（desktop/） | 量级参考 4~32s（条件未统一，待正式测量） |
+| 桌面端 fatJar | `gradle --offline --console=plain fatJar -Ptarget=windows-x64` | 未测 |
+| Android release | `gradle :app:assembleFullRelease :app:assembleLiteRelease` | 正在跑，本次即基线 |
+| 单个打包目标 | `bash scripts/package-windows-x64-exe.sh <out>` | 未拆解测量（脚本目前不打时间戳，需要先补） |
+| Qt 全量/增量构建 | `cmake --build build -j2` | 未正式测 |
+| Qt 测试 | `ctest --test-dir build` | 量级 <10s |
+
+### 已知的浪费点（先记录，改前要单独测）
+
+1. **7 个打包目标各自跑一次 `gradle fatJar`**：`-Ptarget` 只影响 Skiko 依赖，
+   Kotlin 编译部分本可复用（打包日志显示每个目标都会重新编译）；
+2. **桌面端与 Android 端各自编译 `:shared`**（桌面端是独立 Gradle 构建）；
+3. 打包脚本**没有时间戳**，无法拆解各阶段耗时 —— 优化前先补上；
+4. Gradle 输出里已提示"Consider enabling configuration cache"（配置缓存未开）。
