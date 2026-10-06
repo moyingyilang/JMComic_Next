@@ -23,14 +23,17 @@
    不设置 NTFS ACL**，所以另用 `java.nio` 的 `AclFileAttributeView` 移除宽泛主体
    （Users / Authenticated Users / Everyone 等）。异常时只告警、不改动原 ACL。
 
-2. **口令保护密钥**（`PassphraseKeyProvider`，默认关闭）
+2. **口令保护密钥**（`PassphraseKeyProvider`；全新安装默认开启并可拒绝，老安装保持原状）
    `keys/<alias>.wrapped` = `salt(16) || iv(12) || AES-GCM 密文(32 字节密钥 + 16 字节 tag)`，
    包裹密钥由口令经 PBKDF2-HMAC-SHA256（12 万次迭代）派生。口令错误 -> **fail closed**（不落盘、不解密），
    不会退化成明文存储。
-   开启方式（任一）：
-   - 已存在 `keys/jm_session_v1.wrapped`；
-   - 设置环境变量 `JMNEXT_KEY_PASSPHRASE_ENABLE=1`（首次启动会要求设置口令）；
-   - 自动化/无界面场景用 `JMNEXT_KEY_PASSPHRASE=<口令>` 直接提供。
+   开启方式与默认策略（issue #12 定案）：
+   - **全新安装默认开启**：首次启动弹一次对话框说明风险，可选「设置口令」或「暂不使用」；
+     选后者会写 `keys/.passphrase-declined`，之后不再询问（失败模式是安全的：对话框异常也等同于"暂不使用"）；
+   - **已有明文密钥的老安装不动**：行为与以前完全一致，除非显式开启；
+   - 显式开启：存在 `keys/jm_session_v1.wrapped`，或 `JMNEXT_KEY_PASSPHRASE_ENABLE=1`，
+     或直接给 `JMNEXT_KEY_PASSPHRASE=<口令>`（自动化/无界面场景）；
+   - 强制关闭：`JMNEXT_KEY_PASSPHRASE_ENABLE=0`（企业/自动化可用来跳过询问）。
 
 3. **登出即销毁密钥材料**（`SecretKeyProvider.forget` + `SecureStore.clear`）
    只清 prefs/注册表而留下密钥文件，等于"换了锁但钥匙还挂在门上"：之前加密过的内容仍可被解出。

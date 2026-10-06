@@ -112,12 +112,60 @@ class PassphraseKeyProvider(
         private const val IV_LEN = 12
         private const val TAG_BITS = 128
         private const val ITERATIONS = 120_000
+        private const val DECLINED_MARKER = ".passphrase-declined"
 
-        /** 已存在 `.wrapped` 或显式开启时，切换到口令保护实现；否则沿用原实现（默认，行为不变）。 */
+        /**
+         * 装配策略（issue #12）：
+         *
+         * 1. 已存在 `keys/<alias>.wrapped` -> 直接用口令保护（说明此前已开启）；
+         * 2. `JMNEXT_KEY_PASSPHRASE_ENABLE=0` -> 强制关闭（企业/自动化可用来关掉询问）；
+         * 3. `JMNEXT_KEY_PASSPHRASE_ENABLE=1` 或已提供 `JMNEXT_KEY_PASSPHRASE` -> 直接开启；
+         * 4. 用户此前选过"暂不使用"（有标记文件）-> 沿用原实现，不再打扰；
+         * 5. 目录里已有明文密钥文件（老安装）-> **不动**，行为与以前完全一致；
+         * 6. 以上都不满足（全新安装）-> 弹一次对话框说明风险，用户可选"设置口令"或"暂不使用"，
+         *    选后者会写标记文件，之后不再询问。
+         *
+         * 为什么对全新安装默认开启：桌面端把密钥明文放文件里时，同机其它程序能读走并解密
+         * （已有公开的读取示例）。老安装保持原状是为了不破坏既有用户的登录状态。
+         */
         fun maybeEnable(dir: File, fallback: SecretKeyProvider, alias: String = "jm_session_v1"): SecretKeyProvider {
-            val enabled = File(dir, "$alias.wrapped").exists() ||
-                System.getenv("JMNEXT_KEY_PASSPHRASE_ENABLE") == "1"
-            return if (enabled) PassphraseKeyProvider(dir) else fallback
+            if (File(dir, "$alias.wrapped").exists()) return PassphraseKeyProvider(dir)
+            val enableFlag = System.getenv("JMNEXT_KEY_PASSPHRASE_ENABLE")
+            if (enableFlag == "0") return fallback
+            if (enableFlag == "1" || System.getenv("JMNEXT_KEY_PASSPHRASE") != null) {
+                return PassphraseKeyProvider(dir)
+            }
+            val declined = File(dir, DECLINED_MARKER)
+            if (declined.exists()) return fallback
+            if (File(dir, "$alias.key").exists()) return fallback      // 老安装：不动
+            return if (askFirstRunChoice()) {
+                PassphraseKeyProvider(dir)
+            } else {
+                runCatching { dir.mkdirs(); declined.writeText("declined") }
+                println("[凭据] 用户选择暂不使用口令保护（以后可设 JMNEXT_KEY_PASSPHRASE_ENABLE=1 开启）")
+                fallback
+            }
+        }
+
+        /** 全新安装时问一次；可拒绝（拒绝后写标记文件，不再询问）。 */
+        private fun askFirstRunChoice(): Boolean {
+            var yes = false
+            runCatching {
+                SwingUtilities.invokeAndWait {
+                    val msg = "是否用口令保护本机登录凭据？\n\n" +
+                        "背景：桌面端要在本机保存登录令牌。若只存在文件里，同一台机器上的其它程序\n" +
+                        "也能读走并解密（已有公开的读取示例）。设置口令后，没有口令就解不开。\n\n" +
+                        "「设置口令」：每次启动需输入一次口令；\n" +
+                        "「暂不使用」：与以前相同（本机其它程序可读），以后可再开启。"
+                    val opts = arrayOf("设置口令", "暂不使用")
+                    val r = JOptionPane.showOptionDialog(
+                        null, msg, "登录凭据保护", JOptionPane.DEFAULT_OPTION,
+                        JOptionPane.QUESTION_MESSAGE, null, opts, opts[0]
+                    )
+                    yes = (r == 0)
+                }
+            }
+            return yes
         }
 
         private fun askPassphraseDialog(title: String): CharArray? {
