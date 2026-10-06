@@ -99,12 +99,24 @@ object Log {
      * 字体环境（与 issue #7「有界面无文字」直接相关）：
      * 默认字体族 + 可用字体族数量。字体被精简或解析失败时，这两项会立刻露出来。
      */
+    /**
+     * 字体环境（与 issue #7「有界面无文字」直接相关）。
+     *
+     * 软件渲染下文本出不来，最常见的原因就是**没有可用的中文字体**（系统被精简、
+     * 字体目录被清理、或字体缓存损坏）。所以这里不只报"字体族数量"，还明确报出
+     * 是否找到了常见中文字体，并给出前几个字体族样例便于比对。
+     */
     private fun fontInfo(): String = runCatching {
-        val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
-        val count = ge.availableFontFamilyNames.size
+        val families = GraphicsEnvironment.getLocalGraphicsEnvironment().availableFontFamilyNames
         val def = Font("SansSerif", Font.PLAIN, 12).family
-        "$def（可用字体族 $count）"
-    }.getOrElse { "取不到：${it.javaClass.simpleName}" }
+        val cjkCandidates = listOf(
+            "Microsoft YaHei", "微软雅黑", "SimSun", "宋体", "SimHei", "黑体",
+            "Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei"
+        )
+        val cjk = cjkCandidates.firstOrNull { c -> families.any { it.equals(c, ignoreCase = true) } }
+        val sample = families.take(6).joinToString("、")
+        "$def（字体族 ${families.size}；中文字体 ${cjk ?: "未找到常见中文字体"}；样例 $sample）"
+    }.getOrElse { "取不到：${it.javaClass.simpleName}: ${it.message}" }
 
     private class FileOutputStreamTee(f: File) : OutputStream() {
         private val out = java.io.FileOutputStream(f, true)
