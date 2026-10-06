@@ -28,14 +28,22 @@ object SelfCheck {
         if (ok) pass++ else fail++
     }
 
+    /** 跑完全部检查并返回失败项数（0 表示全通过）。供 Gradle 测试调用，不退出进程。 */
     @JvmStatic
-    fun main(args: Array<String>) {
+    fun run(): Int {
+        pass = 0
+        fail = 0
         println("== 凭据存储自检 ==")
         checkPassphrase()
         checkPreferences()
         checkFreshInstallDecision()
-        println("== 结果：通过 $pass 项，失败 $fail 项 ==")
-        if (fail > 0) System.exit(1)
+        println("== 结果：通过 " + pass + " 项，失败 " + fail + " 项 ==")
+        return fail
+    }
+
+    @JvmStatic
+    fun main(args: Array<String>) {
+        if (run() > 0) System.exit(1)
     }
 
     /** 口令保护：包裹 -> 解开 -> 错口令 fail closed -> forget 删除文件。 */

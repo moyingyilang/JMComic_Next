@@ -25,6 +25,7 @@ sourceSets.main {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     implementation(compose.desktop.currentOs)
     // material3 不在 currentOs 里，要单独加（Kotlin/Compose 的实际报错就是第 3 行 unresolved）
     implementation(compose.material3)
