@@ -38,3 +38,5 @@ desktop/dist-universal/
 desktop/dist-win-universal/
 
 desktop/*.zip
+
+/dist-*/
