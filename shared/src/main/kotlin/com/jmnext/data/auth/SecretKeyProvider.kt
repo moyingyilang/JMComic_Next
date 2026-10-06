@@ -14,4 +14,13 @@ import javax.crypto.SecretKey
 interface SecretKeyProvider {
     /** 取（必要时创建）指定别名的 AES-256 密钥；不可用时返回 null。 */
     fun aesKey(alias: String): SecretKey?
+
+    /**
+     * 清除该别名的**密钥材料**（登出/清凭据时调用）。
+     *
+     * 为什么需要它：只清掉键值存储（prefs/SharedPreferences）而留下密钥文件，
+     * 等于"把锁换了但钥匙还挂在门上"—— 之前加密过的内容仍可被解出（issue #12）。
+     * 默认空实现，已有平台实现不受影响；桌面实现会删除密钥文件。
+     */
+    fun forget(alias: String) {}
 }

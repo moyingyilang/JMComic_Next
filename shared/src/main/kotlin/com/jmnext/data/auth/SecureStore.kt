@@ -55,7 +55,10 @@ class SecureStore(
 
     fun remove(key: String) = prefs.remove(key)
 
-    fun clear() = prefs.clear()
+    fun clear() {
+        prefs.clear()
+        keys.forget(alias)      // 只清 prefs 会留下密钥文件，之前加密的凭据仍可被解出
+    }
 
     private fun encrypt(plain: String): String {
         val cipher = Cipher.getInstance(TRANSFORMATION)

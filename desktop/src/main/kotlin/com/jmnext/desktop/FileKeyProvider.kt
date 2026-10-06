@@ -50,6 +50,10 @@ class FileKeyProvider(private val dir: File) : SecretKeyProvider {
      * 系统语言不同会导致主体名字不同，因此这里只匹配一小组常见名称；
      * 匹配不到就什么都不做，绝不会误删系统账户的访问项。
      */
+    override fun forget(alias: String) {
+        runCatching { File(dir, "$alias.key").delete() }
+    }
+
     private fun hardenPermissions(file: File) {
         file.setReadable(false, false)
         file.setReadable(true, true)

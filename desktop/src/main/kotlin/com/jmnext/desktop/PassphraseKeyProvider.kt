@@ -61,6 +61,11 @@ class PassphraseKeyProvider(
         null
     }
 
+    override fun forget(alias: String) {
+        cached = null
+        runCatching { File(dir, "$alias.wrapped").delete() }
+    }
+
     private fun passphrase(): CharArray? =
         System.getenv("JMNEXT_KEY_PASSPHRASE")?.toCharArray()
             ?: prompt("请输入密钥口令（用于保护本机登录凭据）")
