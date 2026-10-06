@@ -47,7 +47,7 @@ fi
 unzip -q "$JREZ" -d "$W/jre" && mv "$W"/jre/*/ "$STAGE/runtime"
 [ -f "$STAGE/runtime/bin/java.exe" ] || { echo "  runtime/bin/java.exe 不在，拒绝出包"; exit 1; }
 # 诊断脚本：单体 exe 静默无窗口，出问题时双击它就能看到报错（并 pause 住）
-printf '@echo off\r\ncd /d "%%~dp0"\r\nrem 默认软件渲染（兼容建不出 GL 上下文的环境）；要强制 GPU 就改成 GL\r\nset JMCOMIC_RENDER=\r\necho === JMNeXt ===\r\nruntime\\bin\\java.exe -version\r\necho === running ===\r\nruntime\\bin\\java.exe -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -cp "jmnext.jar;skiko-windows-x64.jar" com.jmnext.desktop.MainKt\r\necho === exited with code %%ERRORLEVEL%% ===\r\npause\r\n' > "$STAGE/run.bat"
+printf '@echo off\r\ncd /d "%%~dp0"\r\nrem 默认软件渲染（兼容建不出 GL 上下文的环境）；要强制 GPU 就改成 GL\r\nset JMCOMIC_RENDER=\r\necho === JMNeXt ===\r\nruntime\\bin\\java.exe -version\r\necho === running ===\r\nruntime\\bin\\java.exe -XX:+DisableAttachMechanism -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -cp "jmnext.jar;skiko-windows-x64.jar" com.jmnext.desktop.MainKt\r\necho === exited with code %%ERRORLEVEL%% ===\r\npause\r\n' > "$STAGE/run.bat"
 
 echo "== 4/4 NSIS 打成单体 exe =="
 OUT_EXE="$VERSION-$$.exe"

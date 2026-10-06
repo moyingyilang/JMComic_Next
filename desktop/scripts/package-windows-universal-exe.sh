@@ -61,7 +61,7 @@ for pair in "x64:$HOME/.cache/win-jre-x64.zip:OpenJDK21U-jre_x64_windows_hotspot
 done
 
 echo "== 4/5 启动与诊断脚本 =="
-printf '@echo off\r\ncd /d "%%~dp0"\r\nrem 默认软件渲染（兼容建不出 GL 上下文的环境）；要强制 GPU 就改成 GL\r\nset JMCOMIC_RENDER=\r\necho === JMNeXt（自动判断架构）===\r\nif /I "%%PROCESSOR_ARCHITECTURE%%"=="ARM64" (set A=arm64) else (set A=x64)\r\nif /I "%%PROCESSOR_ARCHITEW6432%%"=="ARM64" (set A=arm64)\r\necho 使用架构：%%A%%\r\nruntime-%%A%%\\bin\\java.exe -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -version\r\necho === running ===\r\nruntime-%%A%%\\bin\\java.exe -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -cp "jmnext-%%A%%.jar;skiko-windows-%%A%%.jar" com.jmnext.desktop.MainKt\r\necho === exited with code %%ERRORLEVEL%% ===\r\npause\r\n' > "$STAGE/run.bat"
+printf '@echo off\r\ncd /d "%%~dp0"\r\nrem 默认软件渲染（兼容建不出 GL 上下文的环境）；要强制 GPU 就改成 GL\r\nset JMCOMIC_RENDER=\r\necho === JMNeXt（自动判断架构）===\r\nif /I "%%PROCESSOR_ARCHITECTURE%%"=="ARM64" (set A=arm64) else (set A=x64)\r\nif /I "%%PROCESSOR_ARCHITEW6432%%"=="ARM64" (set A=arm64)\r\necho 使用架构：%%A%%\r\nruntime-%%A%%\\bin\\java.exe -XX:+DisableAttachMechanism -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -version\r\necho === running ===\r\nruntime-%%A%%\\bin\\java.exe -XX:+DisableAttachMechanism -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -cp "jmnext-%%A%%.jar;skiko-windows-%%A%%.jar" com.jmnext.desktop.MainKt\r\necho === exited with code %%ERRORLEVEL%% ===\r\npause\r\n' > "$STAGE/run.bat"
 
 echo "== 5/5 NSIS 打成单体 exe（含两套运行时）=="
 OUT_EXE="$VERSION-$$.exe"

@@ -50,6 +50,23 @@ set JMNEXT_KEY_PASSPHRASE_ENABLE=1
 dir "%USERPROFILE%\.config\jmnext\keys"
 ```
 
+## 内存中的凭据（issue #14）
+
+**结论：客户端无法防止。** 只要能以同一用户身份 attach 到 JVM（`jcmd GC.heap_dump`、调试器、内存扫描），
+会话凭据就会被读出来。
+
+**为什么不做"内存加密"**：解密密钥若也在同一进程内，攻击者 dump 一次同样拿到密钥与明文 —— 那是安全表演。
+
+**已做的缓解**：
+- 所有启动器（Windows 的 run.bat / jmnext.bat 与 NSIS 启动项）默认加 `-XX:+DisableAttachMechanism`：
+  `jcmd` 依赖 attach，关闭后直接用堆转储读内存这条路被挡住；
+  代价是同时失去 attach 类诊断工具，需要诊断时可由用户自行去掉该参数。
+- （仍待评估）缩短 token 在堆上的驻留时间与副本数量；`Retrofit`/JSON 边界上必然出现字符串，
+  只能缩小窗口，不能承诺消除。
+
+**真正降低风险的方向**（需要服务端配合）：短效 JWT + 刷新令牌轮换 + 服务端可撤销；
+或干脆不持久化 JWT。
+
 ## 仍未落实（需要产品/服务端配合）
 
 - **不持久化 JWT**：只在内存里保留会话，重启要求重新登录；或改为短效 JWT + 刷新令牌轮换，
