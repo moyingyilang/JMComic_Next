@@ -138,6 +138,17 @@ object SelfCheck {
         // 第二次调用仍然走询问分支（仍不写标记），也就是"下次启动会再问"
         val again = runCatching { PassphraseKeyProvider.maybeEnable(dir, { fallback }, ALIAS) }.getOrNull()
         check("全新安装：再次调用仍不写拒绝标记，下次启动会继续询问", again === fallback && !File(dir, ".passphrase-declined").exists())
+
+        // "未开启口令保护"的一次性提示：无图形环境时**不能**写"已提示"标记。
+        // 否则等于"没人看过却记成已提示"，用户永远不会再被告知（与 issue #16 同一类错误）。
+        // 这里构造"老安装"场景（存在明文密钥文件）以走到该分支。
+        File(dir, "$ALIAS.key").writeBytes(ByteArray(32) { 1 })
+        val legacy = runCatching { PassphraseKeyProvider.maybeEnable(dir, { fallback }, ALIAS) }.getOrNull()
+        check("未开启口令保护：老安装场景仍安全落回原实现", legacy === fallback)
+        check(
+            "未开启口令保护：无图形环境不写「已提示」标记（下次启动仍会提示）",
+            !File(dir, ".passphrase-notice-shown").exists()
+        )
         dir.deleteRecursively()
     }
 

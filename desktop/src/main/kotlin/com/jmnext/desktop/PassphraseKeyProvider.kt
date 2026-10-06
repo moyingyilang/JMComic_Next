@@ -137,13 +137,20 @@ class PassphraseKeyProvider(
                 return PassphraseKeyProvider(dir)
             }
             val declined = File(dir, DECLINED_MARKER)
-            if (declined.exists()) return fallback()
-            if (File(dir, "$alias.key").exists()) return fallback()    // 老安装：不动
+            if (declined.exists()) {
+                noticeUnprotectedOnce(dir, "你此前选择暂不使用口令保护")
+                return fallback()
+            }
+            if (File(dir, "$alias.key").exists()) {
+                noticeUnprotectedOnce(dir, "检测到老安装：密钥以明文文件保存")
+                return fallback()                                      // 老安装：不动
+            }
             return when (askFirstRunChoice()) {
                 FirstRunChoice.ENABLE -> PassphraseKeyProvider(dir)
                 FirstRunChoice.DECLINE -> {
                     runCatching { dir.mkdirs(); declined.writeText("declined") }
                     println("[凭据] 用户选择暂不使用口令保护（以后可设 JMNEXT_KEY_PASSPHRASE_ENABLE=1 开启）")
+                    noticeUnprotectedOnce(dir, "你选择了暂不使用口令保护")
                     fallback()
                 }
                 // issue #16：对话框没能弹出来（无图形环境/EDT 限制等）时**不能**写"拒绝"标记，
@@ -158,6 +165,50 @@ class PassphraseKeyProvider(
 
         /** 首次询问的三种结果。区分"用户拒绝"与"根本没问成"是 issue #16 的关键。 */
         private enum class FirstRunChoice { ENABLE, DECLINE, UNAVAILABLE }
+
+        /** 一次性安全提示的标记文件（与"拒绝询问"的 [DECLINED_MARKER] 分开，互不影响）。 */
+        private const val NOTICE_MARKER = ".passphrase-notice-shown"
+
+        /**
+         * 当应用在**未开启口令保护**的状态下运行时，提示一次（不是每次启动都打扰）。
+         *
+         * 沿用 issue #16 的教训：**对话框没能弹出来时不写"已提示"标记**，
+         * 否则等于"没人看过却记成已提示"，用户永远不会再被告知。这种情况只写日志，下次启动再试。
+         */
+        private fun noticeUnprotectedOnce(dir: File, reason: String) {
+            val marker = File(dir, NOTICE_MARKER)
+            if (marker.exists()) return
+            val howTo = "要开启口令保护：删除配置目录下的 " + DECLINED_MARKER +
+                " 后重启，或设置环境变量 JMNEXT_KEY_PASSPHRASE_ENABLE=1。"
+            if (GraphicsEnvironment.isHeadless()) {
+                println("[凭据] 未开启口令保护（$reason）：本机其它程序可读取并解密登录凭据。$howTo")
+                println("[凭据] （当前环境无图形界面，本次不写提示标记，下次启动会再提示）")
+                return
+            }
+            var shown = false
+            runCatching {
+                runOnEdtAndWait {
+                    JOptionPane.showMessageDialog(
+                        null,
+                        "本机登录凭据未开启口令保护。\n\n" +
+                            "原因：$reason\n\n" +
+                            "现状：密钥以明文文件保存在配置目录，同一台机器上的其它程序\n" +
+                            "可以读取并解密你的登录凭据（已有人公开了这样的读取程序）。\n\n" +
+                            howTo + "\n" +
+                            "（本提示只出现一次。）",
+                        "登录凭据保护提示",
+                        JOptionPane.WARNING_MESSAGE
+                    )
+                    shown = true
+                }
+            }
+            if (shown) {
+                runCatching { dir.mkdirs(); marker.writeText("shown") }
+                println("[凭据] 已一次性提示：当前未开启口令保护（$reason）")
+            } else {
+                println("[凭据] 未能弹出未开启口令保护的提示（$reason），本次不写标记，下次启动会再试")
+            }
+        }
 
         /** 全新安装时问一次；可拒绝（拒绝后写标记文件，不再询问）。 */
         private fun askFirstRunChoice(): FirstRunChoice {
