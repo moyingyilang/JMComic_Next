@@ -76,7 +76,7 @@ private val repository: JmRepository by lazy {
     val configDir = File(System.getProperty("user.home"), ".config/jmnext")
     val secure = SecureStore(
         prefs = PreferencesKeyValueStore("jm_secure"),
-        keys = FileKeyProvider(File(configDir, "keys")),
+        keys = PassphraseKeyProvider.maybeEnable(File(configDir, "keys"), FileKeyProvider(File(configDir, "keys"))),
     )
     JmRepository.create(
         authStore = AuthStore(secure),
