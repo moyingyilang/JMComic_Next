@@ -93,22 +93,51 @@ object SelfCheck {
         check("节点迁移：旧值已写入新节点", newPrefs.get("jwt", null) == "OLD-CIPHERTEXT")
         check("节点迁移：旧节点仍保留（可回退）", legacy.get("jwt", null) == "OLD-CIPHERTEXT")
 
+        // issue #15 回归：旧节点不存在时，构造 store 并读取**不得**把它创建出来。
+        // 依据：java.util.prefs 的 node() 会创建节点，nodeExists() 不会 —— 已用一次性
+        // `-Djava.util.prefs.userRoot=<tmp>` 的 Java 探针实测（只 nodeExists 时业务节点数 0；
+        // 调 node() 后立刻出现 com/... 节点）。
+        val freshNode = "selfcheck_fresh_" + System.nanoTime()
+        val freshLegacyPath = "com/jmcomic_next/$freshNode"
+        val legacyExistedBefore = Preferences.userRoot().nodeExists(freshLegacyPath)
+        val freshStore = PreferencesKeyValueStore(freshNode)
+        freshStore.getString("jwt", null)                       // 触发一次读（含迁移尝试）
+        freshStore.putString("jwt", "NEW")                      // 触发一次写
+        val legacyExistsAfter = Preferences.userRoot().nodeExists(freshLegacyPath)
+        check(
+            "issue #15：旧节点不存在时，读写新节点不会创建旧节点",
+            !legacyExistedBefore && !legacyExistsAfter
+        )
+        runCatching { Preferences.userRoot().node("com/jmnext/$freshNode").removeNode() }
+
         store.clear()
         check("clear：新节点已清空", newPrefs.get("jwt", null) == null)
         check("clear：旧节点也已清空（否则登出后旧密文会被复活）", legacy.get("jwt", null) == null)
         runCatching { newPrefs.removeNode(); legacy.removeNode() }
     }
 
-    /** 全新安装 + 无图形环境：询问弹不出来时必须安全落回原实现，并写下"不再询问"标记。 */
+    /**
+     * 全新安装 + 无图形环境：询问弹不出来时**安全落回原实现**，并且**不能**写下"不再询问"标记。
+     *
+     * issue #16 的教训：这条自检原先断言"写下了不再询问的标记"，等于把错误行为写成期望行为 ——
+     * 在无图形环境里根本没人被问过，却记成"用户拒绝"，新装用户于是永远不再被询问，
+     * 凭据一直按老方式明文保存。现在断言的是相反的事实。
+     */
     private fun checkFreshInstallDecision() {
         val dir = Files.createTempDirectory("selfcheck-fresh").toFile()
         val fallback = object : SecretKeyProvider {
             override fun aesKey(alias: String) = null
         }
-        val chosen = runCatching { PassphraseKeyProvider.maybeEnable(dir, fallback, ALIAS) }.getOrNull()
-        check("全新安装：maybeEnable 不抛异常（无图形环境下对话框异常被兜住）", chosen != null)
+        val chosen = runCatching { PassphraseKeyProvider.maybeEnable(dir, { fallback }, ALIAS) }.getOrNull()
+        check("全新安装：maybeEnable 不抛异常", chosen != null)
         check("全新安装：安全落回原实现", chosen === fallback)
-        check("全新安装：写下不再询问的标记", File(dir, ".passphrase-declined").exists())
+        check(
+            "全新安装：对话框不可用时**不写**拒绝标记（issue #16）",
+            !File(dir, ".passphrase-declined").exists()
+        )
+        // 第二次调用仍然走询问分支（仍不写标记），也就是"下次启动会再问"
+        val again = runCatching { PassphraseKeyProvider.maybeEnable(dir, { fallback }, ALIAS) }.getOrNull()
+        check("全新安装：再次调用仍不写拒绝标记，下次启动会继续询问", again === fallback && !File(dir, ".passphrase-declined").exists())
         dir.deleteRecursively()
     }
 
