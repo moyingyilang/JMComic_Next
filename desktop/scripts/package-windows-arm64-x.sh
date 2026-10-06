@@ -32,7 +32,7 @@ fi
 unzip -q "$JREZ" -d "$W/jre" && mv "$W"/jre/*/ "$STAGE/runtime"
 [ -f "$STAGE/runtime/bin/java.exe" ] || { echo "  缺 runtime/bin/java.exe"; exit 1; }
 echo "== 3/4 启动脚本 =="
-printf '@echo off\r\nset JMCOMIC_RENDER=GL\r\ncd /d "%%~dp0"\r\nruntime\\bin\\java.exe -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -cp "jmnext.jar;skiko-windows-arm64.jar" com.jmnext.desktop.MainKt\r\npause\r\n' > "$STAGE/jmnext.bat"
+printf '@echo off\r\nrem 默认软件渲染（兼容建不出 GL 上下文的环境）；要强制 GPU 就改成 GL\r\nset JMCOMIC_RENDER=\r\ncd /d "%%~dp0"\r\nruntime\\bin\\java.exe -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -cp "jmnext.jar;skiko-windows-arm64.jar" com.jmnext.desktop.MainKt\r\npause\r\n' > "$STAGE/jmnext.bat"
 printf '@echo off\r\ncd /d "%%~dp0"\r\nset OUT=diag.txt\r\necho ==== JMNeXt diagnostics ==== > "%%OUT%%"\r\nsysteminfo | findstr /B /C:"OS Name" /C:"OS Version" /C:"System Type" >> "%%OUT%%" 2>&1\r\nruntime\\bin\\java.exe -version >> "%%OUT%%" 2>&1\r\necho ---- run app ---- >> "%%OUT%%"\r\nruntime\\bin\\java.exe -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8 -cp "jmnext.jar;skiko-windows-arm64.jar" com.jmnext.desktop.MainKt >> "%%OUT%%" 2>&1\r\necho ---- exit code %%ERRORLEVEL%% ---- >> "%%OUT%%"\r\ntype "%%OUT%%"\r\npause\r\n' > "$STAGE/diag.bat"
 echo "== 4/4 打包 + 验收 =="
 mkdir -p "$OUT_DIR"
