@@ -125,7 +125,7 @@ object RemoteImage {
                 cache[url] = it
                 return it
             }
-        Log.line("图片", "反切片：PNG 兜底路径（画布路径未成功）url=" + url)
+        Log.debug("图片", "反切片：PNG 兜底路径（画布路径未成功）url=" + url)
         val tDownloaded = System.currentTimeMillis()
         val bitmap = withContext(Dispatchers.IO) {
             runCatching {
@@ -145,7 +145,7 @@ object RemoteImage {
                         Log.error("图片", "Skiko 也无法转码（连 Skia 都解不出）url=$url")
                         return@runCatching null
                     }
-                    Log.line("图片", "Skiko 转码为 PNG 成功 ${png.size}B（原 ${bytes.size}B，耗时 ${System.currentTimeMillis() - tTranscode0} ms）")
+                    Log.debug("图片", "Skiko 转码为 PNG 成功 ${png.size}B（原 ${bytes.size}B，耗时 ${System.currentTimeMillis() - tTranscode0} ms）")
                     src = ImageIO.read(ByteArrayInputStream(png))
                     if (src == null) {
                         Log.error("图片", "转成 PNG 后 ImageIO 仍解不出（异常情况，请把这条日志发我）url=$url")
@@ -165,7 +165,7 @@ object RemoteImage {
                 val tFilled = System.currentTimeMillis()
                 val tBeforeConvert = System.currentTimeMillis()
                 val converted = out.toComposeImageBitmap()
-                Log.line("图片", "反切片耗时明细：下载 " + (tDownloaded - t0) + "ms，解码 " + (tDecoded - tDownloaded) + "ms，取像素 " + (tPixels - tDecoded) + "ms，还原 " + (tUnscrambled - tPixels) + "ms，回填 " + (tFilled - tUnscrambled) + "ms，转位图 " + (System.currentTimeMillis() - tBeforeConvert) + "ms")
+                Log.debug("图片", "反切片耗时明细：下载 " + (tDownloaded - t0) + "ms，解码 " + (tDecoded - tDownloaded) + "ms，取像素 " + (tPixels - tDecoded) + "ms，还原 " + (tUnscrambled - tPixels) + "ms，回填 " + (tFilled - tUnscrambled) + "ms，转位图 " + (System.currentTimeMillis() - tBeforeConvert) + "ms")
                 converted
             }.onFailure {
                 if (it is CancellationException) return@onFailure

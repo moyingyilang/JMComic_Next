@@ -252,7 +252,7 @@ fun ReaderScreen(
                             val t0 = System.currentTimeMillis()
                             val need = runCatching { repository.needsUnscramble(img.image, p.id, p.scrambleId) }.getOrDefault(false)
                             val got = if (need) RemoteImage.loadScrambled(img.image, p.id, img.fileNameStem) else RemoteImage.load(img.image)
-                            Log.line("阅读", "预取第 " + (i + 1) + " 页" + (if (got == null) "失败" else "成功") + "（用时 " + (System.currentTimeMillis() - t0) + " ms）")
+                            Log.debug("阅读", "预取第 " + (i + 1) + " 页" + (if (got == null) "失败" else "成功") + "（用时 " + (System.currentTimeMillis() - t0) + " ms）")
                         } finally {
                             prefetchInFlight.remove(img.image)
                         }
