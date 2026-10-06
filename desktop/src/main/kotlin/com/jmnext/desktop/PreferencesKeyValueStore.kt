@@ -12,17 +12,30 @@ import java.util.prefs.Preferences
  *
  * 节点命名（issue #11）：项目已从 jmcomic_next 更名，新数据一律写入 `com/jmnext/<node>`；
  * 旧节点 `com/jmcomic_next/<node>` 只读、不删，用于兼容老版本与回退。
+ *
+ * **issue #15 的修正**：`Preferences.node(path)` 会把**不存在**的节点创建出来。
+ * 实测（FileSystemPreferences，`-Djava.util.prefs.userRoot=<tmp>`）：
+ * 只调用 `nodeExists(path)` + `childrenNames()` 时业务节点数为 0；
+ * 而调用 `node(path)` 后立刻产生 `com/...` 节点。Windows 注册表实现同理。
+ * 于是原先"只读迁移"反而在注册表里凭空造出一个空的 `jmcomic_next` 节点。
+ * 现在改为：先用 `nodeExists()` 判断存在性（它不创建），不存在就完全不碰旧节点。
  */
 class PreferencesKeyValueStore(node: String) : KeyValueStore {
 
     /** 新节点（更名后）。写入一律走这里。 */
     private val prefs: Preferences = Preferences.userRoot().node("com/jmnext/$node")
 
+    /** 旧节点的路径。注意：只保存路径字符串，不在这里 `node()` —— 那会创建它。 */
+    private val legacyPath: String = "com/jmcomic_next/$node"
+
     /**
-     * 旧节点（更名前）。**只读、不删**：老版本仍可读回自己的数据，便于回退。
-     * 读到旧值时迁移写入新节点（见 [migrateIfMissing]）。
+     * 旧节点（更名前）。**只有确实存在时才返回**，且不会创建它。
+     * 老版本仍可读回自己的数据，便于回退。
      */
-    private val legacy: Preferences = Preferences.userRoot().node("com/jmcomic_next/$node")
+    private fun legacyOrNull(): Preferences? {
+        val root = Preferences.userRoot()
+        return if (root.nodeExists(legacyPath)) root.node(legacyPath) else null
+    }
 
     /**
      * 新节点没有该键、而旧节点有时，把旧值原样搬到新节点。
@@ -32,6 +45,7 @@ class PreferencesKeyValueStore(node: String) : KeyValueStore {
      */
     private fun migrateIfMissing(key: String) {
         if (key in prefs.keys()) return
+        val legacy = legacyOrNull() ?: return
         if (key !in legacy.keys()) return
         legacy.get(key, null)?.let { prefs.put(key, it) }
     }
@@ -68,11 +82,12 @@ class PreferencesKeyValueStore(node: String) : KeyValueStore {
 
     override fun remove(key: String) {
         prefs.remove(key)
-        legacy.remove(key)      // 见 issue #11：不清旧节点会让旧值被"复活"
+        // 见 issue #11：不清旧值会让旧值被"复活"。但只有旧节点存在时才动它（issue #15）。
+        legacyOrNull()?.remove(key)
     }
 
     override fun clear() {
         prefs.clear()
-        legacy.clear()          // 同上
+        legacyOrNull()?.clear()   // 同上
     }
 }

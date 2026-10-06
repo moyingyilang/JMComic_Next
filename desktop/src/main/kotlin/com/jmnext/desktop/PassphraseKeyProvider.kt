@@ -1,6 +1,7 @@
 package com.jmnext.desktop
 
 import com.jmnext.data.auth.SecretKeyProvider
+import java.awt.GraphicsEnvironment
 import java.io.File
 import java.security.SecureRandom
 import javax.crypto.Cipher
@@ -128,30 +129,42 @@ class PassphraseKeyProvider(
          * 为什么对全新安装默认开启：桌面端把密钥明文放文件里时，同机其它程序能读走并解密
          * （已有公开的读取示例）。老安装保持原状是为了不破坏既有用户的登录状态。
          */
-        fun maybeEnable(dir: File, fallback: SecretKeyProvider, alias: String = "jm_session_v1"): SecretKeyProvider {
+        fun maybeEnable(dir: File, fallback: () -> SecretKeyProvider, alias: String = "jm_session_v1"): SecretKeyProvider {
             if (File(dir, "$alias.wrapped").exists()) return PassphraseKeyProvider(dir)
             val enableFlag = System.getenv("JMNEXT_KEY_PASSPHRASE_ENABLE")
-            if (enableFlag == "0") return fallback
+            if (enableFlag == "0") return fallback()
             if (enableFlag == "1" || System.getenv("JMNEXT_KEY_PASSPHRASE") != null) {
                 return PassphraseKeyProvider(dir)
             }
             val declined = File(dir, DECLINED_MARKER)
-            if (declined.exists()) return fallback
-            if (File(dir, "$alias.key").exists()) return fallback      // 老安装：不动
-            return if (askFirstRunChoice()) {
-                PassphraseKeyProvider(dir)
-            } else {
-                runCatching { dir.mkdirs(); declined.writeText("declined") }
-                println("[凭据] 用户选择暂不使用口令保护（以后可设 JMNEXT_KEY_PASSPHRASE_ENABLE=1 开启）")
-                fallback
+            if (declined.exists()) return fallback()
+            if (File(dir, "$alias.key").exists()) return fallback()    // 老安装：不动
+            return when (askFirstRunChoice()) {
+                FirstRunChoice.ENABLE -> PassphraseKeyProvider(dir)
+                FirstRunChoice.DECLINE -> {
+                    runCatching { dir.mkdirs(); declined.writeText("declined") }
+                    println("[凭据] 用户选择暂不使用口令保护（以后可设 JMNEXT_KEY_PASSPHRASE_ENABLE=1 开启）")
+                    fallback()
+                }
+                // issue #16：对话框没能弹出来（无图形环境/EDT 限制等）时**不能**写"拒绝"标记，
+                // 否则等于"没人问过就记为用户拒绝"，新装用户永远不再被询问，凭据会一直按老方式明文存。
+                // 这种情况保持原行为，但不落标记，下次启动继续尝试询问。
+                FirstRunChoice.UNAVAILABLE -> {
+                    println("[凭据] 无法弹出询问对话框（无图形环境或界面线程限制），本次沿用原实现；下次启动会再问")
+                    fallback()
+                }
             }
         }
 
+        /** 首次询问的三种结果。区分"用户拒绝"与"根本没问成"是 issue #16 的关键。 */
+        private enum class FirstRunChoice { ENABLE, DECLINE, UNAVAILABLE }
+
         /** 全新安装时问一次；可拒绝（拒绝后写标记文件，不再询问）。 */
-        private fun askFirstRunChoice(): Boolean {
-            var yes = false
-            runCatching {
-                SwingUtilities.invokeAndWait {
+        private fun askFirstRunChoice(): FirstRunChoice {
+            if (GraphicsEnvironment.isHeadless()) return FirstRunChoice.UNAVAILABLE
+            var choice = FirstRunChoice.UNAVAILABLE
+            val ok = runCatching {
+                runOnEdtAndWait {
                     val msg = "是否用口令保护本机登录凭据？\n\n" +
                         "背景：桌面端要在本机保存登录令牌。若只存在文件里，同一台机器上的其它程序\n" +
                         "也能读走并解密（已有公开的读取示例）。设置口令后，没有口令就解不开。\n\n" +
@@ -162,10 +175,26 @@ class PassphraseKeyProvider(
                         null, msg, "登录凭据保护", JOptionPane.DEFAULT_OPTION,
                         JOptionPane.QUESTION_MESSAGE, null, opts, opts[0]
                     )
-                    yes = (r == 0)
+                    // 关掉对话框（返回 CLOSED_OPTION）视为"没做选择"，不算拒绝，下次再问
+                    choice = when (r) {
+                        0 -> FirstRunChoice.ENABLE
+                        1 -> FirstRunChoice.DECLINE
+                        else -> FirstRunChoice.UNAVAILABLE
+                    }
                 }
             }
-            return yes
+            return if (ok.isSuccess) choice else FirstRunChoice.UNAVAILABLE
+        }
+
+        /**
+         * 在 EDT 上执行；**已经在 EDT 上时直接执行**。
+         *
+         * issue #16 的次要原因：`SwingUtilities.invokeAndWait` 在事件分发线程上调用会抛
+         * "Cannot call invokeAndWait from the event dispatcher thread"，异常被吞掉后
+         * 表现就是"弹窗没出现却记为已处理"。Compose Desktop 启动阶段正好可能在 EDT 上。
+         */
+        private fun runOnEdtAndWait(block: () -> Unit) {
+            if (SwingUtilities.isEventDispatchThread()) block() else SwingUtilities.invokeAndWait(block)
         }
 
         private fun askPassphraseDialog(title: String): CharArray? {

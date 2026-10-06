@@ -76,7 +76,9 @@ private val repository: JmRepository by lazy {
     val configDir = File(System.getProperty("user.home"), ".config/jmnext")
     val secure = SecureStore(
         prefs = PreferencesKeyValueStore("jm_secure"),
-        keys = PassphraseKeyProvider.maybeEnable(File(configDir, "keys"), FileKeyProvider(File(configDir, "keys"))),
+        // fallback 传成 lambda（而不是先构造）：issue #16 要求"先判定新装/老装，再创建密钥材料"，
+        // 惰性求值从结构上保证这一点。
+        keys = PassphraseKeyProvider.maybeEnable(File(configDir, "keys"), { FileKeyProvider(File(configDir, "keys")) }),
     )
     JmRepository.create(
         authStore = AuthStore(secure),
