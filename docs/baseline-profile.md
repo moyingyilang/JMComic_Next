@@ -118,3 +118,72 @@
 - **`lite` 变体未接入**：为消除 full/lite 的变体歧义，`baselineProfile.variants` 目前只声明了 `fullRelease`。
   如需覆盖 lite，可对 `assembleLiteRelease` 再做一次同样的接入与验证；
 - **构建期代价**：`app/src/main/baseline-prof.txt` 有 2.2 MB，会让 R8 与打包阶段多做一些工作（增量构建影响未单独测量）。
+
+## 五（重测）：更严格协议下的复测与一个关键发现
+
+上一节的结论"噪声内、未测出收益"我做了复测，因为当时的**协议本身可能测不到 profile**。
+复测采用更严格的协议，结果**推翻了"已测到 profile 收益"的前提**，结论也要相应改写。
+
+### 复测协议（先写定，再执行）
+
+- **交替测量**：每轮依次测"接入前"与"接入后"，用交替抵消温度与后台负载漂移；
+- **每轮独立安装对应 APK**（避免上一轮残留状态），共 14 次安装；
+- 每次安装后：首启一次（让 `profileinstaller` 有机会安装 profile）→ 等待 45 秒 →
+  **强制按 profile 编译** `cmd package compile -m speed-profile -f <pkg>`；
+- 每边 7 轮，报告全部原始值 + 中位数 + 极差；
+- 记录电池与温度作为噪声来源证据。
+
+### 原始数据
+
+| 轮次 | 接入前（`Android-full-2.1.8.apk`） | 接入后（本地重建，含应用自身 profile） |
+| --- | --- | --- |
+| 1 | 713 ms（预热离群） | 288 ms |
+| 2 | 295 ms | 250 ms |
+| 3 | 210 ms | 291 ms |
+| 4 | 229 ms | 289 ms |
+| 5 | 269 ms | 300 ms |
+| 6 | 318 ms | 390 ms |
+| 7 | 262 ms | 371 ms |
+| **中位数** | **269 ms** | **291 ms** |
+| 极差 | 210~713 ms | 250~390 ms |
+
+- 两边均为 2.1.8 / versionCode 42、同一签名，只差 profile；
+- 14/14 次安装成功（`Success`），14/14 次强制编译成功（`Success`）；
+- 设备状态：电量 100%，温度 43.2~43.5 ℃（全程基本恒定）。
+
+**中位数差异 22 ms，方向还是"接入后略慢"**，仍在同一噪声带内。
+
+### 关键发现：profile 根本没有进入 ART 的 profile 目录
+
+要判定"无收益是因为没用上，还是因为没效果"，必须看系统是否真的采用了 profile。
+做法：清空 profile 目录后启动应用并等待 25 秒，再检查目录：
+
+```
+/data/misc/profiles/cur/0/com.jmnext/   -> 空
+/data/misc/profiles/ref/0/com.jmnext/   -> 空
+```
+
+**随包发布的 baseline profile 并没有被安装到 ART 的 profile 目录**（这台设备是 Android 17 / HyperOS；
+`profileinstaller` 在这类 ROM 上静默失败是已知情形）。
+因此那次 `cmd package compile -m speed-profile -f` 极可能是**用空 profile 编译**的。
+
+### 结论（改写）
+
+- 本次 A/B 的差异**不能归因于 profile**：两个分支在编译时都近乎"没有 profile"；
+- 所以正确的结论不是"profile 没有效果"，而是 **"本次测量无法判定 profile 的效果"（测量无效/不确定）**；
+- 另有一个协议缺陷要记下：我显式执行 `cmd package compile -f`，可能**覆盖**了安装时基于"包内嵌 profile"的编译结果，
+  反而抹掉了接入后本应存在的差异来源；
+- 必须区分三件事：**(a) profile 在包里**（已验证：9,381 → 10,150 字节）；
+  **(b) profile 被安装到设备**（本次实测：没有）；**(c) profile 产生收益**（在 (b) 不成立时无从谈起）。
+
+### 副作用说明（如实记录）
+
+为判定 (b)，我清空了 `/data/misc/profiles/{cur,ref}/0/com.jmnext/`，
+这会**丢弃该应用此前累积的运行时 profile**（原先 `cur` 下有约 3,947 字节）。
+影响很小：运行时会按实际使用重新累积；但这一点应当告知。
+
+### 复测新增的未验证项
+
+- 该 ROM 是否在**安装时**消费包内嵌 profile（`assets/dexopt/baseline.prof`）—— 未验证；
+- 该 ROM 上 `profileinstaller` 能否工作、需要什么条件 —— 未验证；
+- 若改用 macrobenchmark 的帧级指标与更多轮数，能否观察到差异 —— 未做。
