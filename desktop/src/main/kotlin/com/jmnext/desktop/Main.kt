@@ -94,9 +94,17 @@ fun main() {
     // 表现是数据正常加载、画面全黑（用户报"看不到漫画"）。
     // 因此默认用软件渲染（Skia CPU 光栅）保证能看见；要回到 GPU 渲染就设 JMCOMIC_RENDER=GL。
     // 必须在创建第一个 Compose 窗口之前设置，所以放在 main 的最前面。
-    if (System.getenv("JMCOMIC_RENDER")?.equals("GL", ignoreCase = true) != true) {
+    val wantGpu = System.getenv("JMCOMIC_RENDER")?.equals("GL", ignoreCase = true) == true
+    if (!wantGpu) {
         System.setProperty("skiko.renderApi", "SOFTWARE")
         System.err.println("[启动] 渲染后端：软件渲染（设 JMCOMIC_RENDER=GL 可改回 GPU）")
+    } else {
+        // issue #8：显式要 GPU 时把代价写清楚。GL 上下文在部分机器/远程桌面上建不出来，
+        // 表现是"窗口不出现"或"内容全黑"，而日志当时已经写了、只是看不出该怎么办。
+        System.err.println(
+            "[启动] 渲染后端：GPU（你设置了 JMCOMIC_RENDER=GL）。" +
+                "若窗口没有出现或内容全黑，去掉该环境变量即可回退软件渲染。"
+        )
     }
     // 启动就打出版本与构建时间：一眼分辨手上跑的是哪一版
     // （此前出现过"拿旧安装包测试、以为改动没编译"的误会，这一行就是为它加的）
@@ -114,6 +122,14 @@ fun main() {
         System.err.println("[崩溃] 线程 ${t.name}：")
         // 崩溃时把环境信息一并写进日志头部（对应 issue #8 的"没有任何输出"）
         System.err.println(Log.envBlock())
+        // 渲染初始化失败时给出可执行的下一步，而不是只留一堆堆栈
+        val text = (e.javaClass.name + " " + (e.message ?: "")).lowercase()
+        if (text.contains("render") || text.contains("skiko") || text.contains("gl context")) {
+            System.err.println(
+                "[启动] 看起来是渲染后端初始化失败：去掉 JMCOMIC_RENDER=GL 再启动一次" +
+                    "（或把 run.bat 里那行改成 set JMCOMIC_RENDER=）即可回退软件渲染。"
+            )
+        }
         e.printStackTrace()
     }
     runApp()
