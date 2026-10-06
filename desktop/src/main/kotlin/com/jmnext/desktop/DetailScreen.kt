@@ -73,6 +73,9 @@ fun DetailScreen(
     onOpenComic: (ListItem) -> Unit,
     // 点标签的出口：给了就路由到搜索页（Main.kt 尚未传），没给就在本页就地搜索
     onOpenTag: ((String) -> Unit)? = null,
+    // issue #13：由"随机"进入时显示"换一个"按钮，点击后原地重新随机（替换详情内容）
+    fromRandom: Boolean = false,
+    onRandomAgain: (() -> Unit)? = null,
 ) {
     var detail by remember(comicId) { mutableStateOf<AlbumDetail?>(null) }
     var status by remember(comicId) { mutableStateOf("正在加载作品…") }
@@ -272,6 +275,16 @@ fun DetailScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
+        // issue #13：只有从"随机"进入的详情页显示这个按钮 —— 不满意就直接换一个，
+        // 不必退回随机页再点。动作由 Main.kt 提供（重新取一批随机作品并替换当前详情内容）。
+        if (fromRandom && onRandomAgain != null) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onRandomAgain) { Text("换一个") }
+            }
+        }
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,

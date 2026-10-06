@@ -343,6 +343,11 @@ private fun App() {
         screen = Screen.Detail(item.id, item.name.orEmpty())
     }
 
+    // issue #13：只有"从随机进入的详情页"才显示"换一个"。用 aid 比较而不是布尔开关，
+    // 这样从首页/搜索/收藏/分类打开详情时自动不显示，无需改动那些入口。
+    var randomAid by remember { mutableStateOf<String?>(null) }
+    val uiScope = rememberCoroutineScope()
+
     // 未读通知数：Android 把它挂在「我的」页的通知入口上（ProfileScreen 的 EntryButton badge），
     // 桌面端挂在左侧常驻导航的「通知」项上（对应用户这次的要求）。只镜像服务端的数量。
     // 以 screen 为 key：进/出通知页都会重算，标记已读之后角标会跟着刷新。
@@ -466,6 +471,17 @@ private fun App() {
                         onOpenComic = openComic,
                         progress = readProgress,
                         // 章节顺序由详情页回传（接口下发的是从旧到新），阅读页据此判断上一话/下一话
+                        fromRandom = (randomAid == s.id),
+                        onRandomAgain = {
+                            uiScope.launch {
+                                val batch = runCatching { repository.randomRecommend() }.getOrNull().orEmpty()
+                                batch.firstOrNull()?.let { next ->
+                                    System.err.println("[界面] 换个随机作品：${next.name} (id=${next.id})")
+                                    randomAid = next.id
+                                    openComic(next)
+                                }
+                            }
+                        },
                         onOpenChapter = { ch, ids ->
                             System.err.println("[界面] 打开章节：sort=${ch.sort} id=${ch.id}（顺序 ${ids.size} 项）")
                             screen = Screen.Reader(comicId = s.id, chapterId = ch.id, chapterIds = ids)
@@ -488,7 +504,10 @@ private fun App() {
 
                     is Screen.Login -> LoginScreen(repository = repository, onDone = { screen = Screen.Home })
 
-                    is Screen.Page if s.route == "random" -> RandomScreen(repository, onOpenComic = openComic)
+                    is Screen.Page if s.route == "random" -> RandomScreen(
+                        repository,
+                        onOpenComic = { item -> randomAid = item.id; openComic(item) },
+                    )
                     is Screen.Page if s.route == "week" -> WeekScreen(repository, onOpenComic = openComic)
 
                     is Screen.Page if s.route == "about" -> AboutScreen(repository)
