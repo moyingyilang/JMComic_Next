@@ -61,6 +61,13 @@ object SelfCheck {
 
         val wrong = PassphraseKeyProvider(dir) { "wrong-pass".toCharArray() }
         check("口令保护：错口令 fail closed（返回 null 而不是明文兜底）", wrong.aesKey(ALIAS) == null)
+        // 包裹文件被截断/损坏时必须 fail closed（返回 null 且不抛异常）
+        val wrapped = File(dir, "$ALIAS.wrapped")
+        val original = wrapped.readBytes()
+        wrapped.writeBytes(original.copyOfRange(0, original.size / 2))
+        check("口令保护：包裹文件损坏时 fail closed（返回 null，不抛）",
+            PassphraseKeyProvider(dir) { "correct-horse".toCharArray() }.aesKey(ALIAS) == null)
+        wrapped.writeBytes(original)
 
         good.forget(ALIAS)
         check("口令保护：forget 删除包裹文件（登出即销毁密钥材料）", !File(dir, "$ALIAS.wrapped").exists())
@@ -73,11 +80,15 @@ object SelfCheck {
         val legacy = Preferences.userRoot().node("com/jmcomic_next/$node")
         legacy.put("jwt", "OLD-CIPHERTEXT")
         legacy.put("lastPage", "42")
+        legacy.putBoolean("dark", true)
+        legacy.putLong("ts", 123456789L)
         legacy.flush()
 
         val store = PreferencesKeyValueStore(node)
         check("节点迁移：读到旧节点的值", store.getString("jwt", null) == "OLD-CIPHERTEXT")
         check("节点迁移：整型键按类型读回", store.getInt("lastPage", 0) == 42)
+        check("节点迁移：布尔键按类型读回", store.getBoolean("dark", false))
+        check("节点迁移：长整型键按类型读回", store.getLong("ts", 0L) == 123456789L)
         val newPrefs = Preferences.userRoot().node("com/jmnext/$node")
         check("节点迁移：旧值已写入新节点", newPrefs.get("jwt", null) == "OLD-CIPHERTEXT")
         check("节点迁移：旧节点仍保留（可回退）", legacy.get("jwt", null) == "OLD-CIPHERTEXT")

@@ -60,8 +60,16 @@ dir "%USERPROFILE%\.config\jmnext\keys"
 
 ## 验证状态（如实记录）
 
-- 桌面模块编译通过；两步加密/权限行为用同一个 JDK 复现并验证（错口令与文件改动均失败、
-  包裹结果不含明文密钥、POSIX 权限收紧为 rw-------）。
+- 桌面模块编译通过。
+- **凭据相关逻辑已有自动化测试**：`desktop/src/test/kotlin/com/jmnext/desktop/CredentialStoreTest.kt`
+  调用 `SelfCheck.run()`，共 16 项断言，`gradle test` 与 CI 都会跑：
+  - 口令保护：生成并包裹、同一口令解出同一把密钥、**错口令 fail closed**、
+    **包裹文件损坏时 fail closed**、`forget` 删除文件；
+  - 节点迁移：字符串/整型/布尔/长整型四种类型都能从旧节点读回并迁入新节点、旧节点保留（可回退）、
+    `clear` 后新旧节点都清空；
+  - 全新安装 + 无图形环境：`maybeEnable` 不抛异常、安全落回原实现、写下不再询问标记。
+- 加密方案本身另有独立验证（用同一个 JDK 复现：错口令与文件改动均抛 AEADBadTagException、
+  包裹结果里逐字节搜索不到明文密钥、长度为 salt+iv+密文 的 76 字节、POSIX 权限收紧为 rw-------）。
 - **未在 Windows 实测**：ACL 分支与注册表路径的实际表现（开发环境无 Windows）。
 - **未验证**：Swing 口令框在真实桌面的交互、以及启动-输入口令-解密的端到端流程（开发环境无图形界面）。
 - **未验证**：Android 侧未重新编译（本次改动是共享接口上带默认实现的 `forget`，按设计不影响 Android）。
