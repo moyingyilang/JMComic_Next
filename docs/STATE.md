@@ -38,12 +38,18 @@
 
 1. 版本号：`desktop/.../Version.kt`、`desktop/build.gradle.kts`、三个 `desktop/scripts/package-*.sh`、`README.md`；
 2. CHANGELOG 顶部加索引行 + 新版小节（**必须写明未验证项**）；
-3. 打包 9 个产物：`scripts/package-linux.sh dist`、`package-linux-x64.sh dist-x64`、
+3. 打包桌面产物：`scripts/package-linux.sh dist`、`package-linux-x64.sh dist-x64`、
    `package-windows-x64.sh dist-win64`、`package-windows-arm64-x.sh dist-win`；
+   需要架构自适应统一包时再加 `package-linux-universal.sh dist-universal` 与
+   `package-windows-universal-exe.sh dist-win-universal`（2.1.6 起提供，2.1.8 的 Release 里含
+   `Windows-universal-2.1.8.exe`）；
 4. **核对**：与上一版逐项比体积（超 10% 人工查）、Windows ZIP 内必须有 `skiko-windows-*.jar`、
    deb 内必须有两个图标条目；
-5. 发布：`gh release create vX.Y.Z --prerelease --notes-file …` 一次带上 9 个附件，
-   然后 `gh release view --json assets` 核对线上大小与本地一致；
+5. 发布：`gh release create vX.Y.Z --prerelease --notes-file …` 带上全部附件，
+   然后 `gh release view --json assets` 核对线上大小与本地一致。
+   **附件数不是固定的 9 个**：2.1.8 为 13 个桌面产物（Linux aarch64 与 x86_64 各 tar.gz / deb / rpm / AppImage，
+   Windows x64 与 arm64 各 ZIP 与单体 exe，再加一个通用 exe）加 Android 的
+   `Android-full-*.apk` 与 `Android-lite-*.apk`，共 **15 个**；
 6. 通知：`.work/notify.sh "标题" "正文"`（必须在 Termux 里跑；chroot 内没有 am 广播）。
    **通知只在构建与提交都成功后才发**（曾把没做成的改动说成做成了）。
 
